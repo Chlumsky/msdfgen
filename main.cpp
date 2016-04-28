@@ -1,6 +1,6 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.0 (2016-04-24) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.0 (2016-04-28) - standalone console program
  * --------------------------------------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2016
  *
@@ -78,6 +78,7 @@ static bool parseAngle(double &value, const char *arg) {
         return true;
     if (result == 2 && (c1 == 'd' || c1 == 'D')) {
         value = M_PI*value/180;
+        return true;
     }
     return false;
 }
