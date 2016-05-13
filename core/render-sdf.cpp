@@ -39,7 +39,7 @@ static float distVal(float dist, double pxRange) {
 
 void renderSDF(Bitmap<float> &output, const Bitmap<float> &sdf, double pxRange) {
     int w = output.width(), h = output.height();
-    pxRange *= (w+h)/(sdf.width()+sdf.height());
+    pxRange *= (double) (w+h)/(sdf.width()+sdf.height());
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             float s = sample(sdf, Point2((x+.5)/w, (y+.5)/h));
@@ -49,7 +49,7 @@ void renderSDF(Bitmap<float> &output, const Bitmap<float> &sdf, double pxRange) 
 
 void renderSDF(Bitmap<FloatRGB> &output, const Bitmap<float> &sdf, double pxRange) {
     int w = output.width(), h = output.height();
-    pxRange *= (w+h)/(sdf.width()+sdf.height());
+    pxRange *= (double) (w+h)/(sdf.width()+sdf.height());
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             float s = sample(sdf, Point2((x+.5)/w, (y+.5)/h));
@@ -62,7 +62,7 @@ void renderSDF(Bitmap<FloatRGB> &output, const Bitmap<float> &sdf, double pxRang
 
 void renderSDF(Bitmap<float> &output, const Bitmap<FloatRGB> &sdf, double pxRange) {
     int w = output.width(), h = output.height();
-    pxRange *= (w+h)/(sdf.width()+sdf.height());
+    pxRange *= (double) (w+h)/(sdf.width()+sdf.height());
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             FloatRGB s = sample(sdf, Point2((x+.5)/w, (y+.5)/h));
@@ -72,7 +72,7 @@ void renderSDF(Bitmap<float> &output, const Bitmap<FloatRGB> &sdf, double pxRang
 
 void renderSDF(Bitmap<FloatRGB> &output, const Bitmap<FloatRGB> &sdf, double pxRange) {
     int w = output.width(), h = output.height();
-    pxRange *= (w+h)/(sdf.width()+sdf.height());
+    pxRange *= (double) (w+h)/(sdf.width()+sdf.height());
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
             FloatRGB s = sample(sdf, Point2((x+.5)/w, (y+.5)/h));

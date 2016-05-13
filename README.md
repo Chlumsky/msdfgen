@@ -8,7 +8,7 @@ and pseudo-distance fields, its primary purpose is to generate multi-channel dis
 using a method I have developed. Unlike monochrome distance fields, they have the ability
 to reproduce sharp corners almost perfectly by utilizing all three color channels.
 
-The following sequence of images demonstrates the improvement in image quality.
+The following comparison demonstrates the improvement in image quality.
 
 ![demo-msdf16](https://cloud.githubusercontent.com/assets/18639794/14770355/14cda9f8-0a70-11e6-8346-2bd14b5b832f.png)
 ![demo-sdf16](https://cloud.githubusercontent.com/assets/18639794/14770360/20c51156-0a70-11e6-8f03-ed7632d07997.png)
@@ -89,12 +89,12 @@ in order to generate a distance field. Please note that all classes and function
    or `CubicEdge`. You can construct them from two endpoints and 0 to 2 Bézier control points.
  - Normalize the shape using its `normalize` method and assign colors to edges if you need a multi-channel SDF.
    This can be performed automatically using the `edgeColoringSimple` heuristic, or manually by setting each edge's
-   `color` member. Keep in mind that at least two color channels must be turned on in each edge, and the color should
-   only change at corners.
+   `color` member. Keep in mind that at least two color channels must be turned on in each edge, and iff two edges meet
+   at a sharp corner, they must only have one channel in common.
  - Call `generateSDF`, `generatePseudoSDF`, or `generateMSDF` to generate a distance field into a floating point
    `Bitmap` object. This can then be worked with further or saved to a file using `saveBmp` or `savePng`.
  - You may also render an image from the distance field using `renderSDF`. Consider calling `simulate8bit`
-   on the distance field beforehand to simulate the standard 8 bits/pixel image format.
+   on the distance field beforehand to simulate the standard 8 bits/channel image format.
 
 Example:
 ```c++
@@ -163,7 +163,7 @@ The text shape description has the following syntax.
  - Points in a contour are separated with semicolons.
  - The last point of each contour must be equal to the first, or the symbol `#` can be used, which represents the first point.
  - There can be an edge segment specification between any two points, also separated by semicolons.
-   This can include the edge's color (`c`, `m`, or `y`) and/or one or two curve control points inside parentheses.
+   This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two Bézier curve control points inside parentheses.
    
 For example,
 ```
