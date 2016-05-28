@@ -1,0 +1,26 @@
+# Run in a container, for speed
+sudo: false
+
+# Enable C++ support
+language: cpp
+
+# Use gcc and g++
+compiler:
+  - gcc
+
+# Test on both Linux and OSX (there's no Windows support)
+os:
+  - linux
+  - osx
+
+# Install project dependencies
+before_install:
+  - |-
+    if [ $TRAVIS_OS_NAME == osx ]; then
+      brew update
+      brew install freetype
+    fi
+
+# Build steps
+script:
+  - make
