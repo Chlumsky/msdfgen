@@ -221,6 +221,8 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
                 fclose(file);
                 return NULL;
             }
+            default:
+              break;
         }
     } else {
         if (format == AUTO || format == TEXT)
@@ -597,6 +599,8 @@ int main(int argc, const char * const *argv) {
             fclose(file);
             break;
         }
+        default:
+          break;
     }
 
     // Validate and normalize shape
@@ -695,6 +699,8 @@ int main(int argc, const char * const *argv) {
             generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
             break;
         }
+        default:
+          break;
     }
 
     // Save output
@@ -746,6 +752,8 @@ int main(int argc, const char * const *argv) {
                 if (!savePng(render, testRender))
                     ABORT("Failed to write test render file.");
             }
+            break;
+          default:
             break;
     }
 
