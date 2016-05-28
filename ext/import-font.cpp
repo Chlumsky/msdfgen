@@ -94,10 +94,10 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     };
 
     if (!font)
-        return NULL;
+        return false;
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
     if (error)
-        return NULL;
+        return false;
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
