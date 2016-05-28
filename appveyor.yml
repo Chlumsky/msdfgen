@@ -1,0 +1,10 @@
+platform:
+- x86
+
+environment:
+  os: Visual Studio 2015
+
+build:
+  project: Msdfgen.sln
+
+deploy: off

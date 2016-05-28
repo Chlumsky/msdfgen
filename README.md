@@ -1,5 +1,7 @@
 # Multi-channel signed distance field generator
 [![Build Status](https://travis-ci.org/Chlumsky/msdfgen.svg?branch=master)](https://travis-ci.org/Chlumsky/msdfgen)
+[![Build status](https://ci.appveyor.com/api/projects/status/n0akxrtbwkyjbw3e/branch/master?svg=true)](https://ci.appveyor.com/project/Chlumsky/msdfgen/branch/master)
+
 
 This is a utility for generating signed distance fields from vector shapes and font glyphs,
 which serve as a texture representation that can be used in real-time graphics to efficiently reproduce said shapes.
