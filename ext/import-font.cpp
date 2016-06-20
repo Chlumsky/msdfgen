@@ -68,7 +68,7 @@ void destroyFont(FontHandle *font) {
 }
 
 bool getFontScale(double &output, FontHandle *font) {
-    output = font->face->units_per_EM/64.;
+    output = font->face->units_per_EM;
     return true;
 }
 
@@ -98,10 +98,16 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
     if (error)
         return false;
+
+    double unitsPerEm;
+    double unitScale;
+    getFontScale(unitsPerEm, font);
+    unitScale = 2048.0 / unitsPerEm;
+
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = font->face->glyph->advance.x/64.;
+        *advance = unitScale * font->face->glyph->advance.x/64.;
 
     int last = -1;
     // For each contour
@@ -123,7 +129,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
                 round++;
             }
 
-            Point2 point(font->face->glyph->outline.points[index].x/64., font->face->glyph->outline.points[index].y/64.);
+            Point2 point(unitScale*font->face->glyph->outline.points[index].x/64., unitScale*font->face->glyph->outline.points[index].y/64.);
             PointType pointType = font->face->glyph->outline.tags[index]&1 ? PATH_POINT : font->face->glyph->outline.tags[index]&2 ? CUBIC_POINT : QUADRATIC_POINT;
 
             switch (state) {
