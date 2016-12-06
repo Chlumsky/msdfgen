@@ -1,6 +1,6 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.1 (2016-05-08) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.2 (2016-07-20) - standalone console program
  * --------------------------------------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2016
  *
@@ -42,6 +42,11 @@ static char toupper(char c) {
 static bool parseUnsigned(unsigned &value, const char *arg) {
     static char c;
     return sscanf(arg, "%u%c", &value, &c) == 1;
+}
+
+static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
+    static char c;
+    return sscanf(arg, "%llu%c", &value, &c) == 1;
 }
 
 static bool parseUnsignedHex(unsigned &value, const char *arg) {
@@ -124,6 +129,21 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
                 break;
         }
     }
+}
+
+static void invertColor(Bitmap<FloatRGB> &bitmap) {
+    for (int y = 0; y < bitmap.height(); ++y)
+        for (int x = 0; x < bitmap.width(); ++x) {
+            bitmap(x, y).r = .5f-bitmap(x, y).r;
+            bitmap(x, y).g = .5f-bitmap(x, y).g;
+            bitmap(x, y).b = .5f-bitmap(x, y).b;
+        }
+}
+
+static void invertColor(Bitmap<float> &bitmap) {
+    for (int y = 0; y < bitmap.height(); ++y)
+        for (int x = 0; x < bitmap.width(); ++x)
+            bitmap(x, y) = .5f-bitmap(x, y);
 }
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {
@@ -222,7 +242,7 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
                 return NULL;
             }
             default:
-              break;
+                break;
         }
     } else {
         if (format == AUTO || format == TEXT)
@@ -302,6 +322,10 @@ static const char *helpText =
         "\tSets the translation of the shape in shape units.\n"
     "  -yflip\n"
         "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
+    "  -reverseorder\n"
+        "\tReverses the order of the points in each contour.\n"
+    "  -seed <n>\n"
+        "\tSets the random seed for edge coloring heuristic.\n"
     "\n";
 
 int main(int argc, const char * const *argv) {
@@ -351,6 +375,8 @@ int main(int argc, const char * const *argv) {
     bool yFlip = false;
     bool printMetrics = false;
     bool skipColoring = false;
+    bool reverseOrder = false;
+    unsigned long long coloringSeed = 0;
 
     int argPos = 1;
     bool suggestHelp = false;
@@ -540,6 +566,17 @@ int main(int argc, const char * const *argv) {
             argPos += 1;
             continue;
         }
+        ARG_CASE("-reverseorder", 0) {
+            reverseOrder = true;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-seed", 1) {
+            if (!parseUnsignedLL(coloringSeed, argv[argPos+1]))
+                ABORT("Invalid seed. Use -seed <N> with N being a non-negative integer.");
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-help", 0)
             ABORT(helpText);
         printf("Unknown setting or insufficient parameters: %s\n", arg);
@@ -600,7 +637,7 @@ int main(int argc, const char * const *argv) {
             break;
         }
         default:
-          break;
+            break;
     }
 
     // Validate and normalize shape
@@ -692,7 +729,7 @@ int main(int argc, const char * const *argv) {
         }
         case MULTI: {
             if (!skipColoring)
-                edgeColoringSimple(shape, angleThreshold);
+                edgeColoringSimple(shape, angleThreshold, coloringSeed);
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<FloatRGB>(width, height);
@@ -700,7 +737,12 @@ int main(int argc, const char * const *argv) {
             break;
         }
         default:
-          break;
+            break;
+    }
+
+    if (reverseOrder) {
+        invertColor(sdf);
+        invertColor(msdf);
     }
 
     // Save output
@@ -753,7 +795,7 @@ int main(int argc, const char * const *argv) {
                     ABORT("Failed to write test render file.");
             }
             break;
-          default:
+        default:
             break;
     }
 

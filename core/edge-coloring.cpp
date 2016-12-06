@@ -7,7 +7,24 @@ static bool isCorner(const Vector2 &aDir, const Vector2 &bDir, double crossThres
     return dotProduct(aDir, bDir) <= 0 || fabs(crossProduct(aDir, bDir)) > crossThreshold;
 }
 
-void edgeColoringSimple(Shape &shape, double angleThreshold) {
+static void switchColor(EdgeColor &color, unsigned long long &seed, EdgeColor banned = BLACK) {
+    EdgeColor combined = EdgeColor(color&banned);
+    if (combined == RED || combined == GREEN || combined == BLUE) {
+        color = EdgeColor(combined^WHITE);
+        return;
+    }
+    if (color == BLACK || color == WHITE) {
+        static const EdgeColor start[3] = { CYAN, MAGENTA, YELLOW };
+        color = start[seed%3];
+        seed /= 3;
+        return;
+    }
+    int shifted = color<<(1+(seed&1));
+    color = EdgeColor((shifted|shifted>>3)&WHITE);
+    seed >>= 1;
+}
+
+void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long seed) {
     double crossThreshold = sin(angleThreshold);
     std::vector<int> corners;
     for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
@@ -29,7 +46,9 @@ void edgeColoringSimple(Shape &shape, double angleThreshold) {
                 (*edge)->color = WHITE;
         // "Teardrop" case
         else if (corners.size() == 1) {
-            const EdgeColor colors[] = { MAGENTA, WHITE, YELLOW };
+            EdgeColor colors[3] = { WHITE, WHITE };
+            switchColor(colors[0], seed);
+            switchColor(colors[2] = colors[0], seed);
             int corner = corners[0];
             if (contour->edges.size() >= 3) {
                 int m = contour->edges.size();
@@ -57,16 +76,19 @@ void edgeColoringSimple(Shape &shape, double angleThreshold) {
         // Multiple corners
         else {
             int cornerCount = corners.size();
-            // CMYCMYCMYCMY / YMYCMYC if corner count % 3 == 1
-            EdgeColor colors[] = { cornerCount%3 == 1 ? YELLOW : CYAN, CYAN, MAGENTA, YELLOW };
             int spline = 0;
             int start = corners[0];
             int m = contour->edges.size();
+            EdgeColor color = WHITE;
+            switchColor(color, seed);
+            EdgeColor initialColor = color;
             for (int i = 0; i < m; ++i) {
                 int index = (start+i)%m;
-                if (cornerCount > spline+1 && corners[spline+1] == index)
+                if (spline+1 < cornerCount && corners[spline+1] == index) {
                     ++spline;
-                contour->edges[index]->color = (colors+1)[spline%3-!spline];
+                    switchColor(color, seed, EdgeColor((spline == cornerCount-1)*initialColor));
+                }
+                contour->edges[index]->color = color;
             }
         }
     }

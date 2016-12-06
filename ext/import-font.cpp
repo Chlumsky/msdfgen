@@ -115,6 +115,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
 
         Contour &contour = output.addContour();
         int first = last+1;
+        int firstPathPoint = -1;
         last = font->face->glyph->outline.contours[i];
 
         PointType state = NONE;
@@ -123,20 +124,24 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
 
         // For each point on the contour
         for (int round = 0, index = first; round == 0; ++index) {
-            // Close contour
             if (index > last) {
+                REQUIRE(firstPathPoint >= 0);
                 index = first;
-                round++;
             }
+            // Close contour
+            if (index == firstPathPoint)
+                ++round;
 
             Point2 point(unitScale*font->face->glyph->outline.points[index].x/64., unitScale*font->face->glyph->outline.points[index].y/64.);
             PointType pointType = font->face->glyph->outline.tags[index]&1 ? PATH_POINT : font->face->glyph->outline.tags[index]&2 ? CUBIC_POINT : QUADRATIC_POINT;
 
             switch (state) {
                 case NONE:
-                    REQUIRE(pointType == PATH_POINT);
-                    startPoint = point;
-                    state = PATH_POINT;
+                    if (pointType == PATH_POINT) {
+                        firstPathPoint = index;
+                        startPoint = point;
+                        state = PATH_POINT;
+                    }
                     break;
                 case PATH_POINT:
                     if (pointType == PATH_POINT) {
