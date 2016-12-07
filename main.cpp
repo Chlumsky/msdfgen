@@ -1,6 +1,6 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.2 (2016-07-20) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.3 (2016-12-07) - standalone console program
  * --------------------------------------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2016
  *
@@ -134,16 +134,16 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
 static void invertColor(Bitmap<FloatRGB> &bitmap) {
     for (int y = 0; y < bitmap.height(); ++y)
         for (int x = 0; x < bitmap.width(); ++x) {
-            bitmap(x, y).r = .5f-bitmap(x, y).r;
-            bitmap(x, y).g = .5f-bitmap(x, y).g;
-            bitmap(x, y).b = .5f-bitmap(x, y).b;
+            bitmap(x, y).r = 1.f-bitmap(x, y).r;
+            bitmap(x, y).g = 1.f-bitmap(x, y).g;
+            bitmap(x, y).b = 1.f-bitmap(x, y).b;
         }
 }
 
 static void invertColor(Bitmap<float> &bitmap) {
     for (int y = 0; y < bitmap.height(); ++y)
         for (int x = 0; x < bitmap.width(); ++x)
-            bitmap(x, y) = .5f-bitmap(x, y);
+            bitmap(x, y) = 1.f-bitmap(x, y);
 }
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {

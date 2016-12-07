@@ -14,11 +14,6 @@ The following comparison demonstrates the improvement in image quality.
 ![demo-sdf16](https://cloud.githubusercontent.com/assets/18639794/14770360/20c51156-0a70-11e6-8f03-ed7632d07997.png)
 ![demo-sdf32](https://cloud.githubusercontent.com/assets/18639794/14770361/251a4406-0a70-11e6-95a7-e30e235ac729.png)
 
-## New in version 1.2
- - Option to specify that shape is defined in reverse order (-reverseorder)
- - Option to set a seed for the edge coloring heuristic (-seed \<n\>), which can be used to adjust the output
- - Fixed parsing of glyph contours starting that start with a curve control point.
-
 ## Getting started
 
 The project can be used either as a library or as a console program. is divided into two parts, **[core](core)**

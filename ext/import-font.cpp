@@ -5,6 +5,7 @@
 #include <queue>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
 
 #ifdef _WIN32
     #pragma comment(lib, "freetype.lib")
@@ -34,6 +35,44 @@ class FontHandle {
     FT_Face face;
 
 };
+
+struct FtContext {
+    Point2 position;
+    Shape *shape;
+    Contour *contour;
+};
+
+static Point2 ftPoint2(const FT_Vector &vector) {
+    return Point2(vector.x/64., vector.y/64.);
+}
+
+static int ftMoveTo(const FT_Vector *to, void *user) {
+    FtContext *context = reinterpret_cast<FtContext *>(user);
+    context->contour = &context->shape->addContour();
+    context->position = ftPoint2(*to);
+    return 0;
+}
+
+static int ftLineTo(const FT_Vector *to, void *user) {
+    FtContext *context = reinterpret_cast<FtContext *>(user);
+    context->contour->addEdge(new LinearSegment(context->position, ftPoint2(*to)));
+    context->position = ftPoint2(*to);
+    return 0;
+}
+
+static int ftConicTo(const FT_Vector *control, const FT_Vector *to, void *user) {
+    FtContext *context = reinterpret_cast<FtContext *>(user);
+    context->contour->addEdge(new QuadraticSegment(context->position, ftPoint2(*control), ftPoint2(*to)));
+    context->position = ftPoint2(*to);
+    return 0;
+}
+
+static int ftCubicTo(const FT_Vector *control1, const FT_Vector *control2, const FT_Vector *to, void *user) {
+    FtContext *context = reinterpret_cast<FtContext *>(user);
+    context->contour->addEdge(new CubicSegment(context->position, ftPoint2(*control1), ftPoint2(*control2), ftPoint2(*to)));
+    context->position = ftPoint2(*to);
+    return 0;
+}
 
 FreetypeHandle * initializeFreetype() {
     FreetypeHandle *handle = new FreetypeHandle;
@@ -85,14 +124,6 @@ bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
-    enum PointType {
-        NONE = 0,
-        PATH_POINT,
-        QUADRATIC_POINT,
-        CUBIC_POINT,
-        CUBIC_POINT2
-    };
-
     if (!font)
         return false;
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
@@ -103,84 +134,18 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     if (advance)
         *advance = font->face->glyph->advance.x/64.;
 
-    int last = -1;
-    // For each contour
-    for (int i = 0; i < font->face->glyph->outline.n_contours; ++i) {
-
-        Contour &contour = output.addContour();
-        int first = last+1;
-        int firstPathPoint = -1;
-        last = font->face->glyph->outline.contours[i];
-
-        PointType state = NONE;
-        Point2 startPoint;
-        Point2 controlPoint[2];
-
-        // For each point on the contour
-        for (int round = 0, index = first; round == 0; ++index) {
-            if (index > last) {
-                REQUIRE(firstPathPoint >= 0);
-                index = first;
-            }
-            // Close contour
-            if (index == firstPathPoint)
-                ++round;
-
-            Point2 point(font->face->glyph->outline.points[index].x/64., font->face->glyph->outline.points[index].y/64.);
-            PointType pointType = font->face->glyph->outline.tags[index]&1 ? PATH_POINT : font->face->glyph->outline.tags[index]&2 ? CUBIC_POINT : QUADRATIC_POINT;
-
-            switch (state) {
-                case NONE:
-                    if (pointType == PATH_POINT) {
-                        firstPathPoint = index;
-                        startPoint = point;
-                        state = PATH_POINT;
-                    }
-                    break;
-                case PATH_POINT:
-                    if (pointType == PATH_POINT) {
-                        contour.addEdge(new LinearSegment(startPoint, point));
-                        startPoint = point;
-                    } else {
-                        controlPoint[0] = point;
-                        state = pointType;
-                    }
-                    break;
-                case QUADRATIC_POINT:
-                    REQUIRE(pointType != CUBIC_POINT);
-                    if (pointType == PATH_POINT) {
-                        contour.addEdge(new QuadraticSegment(startPoint, controlPoint[0], point));
-                        startPoint = point;
-                        state = PATH_POINT;
-                    } else {
-                        Point2 midPoint = .5*controlPoint[0]+.5*point;
-                        contour.addEdge(new QuadraticSegment(startPoint, controlPoint[0], midPoint));
-                        startPoint = midPoint;
-                        controlPoint[0] = point;
-                    }
-                    break;
-                case CUBIC_POINT:
-                    REQUIRE(pointType == CUBIC_POINT);
-                    controlPoint[1] = point;
-                    state = CUBIC_POINT2;
-                    break;
-                case CUBIC_POINT2:
-                    REQUIRE(pointType != QUADRATIC_POINT);
-                    if (pointType == PATH_POINT) {
-                        contour.addEdge(new CubicSegment(startPoint, controlPoint[0], controlPoint[1], point));
-                        startPoint = point;
-                    } else {
-                        Point2 midPoint = .5*controlPoint[1]+.5*point;
-                        contour.addEdge(new CubicSegment(startPoint, controlPoint[0], controlPoint[1], midPoint));
-                        startPoint = midPoint;
-                        controlPoint[0] = point;
-                    }
-                    state = pointType;
-                    break;
-            }
-
-        }
-    }
+    FtContext context = { };
+    context.shape = &output;
+    FT_Outline_Funcs ftFunctions;
+    ftFunctions.move_to = &ftMoveTo;
+    ftFunctions.line_to = &ftLineTo;
+    ftFunctions.conic_to = &ftConicTo;
+    ftFunctions.cubic_to = &ftCubicTo;
+    ftFunctions.shift = 0;
+    ftFunctions.delta = 0;
+    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    if (error)
+        return false;
     return true;
 }
 
