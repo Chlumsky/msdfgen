@@ -4,9 +4,10 @@ This is a utility for generating signed distance fields from vector shapes and f
 which serve as a texture representation that can be used in real-time graphics to efficiently reproduce said shapes.
 Although it can also be used to generate conventional signed distance fields best known from
 [this Valve paper](http://www.valvesoftware.com/publications/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf)
-and pseudo-distance fields, its primary purpose is to generate multi-channel distance fields,
-using a method I have developed. Unlike monochrome distance fields, they have the ability
-to reproduce sharp corners almost perfectly by utilizing all three color channels.
+and pseudo-distance fields, its primary purpose is to generate multi-channel distance fields, using
+[a method I have developed](https://dspace.cvut.cz/bitstream/handle/10467/62770/F8-DP-2015-Chlumsky-Viktor-thesis.pdf).
+Unlike monochrome distance fields, they have the ability to reproduce sharp corners almost perfectly by utilizing
+all three color channels.
 
 The following comparison demonstrates the improvement in image quality.
 
@@ -86,7 +87,7 @@ in order to generate a distance field. Please note that all classes and function
 
  - Acquire a `Shape` object. You can either load it via `loadGlyph` or `loadSvgShape`, or construct it manually.
    It consists of closed contours, which in turn consist of edges. An edge is represented by a `LinearEdge`, `QuadraticEdge`,
-   or `CubicEdge`. You can construct them from two endpoints and 0 to 2 Bézier control points.
+   or `CubicEdge`. You can construct them from two endpoints and 0 to 2 BÃ©zier control points.
  - Normalize the shape using its `normalize` method and assign colors to edges if you need a multi-channel SDF.
    This can be performed automatically using the `edgeColoringSimple` heuristic, or manually by setting each edge's
    `color` member. Keep in mind that at least two color channels must be turned on in each edge, and iff two edges meet
@@ -163,7 +164,7 @@ The text shape description has the following syntax.
  - Points in a contour are separated with semicolons.
  - The last point of each contour must be equal to the first, or the symbol `#` can be used, which represents the first point.
  - There can be an edge segment specification between any two points, also separated by semicolons.
-   This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two Bézier curve control points inside parentheses.
+   This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two BÃ©zier curve control points inside parentheses.
    
 For example,
 ```
@@ -173,4 +174,4 @@ would represent a square with magenta and yellow edges,
 ```
 { 0, 1; (+1.6, -0.8; -1.6, -0.8); # }
 ```
-is a teardrop shape formed by a single cubic Bézier curve.
+is a teardrop shape formed by a single cubic BÃ©zier curve.
