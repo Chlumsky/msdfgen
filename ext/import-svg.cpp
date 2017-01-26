@@ -52,6 +52,16 @@ static bool readDouble(double &output, const char *&pathDef) {
     return false;
 }
 
+static bool consumeOptionalComma(const char *&pathDef) {
+    while (*pathDef == ' ') {
+        ++pathDef;
+    }
+    if (*pathDef == ',') {
+        ++pathDef;
+    }
+    return true;
+}
+
 static bool buildFromPath(Shape &shape, const char *pathDef) {
     char nodeType;
     Point2 prevNode(0, 0);
@@ -66,79 +76,83 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
         while (true) {
             switch (nodeType) {
                 case 'M':
-                    REQUIRE(contourStart);
-                    REQUIRE(readCoord(node, pathDef));
-                    startPoint = node;
-                    nodeType = 'L';
-                    break;
                 case 'm':
                     REQUIRE(contourStart);
                     REQUIRE(readCoord(node, pathDef));
-                    node += prevNode;
+                    if (nodeType == 'm') {
+                        node += prevNode;
+                    }
                     startPoint = node;
-                    nodeType = 'l';
+                    --nodeType; // to 'L' or 'l'
                     break;
                 case 'Z':
                 case 'z':
                     if (prevNode != startPoint)
                         contour.addEdge(new LinearSegment(prevNode, startPoint));
+                    prevNode = startPoint;
                     goto NEXT_CONTOUR;
                 case 'L':
-                    REQUIRE(readCoord(node, pathDef));
-                    contour.addEdge(new LinearSegment(prevNode, node));
-                    break;
                 case 'l':
                     REQUIRE(readCoord(node, pathDef));
-                    node += prevNode;
+                    if (nodeType == 'l') {
+                        node += prevNode;
+                    }
                     contour.addEdge(new LinearSegment(prevNode, node));
                     break;
                 case 'H':
-                    REQUIRE(readDouble(node.x, pathDef));
-                    contour.addEdge(new LinearSegment(prevNode, node));
-                    break;
                 case 'h':
                     REQUIRE(readDouble(node.x, pathDef));
-                    node.x += prevNode.x;
+                    if (nodeType == 'h') {
+                        node.x += prevNode.x;
+                    }
                     contour.addEdge(new LinearSegment(prevNode, node));
                     break;
                 case 'V':
-                    REQUIRE(readDouble(node.y, pathDef));
-                    contour.addEdge(new LinearSegment(prevNode, node));
-                    break;
                 case 'v':
                     REQUIRE(readDouble(node.y, pathDef));
-                    node.y += prevNode.y;
+                    if (nodeType == 'v') {
+                        node.y += prevNode.y;
+                    }
                     contour.addEdge(new LinearSegment(prevNode, node));
                     break;
                 case 'Q':
-                    REQUIRE(readCoord(controlPoint[0], pathDef));
-                    REQUIRE(readCoord(node, pathDef));
-                    contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
-                    break;
                 case 'q':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
+                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
-                    controlPoint[0] += prevNode;
-                    node += prevNode;
+                    if (nodeType == 'q') {
+                        controlPoint[0] += prevNode;
+                        node += prevNode;
+                    }
                     contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
                     break;
                 // TODO T, t
                 case 'C':
-                    REQUIRE(readCoord(controlPoint[0], pathDef));
-                    REQUIRE(readCoord(controlPoint[1], pathDef));
-                    REQUIRE(readCoord(node, pathDef));
-                    contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
-                    break;
                 case 'c':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
+                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(controlPoint[1], pathDef));
+                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
-                    controlPoint[0] += prevNode;
-                    controlPoint[1] += prevNode;
-                    node += prevNode;
+                    if (nodeType == 'c') {
+                        controlPoint[0] += prevNode;
+                        controlPoint[1] += prevNode;
+                        node += prevNode;
+                    }
                     contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
-                // TODO S, s
+                case 'S':
+                case 's':
+                    controlPoint[0] = node * 2 - controlPoint[1];
+                    REQUIRE(readCoord(controlPoint[1], pathDef));
+                    consumeOptionalComma(pathDef);
+                    REQUIRE(readCoord(node, pathDef));
+                    if (nodeType == 's') {
+                        controlPoint[1] += prevNode;
+                        node += prevNode;
+                    }
+                    contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
+                    break;
                 // TODO A, a
                 default:
                     REQUIRE(false);
