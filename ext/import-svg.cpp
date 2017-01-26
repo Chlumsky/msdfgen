@@ -52,14 +52,13 @@ static bool readDouble(double &output, const char *&pathDef) {
     return false;
 }
 
-static bool consumeOptionalComma(const char *&pathDef) {
+static void consumeOptionalComma(const char *&pathDef) {
     while (*pathDef == ' ') {
         ++pathDef;
     }
     if (*pathDef == ',') {
         ++pathDef;
     }
-    return true;
 }
 
 static bool buildFromPath(Shape &shape, const char *pathDef) {
