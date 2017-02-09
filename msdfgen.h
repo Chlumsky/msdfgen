@@ -2,9 +2,9 @@
 #pragma once
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.3 (2016-12-07)
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.4 (2017-02-09)
  * ---------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2016
+ * A utility by Viktor Chlumsky, (c) 2014 - 2017
  *
  * The technique used to generate multi-channel distance fields in this code
  * has been developed by Viktor Chlumsky in 2014 for his master's thesis,
@@ -24,7 +24,7 @@
 #include "core/save-bmp.h"
 #include "core/shape-description.h"
 
-#define MSDFGEN_VERSION "1.3"
+#define MSDFGEN_VERSION "1.4"
 
 namespace msdfgen {
 
@@ -36,5 +36,10 @@ void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, 
 
 /// Generates a multi-channel signed distance field. Edge colors must be assigned first! (see edgeColoringSimple)
 void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
+
+// Original simpler versions of the previous functions, which work well under normal circumstances, but cannot deal with overlapping contours.
+void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generatePseudoSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generateMSDF_legacy(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
 
 }

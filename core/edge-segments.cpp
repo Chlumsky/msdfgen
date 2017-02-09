@@ -38,6 +38,8 @@ LinearSegment::LinearSegment(Point2 p0, Point2 p1, EdgeColor edgeColor) : EdgeSe
 }
 
 QuadraticSegment::QuadraticSegment(Point2 p0, Point2 p1, Point2 p2, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
+    if (p1 == p0 || p1 == p2)
+        p1 = 0.5*(p0+p2);
     p[0] = p0;
     p[1] = p1;
     p[2] = p2;
@@ -84,7 +86,12 @@ Vector2 QuadraticSegment::direction(double param) const {
 }
 
 Vector2 CubicSegment::direction(double param) const {
-    return mix(mix(p[1]-p[0], p[2]-p[1], param), mix(p[2]-p[1], p[3]-p[2], param), param);
+    Vector2 tangent = mix(mix(p[1]-p[0], p[2]-p[1], param), mix(p[2]-p[1], p[3]-p[2], param), param);
+    if (!tangent) {
+        if (param == 0) return p[2]-p[0];
+        if (param == 1) return p[3]-p[1];
+    }
+    return tangent;
 }
 
 SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const {
@@ -146,13 +153,15 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     Vector2 br = p[2]-p[1]-ab;
     Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
 
-    double minDistance = nonZeroSign(crossProduct(ab, qa))*qa.length(); // distance from A
-    param = -dotProduct(qa, ab)/dotProduct(ab, ab);
+    Vector2 epDir = direction(0);
+    double minDistance = nonZeroSign(crossProduct(epDir, qa))*qa.length(); // distance from A
+    param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
-        double distance = nonZeroSign(crossProduct(p[3]-p[2], p[3]-origin))*(p[3]-origin).length(); // distance from B
+        epDir = direction(1);
+        double distance = nonZeroSign(crossProduct(epDir, p[3]-origin))*(p[3]-origin).length(); // distance from B
         if (fabs(distance) < fabs(minDistance)) {
             minDistance = distance;
-            param = dotProduct(origin-p[2], p[3]-p[2])/dotProduct(p[3]-p[2], p[3]-p[2]);
+            param = dotProduct(origin+epDir-p[3], epDir)/dotProduct(epDir, epDir);
         }
     }
     // Iterative minimum distance search
@@ -179,54 +188,10 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     if (param >= 0 && param <= 1)
         return SignedDistance(minDistance, 0);
     if (param < .5)
-        return SignedDistance(minDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
+        return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
     else
-        return SignedDistance(minDistance, fabs(dotProduct((p[3]-p[2]).normalize(), (p[3]-origin).normalize())));
+        return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[3]-origin).normalize())));
 }
-
-// Original method by solving a fifth order polynomial
-/*SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
-    Vector2 qa = p[0]-origin;
-    Vector2 ab = p[1]-p[0];
-    Vector2 br = p[2]-p[1]-ab;
-    Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
-    double a = dotProduct(as, as);
-    double b = 5*dotProduct(br, as);
-    double c = 4*dotProduct(ab, as)+6*dotProduct(br, br);
-    double d = 9*dotProduct(ab, br)+dotProduct(qa, as);
-    double e = 3*dotProduct(ab, ab)+2*dotProduct(qa, br);
-    double f = dotProduct(qa, ab);
-    double t[5];
-    int solutions = solveQuintic(t, a, b, c, d, e, f);
-
-    double minDistance = nonZeroSign(crossProduct(ab, qa))*qa.length(); // distance from A
-    param = -dotProduct(qa, ab)/dotProduct(ab, ab);
-    {
-        double distance = nonZeroSign(crossProduct(p[3]-p[2], p[3]-origin))*(p[3]-origin).length(); // distance from B
-        if (fabs(distance) < fabs(minDistance)) {
-            minDistance = distance;
-            param = dotProduct(origin-p[2], p[3]-p[2])/dotProduct(p[3]-p[2], p[3]-p[2]);
-        }
-    }
-    for (int i = 0; i < solutions; ++i) {
-        if (t[i] > 0 && t[i] < 1) {
-            Point2 endpoint = p[0]+3*t[i]*ab+3*t[i]*t[i]*br+t[i]*t[i]*t[i]*as;
-            Vector2 dirVec = t[i]*t[i]*as+2*t[i]*br+ab;
-            double distance = nonZeroSign(crossProduct(dirVec, endpoint-origin))*(endpoint-origin).length();
-            if (fabs(distance) <= fabs(minDistance)) {
-                minDistance = distance;
-                param = t[i];
-            }
-        }
-    }
-
-    if (param >= 0 && param <= 1)
-        return SignedDistance(minDistance, 0);
-    if (param < .5)
-        return SignedDistance(minDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
-    else
-        return SignedDistance(minDistance, fabs(dotProduct((p[3]-p[2]).normalize(), (p[3]-origin).normalize())));
-}*/
 
 static void pointBounds(Point2 p, double &l, double &b, double &r, double &t) {
     if (p.x < l) l = p.x;

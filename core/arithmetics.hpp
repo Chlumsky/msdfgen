@@ -48,6 +48,12 @@ inline T clamp(T n, T a, T b) {
     return n >= a && n <= b ? n : n < a ? a : b;
 }
 
+/// Returns 1 for positive values, -1 for negative values, and 0 for zero.
+template <typename T>
+inline int sign(T n) {
+    return (T(0) < n)-(n < T(0));
+}
+
 /// Returns 1 for non-negative values and -1 for negative values.
 template <typename T>
 inline int nonZeroSign(T n) {
