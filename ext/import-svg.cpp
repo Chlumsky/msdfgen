@@ -71,7 +71,11 @@ static void consumeOptionalComma(const char *&pathDef) {
 }
 
 static double toDegrees(double rad) {
-    return rad * M_PI / 180.0;
+    return rad * 180.0 / M_PI;
+}
+
+static double toRad(double degrees) {
+    return degrees * M_PI / 180.0;
 }
 
 static Point2 handleArc(const char *&pathDef, char nodeType, Point2 prevNode, Contour &contour) {
@@ -114,7 +118,7 @@ static Point2 handleArc(const char *&pathDef, char nodeType, Point2 prevNode, Co
         return prevNode;
     }
 
-    double xAxisRotationRad = std::fmod(xAxisRotation, 360.0) * M_PI / 180;
+    double xAxisRotationRad = toRad(std::fmod(xAxisRotation, 360.0));
     double cosRotation = std::cos(xAxisRotationRad);
     double sinRotation = std::sin(xAxisRotationRad);
     Point2 mid = (prevNode - arcEnd) / 2.0;
@@ -171,8 +175,8 @@ static Point2 handleArc(const char *&pathDef, char nodeType, Point2 prevNode, Co
 
     // generate bezier curves for a unit circle that covers the given arc angles
     int segmentCount = static_cast<int>(std::ceil(std::abs(angleExtent) / 90.0));
-    angleStart = std::fmod(angleStart, 360.0) * 180 / M_PI;
-    angleExtent = std::fmod(angleExtent, 360.0) * 180 / M_PI;
+    angleStart = toRad(std::fmod(angleStart, 360.0));
+    angleExtent = toRad(std::fmod(angleExtent, 360.0));
     double angleIncrement = angleExtent / segmentCount;
     double controlLength = 4.0 / 3.0 * std::sin(angleIncrement / 2.0) / (1.0 + std::cos(angleIncrement / 2.0));
 
