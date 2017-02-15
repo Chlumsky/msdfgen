@@ -177,41 +177,31 @@ static Point2 handleArc(const char *&pathDef, char nodeType, Point2 prevNode, Co
     double controlLength = 4.0 / 3.0 * std::sin(angleIncrement / 2.0) / (1.0 + std::cos(angleIncrement / 2.0));
 
     Point2 startPoint = prevNode;
-    Point2 maxCoord(std::max(arcEnd.x, prevNode.x), std::max(arcEnd.y, prevNode.y));
-    Point2 minCoord(std::min(arcEnd.x, prevNode.x), std::min(arcEnd.y, prevNode.y));
-    Point2 unit = maxCoord - minCoord;
     Point2 bezEndpoint;
     Point2 controlPoint[2];
     for (int i = 0; i < segmentCount; i++) {
         double angle = angleStart + i * angleIncrement;
         double dx = std::cos(angle);
         double dy = std::sin(angle);
-        controlPoint[0].x = (dx - controlLength * dy) * unit.x;
-        controlPoint[0].y = (dy + controlLength * dx) * unit.y;
+        controlPoint[0].x = (dx - controlLength * dy) * radiusX;
+        controlPoint[0].y = (dy + controlLength * dx) * radiusY;
+        controlPoint[0] = controlPoint[0].rotate(xAxisRotation) + center;
         angle += angleIncrement;
         dx = std::cos(angle);
         dy = std::sin(angle);
-        controlPoint[1].x = (dx + controlLength * dy) * unit.x;
-        controlPoint[1].y = (dy - controlLength * dx) * unit.y;
+        controlPoint[1].x = (dx + controlLength * dy) * radiusX;
+        controlPoint[1].y = (dy - controlLength * dx) * radiusY;
+        controlPoint[1] = controlPoint[1].rotate(xAxisRotation) + center;
+        bezEndpoint.x = dx * radiusX;
+        bezEndpoint.y = dy * radiusY;
+        bezEndpoint = bezEndpoint.rotate(xAxisRotation);
+        bezEndpoint = bezEndpoint + center;
         if (i == segmentCount - 1) {
             // to prevent rounding errors
             bezEndpoint = arcEnd;
-        } else {
-            bezEndpoint.x = dx;
-            bezEndpoint.y = dy;
         }
-        contour.addEdge(new CubicSegment(startPoint, controlPoint[0] + center, controlPoint[1] + center, bezEndpoint));
-        // rotated
-        // 45.371329,19.126326
-        // 40.339192,21.715938
-        // 28.431021,18.144102
-        // 18.311195,8.2382273
 
-        // not rotated
-        // 53.27246,0.13737911
-        // 51.581384,5.5381897
-        // 40.674998,11.505877
-        // 26.516017,11.751778
+        contour.addEdge(new CubicSegment(startPoint, controlPoint[0], controlPoint[1], bezEndpoint));
         startPoint = bezEndpoint;
     }
 
