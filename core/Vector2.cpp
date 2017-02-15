@@ -58,6 +58,14 @@ Vector2 Vector2::rotateAround(const Vector2 &center, double angleDegree) const {
     return result + center;
 }
 
+Vector2 Vector2::rotate(double angleDegree) const {
+    double s = std::sin(angleDegree * M_PI / 180);
+    double c = std::cos(angleDegree * M_PI / 180);
+    double newX = x * c - y * s;
+    double newY = x * s + y * c;
+    return Vector2(newX, newY);
+}
+
 Vector2::operator const void*() const {
     return x || y ? this : NULL;
 }
