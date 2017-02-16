@@ -27,7 +27,7 @@ The following comparison demonstrates the improvement in image quality.
 
 ## Getting started
 
-The project can be used either as a library or as a console program. is divided into two parts, **[core](core)**
+The project can be used either as a library or as a console program. It is divided into two parts, **[core](core)**
 and **[extensions](ext)**. The core module has no dependencies and only uses bare C++. It contains all
 key data structures and algorithms, which can be accessed through the [msdfgen.h](msdfgen.h) header.
 Extensions contain utilities for loading fonts and SVG files, as well as saving PNG images.
@@ -38,7 +38,7 @@ and [LodePNG](http://lodev.org/lodepng/).
 
 Additionaly, there is the [main.cpp](main.cpp), which wraps the functionality into
 a comprehensive standalone console program. To start using the program immediately,
-a Windows binary of this program, [msdfgen.exe](msdfgen.exe), is available in the root directory.
+there is a Windows binary available for download in the "Releases" section.
 
 ## Console commands
 
