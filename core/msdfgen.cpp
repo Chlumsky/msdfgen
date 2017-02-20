@@ -5,56 +5,10 @@
 
 namespace msdfgen {
 
-void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
-    int w = output.width(), h = output.height();
-#ifdef MSDFGEN_USE_OPENMP
-    #pragma omp parallel for
-#endif
-    for (int y = 0; y < h; ++y) {
-        int row = shape.inverseYAxis ? h-y-1 : y;
-        for (int x = 0; x < w; ++x) {
-            double dummy;
-            Point2 p = Vector2(x+.5, y+.5)/scale-translate;
-            SignedDistance minDistance;
-            for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                    SignedDistance distance = (*edge)->signedDistance(p, dummy);
-                    if (distance < minDistance)
-                        minDistance = distance;
-                }
-            output(x, row) = float(minDistance.distance/range+.5);
-        }
-    }
-}
-
-void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
-    int w = output.width(), h = output.height();
-#ifdef MSDFGEN_USE_OPENMP
-    #pragma omp parallel for
-#endif
-    for (int y = 0; y < h; ++y) {
-        int row = shape.inverseYAxis ? h-y-1 : y;
-        for (int x = 0; x < w; ++x) {
-            Point2 p = Vector2(x+.5, y+.5)/scale-translate;
-            SignedDistance minDistance;
-            const EdgeHolder *nearEdge = NULL;
-            double nearParam = 0;
-            for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                    double param;
-                    SignedDistance distance = (*edge)->signedDistance(p, param);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        nearEdge = &*edge;
-                        nearParam = param;
-                    }
-                }
-            if (nearEdge)
-                (*nearEdge)->distanceToPseudoDistance(minDistance, p, nearParam);
-            output(x, row) = float(minDistance.distance/range+.5);
-        }
-    }
-}
+struct MultiDistance {
+    double r, g, b;
+    double med;
+};
 
 static inline bool pixelClash(const FloatRGB &a, const FloatRGB &b, double threshold) {
     // Only consider pair where both are on the inside or both are on the outside
@@ -108,7 +62,329 @@ void msdfErrorCorrection(Bitmap<FloatRGB> &output, const Vector2 &threshold) {
     }
 }
 
+void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int contourCount = shape.contours.size();
+    int w = output.width(), h = output.height();
+    std::vector<int> windings;
+    windings.reserve(contourCount);
+    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+        windings.push_back(contour->winding());
+
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel
+#endif
+    {
+        std::vector<double> contourSD;
+        contourSD.resize(contourCount);
+#ifdef MSDFGEN_USE_OPENMP
+        #pragma omp for
+#endif
+        for (int y = 0; y < h; ++y) {
+            int row = shape.inverseYAxis ? h-y-1 : y;
+            for (int x = 0; x < w; ++x) {
+                double dummy;
+                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+                double negDist = -SignedDistance::INFINITE.distance;
+                double posDist = SignedDistance::INFINITE.distance;
+                int winding = 0;
+
+                std::vector<Contour>::const_iterator contour = shape.contours.begin();
+                for (int i = 0; i < contourCount; ++i, ++contour) {
+                    SignedDistance minDistance;
+                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                        SignedDistance distance = (*edge)->signedDistance(p, dummy);
+                        if (distance < minDistance)
+                            minDistance = distance;
+                    }
+                    contourSD[i] = minDistance.distance;
+                    if (windings[i] > 0 && minDistance.distance >= 0 && fabs(minDistance.distance) < fabs(posDist))
+                        posDist = minDistance.distance;
+                    if (windings[i] < 0 && minDistance.distance <= 0 && fabs(minDistance.distance) < fabs(negDist))
+                        negDist = minDistance.distance;
+                }
+
+                double sd = SignedDistance::INFINITE.distance;
+                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
+                    sd = posDist;
+                    winding = 1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] > 0 && contourSD[i] > sd && fabs(contourSD[i]) < fabs(negDist))
+                            sd = contourSD[i];
+                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
+                    sd = negDist;
+                    winding = -1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] < 0 && contourSD[i] < sd && fabs(contourSD[i]) < fabs(posDist))
+                            sd = contourSD[i];
+                }
+                for (int i = 0; i < contourCount; ++i)
+                    if (windings[i] != winding && fabs(contourSD[i]) < fabs(sd))
+                        sd = contourSD[i];
+
+                output(x, row) = float(sd/range+.5);
+            }
+        }
+    }
+}
+
+void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int contourCount = shape.contours.size();
+    int w = output.width(), h = output.height();
+    std::vector<int> windings;
+    windings.reserve(contourCount);
+    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+        windings.push_back(contour->winding());
+
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel
+#endif
+    {
+        std::vector<double> contourSD;
+        contourSD.resize(contourCount);
+#ifdef MSDFGEN_USE_OPENMP
+        #pragma omp for
+#endif
+        for (int y = 0; y < h; ++y) {
+            int row = shape.inverseYAxis ? h-y-1 : y;
+            for (int x = 0; x < w; ++x) {
+                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+                double sd = SignedDistance::INFINITE.distance;
+                double negDist = -SignedDistance::INFINITE.distance;
+                double posDist = SignedDistance::INFINITE.distance;
+                int winding = 0;
+
+                std::vector<Contour>::const_iterator contour = shape.contours.begin();
+                for (int i = 0; i < contourCount; ++i, ++contour) {
+                    SignedDistance minDistance;
+                    const EdgeHolder *nearEdge = NULL;
+                    double nearParam = 0;
+                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                        double param;
+                        SignedDistance distance = (*edge)->signedDistance(p, param);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearEdge = &*edge;
+                            nearParam = param;
+                        }
+                    }
+                    if (fabs(minDistance.distance) < fabs(sd)) {
+                        sd = minDistance.distance;
+                        winding = -windings[i];
+                    }
+                    if (nearEdge)
+                        (*nearEdge)->distanceToPseudoDistance(minDistance, p, nearParam);
+                    contourSD[i] = minDistance.distance;
+                    if (windings[i] > 0 && minDistance.distance >= 0 && fabs(minDistance.distance) < fabs(posDist))
+                        posDist = minDistance.distance;
+                    if (windings[i] < 0 && minDistance.distance <= 0 && fabs(minDistance.distance) < fabs(negDist))
+                        negDist = minDistance.distance;
+                }
+
+                double psd = SignedDistance::INFINITE.distance;
+                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
+                    psd = posDist;
+                    winding = 1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] > 0 && contourSD[i] > psd && fabs(contourSD[i]) < fabs(negDist))
+                            psd = contourSD[i];
+                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
+                    psd = negDist;
+                    winding = -1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] < 0 && contourSD[i] < psd && fabs(contourSD[i]) < fabs(posDist))
+                            psd = contourSD[i];
+                }
+                for (int i = 0; i < contourCount; ++i)
+                    if (windings[i] != winding && fabs(contourSD[i]) < fabs(psd))
+                        psd = contourSD[i];
+
+                output(x, row) = float(psd/range+.5);
+            }
+        }
+    }
+}
+
 void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
+    int contourCount = shape.contours.size();
+    int w = output.width(), h = output.height();
+    std::vector<int> windings;
+    windings.reserve(contourCount);
+    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+        windings.push_back(contour->winding());
+
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel
+#endif
+    {
+        std::vector<MultiDistance> contourSD;
+        contourSD.resize(contourCount);
+#ifdef MSDFGEN_USE_OPENMP
+        #pragma omp for
+#endif
+        for (int y = 0; y < h; ++y) {
+            int row = shape.inverseYAxis ? h-y-1 : y;
+            for (int x = 0; x < w; ++x) {
+                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+
+                struct EdgePoint {
+                    SignedDistance minDistance;
+                    const EdgeHolder *nearEdge;
+                    double nearParam;
+                } sr, sg, sb;
+                sr.nearEdge = sg.nearEdge = sb.nearEdge = NULL;
+                sr.nearParam = sg.nearParam = sb.nearParam = 0;
+                double d = fabs(SignedDistance::INFINITE.distance);
+                double negDist = -SignedDistance::INFINITE.distance;
+                double posDist = SignedDistance::INFINITE.distance;
+                int winding = 0;
+
+                std::vector<Contour>::const_iterator contour = shape.contours.begin();
+                for (int i = 0; i < contourCount; ++i, ++contour) {
+                    EdgePoint r, g, b;
+                    r.nearEdge = g.nearEdge = b.nearEdge = NULL;
+                    r.nearParam = g.nearParam = b.nearParam = 0;
+
+                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                        double param;
+                        SignedDistance distance = (*edge)->signedDistance(p, param);
+                        if ((*edge)->color&RED && distance < r.minDistance) {
+                            r.minDistance = distance;
+                            r.nearEdge = &*edge;
+                            r.nearParam = param;
+                        }
+                        if ((*edge)->color&GREEN && distance < g.minDistance) {
+                            g.minDistance = distance;
+                            g.nearEdge = &*edge;
+                            g.nearParam = param;
+                        }
+                        if ((*edge)->color&BLUE && distance < b.minDistance) {
+                            b.minDistance = distance;
+                            b.nearEdge = &*edge;
+                            b.nearParam = param;
+                        }
+                    }
+                    if (r.minDistance < sr.minDistance)
+                        sr = r;
+                    if (g.minDistance < sg.minDistance)
+                        sg = g;
+                    if (b.minDistance < sb.minDistance)
+                        sb = b;
+
+                    double medMinDistance = fabs(median(r.minDistance.distance, g.minDistance.distance, b.minDistance.distance));
+                    if (medMinDistance < d) {
+                        d = medMinDistance;
+                        winding = -windings[i];
+                    }
+                    if (r.nearEdge)
+                        (*r.nearEdge)->distanceToPseudoDistance(r.minDistance, p, r.nearParam);
+                    if (g.nearEdge)
+                        (*g.nearEdge)->distanceToPseudoDistance(g.minDistance, p, g.nearParam);
+                    if (b.nearEdge)
+                        (*b.nearEdge)->distanceToPseudoDistance(b.minDistance, p, b.nearParam);
+                    medMinDistance = median(r.minDistance.distance, g.minDistance.distance, b.minDistance.distance);
+                    contourSD[i].r = r.minDistance.distance;
+                    contourSD[i].g = g.minDistance.distance;
+                    contourSD[i].b = b.minDistance.distance;
+                    contourSD[i].med = medMinDistance;
+                    if (windings[i] > 0 && medMinDistance >= 0 && fabs(medMinDistance) < fabs(posDist))
+                        posDist = medMinDistance;
+                    if (windings[i] < 0 && medMinDistance <= 0 && fabs(medMinDistance) < fabs(negDist))
+                        negDist = medMinDistance;
+                }
+                if (sr.nearEdge)
+                    (*sr.nearEdge)->distanceToPseudoDistance(sr.minDistance, p, sr.nearParam);
+                if (sg.nearEdge)
+                    (*sg.nearEdge)->distanceToPseudoDistance(sg.minDistance, p, sg.nearParam);
+                if (sb.nearEdge)
+                    (*sb.nearEdge)->distanceToPseudoDistance(sb.minDistance, p, sb.nearParam);
+
+                MultiDistance msd;
+                msd.r = msd.g = msd.b = msd.med = SignedDistance::INFINITE.distance;
+                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
+                    msd.med = SignedDistance::INFINITE.distance;
+                    winding = 1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] > 0 && contourSD[i].med > msd.med && fabs(contourSD[i].med) < fabs(negDist))
+                            msd = contourSD[i];
+                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
+                    msd.med = -SignedDistance::INFINITE.distance;
+                    winding = -1;
+                    for (int i = 0; i < contourCount; ++i)
+                        if (windings[i] < 0 && contourSD[i].med < msd.med && fabs(contourSD[i].med) < fabs(posDist))
+                            msd = contourSD[i];
+                }
+                for (int i = 0; i < contourCount; ++i)
+                    if (windings[i] != winding && fabs(contourSD[i].med) < fabs(msd.med))
+                        msd = contourSD[i];
+                if (median(sr.minDistance.distance, sg.minDistance.distance, sb.minDistance.distance) == msd.med) {
+                    msd.r = sr.minDistance.distance;
+                    msd.g = sg.minDistance.distance;
+                    msd.b = sb.minDistance.distance;
+                }
+
+                output(x, row).r = float(msd.r/range+.5);
+                output(x, row).g = float(msd.g/range+.5);
+                output(x, row).b = float(msd.b/range+.5);
+            }
+        }
+    }
+
+    if (edgeThreshold > 0)
+        msdfErrorCorrection(output, edgeThreshold/(scale*range));
+}
+
+void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int w = output.width(), h = output.height();
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel for
+#endif
+    for (int y = 0; y < h; ++y) {
+        int row = shape.inverseYAxis ? h-y-1 : y;
+        for (int x = 0; x < w; ++x) {
+            double dummy;
+            Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+            SignedDistance minDistance;
+            for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                    SignedDistance distance = (*edge)->signedDistance(p, dummy);
+                    if (distance < minDistance)
+                        minDistance = distance;
+                }
+            output(x, row) = float(minDistance.distance/range+.5);
+        }
+    }
+}
+
+void generatePseudoSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int w = output.width(), h = output.height();
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel for
+#endif
+    for (int y = 0; y < h; ++y) {
+        int row = shape.inverseYAxis ? h-y-1 : y;
+        for (int x = 0; x < w; ++x) {
+            Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+            SignedDistance minDistance;
+            const EdgeHolder *nearEdge = NULL;
+            double nearParam = 0;
+            for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                    double param;
+                    SignedDistance distance = (*edge)->signedDistance(p, param);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearEdge = &*edge;
+                        nearParam = param;
+                    }
+                }
+            if (nearEdge)
+                (*nearEdge)->distanceToPseudoDistance(minDistance, p, nearParam);
+            output(x, row) = float(minDistance.distance/range+.5);
+        }
+    }
+}
+
+void generateMSDF_legacy(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
     int w = output.width(), h = output.height();
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel for

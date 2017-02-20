@@ -1,0 +1,12 @@
+Debug/
+Release/
+*.exe
+*.user
+*.sdf
+*.pdb
+*.ipdb
+*.iobj
+*.suo
+*.VC.opendb
+output.png
+render.png

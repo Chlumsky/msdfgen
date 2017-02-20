@@ -14,14 +14,20 @@ The following comparison demonstrates the improvement in image quality.
 ![demo-sdf16](https://cloud.githubusercontent.com/assets/18639794/14770360/20c51156-0a70-11e6-8f03-ed7632d07997.png)
 ![demo-sdf32](https://cloud.githubusercontent.com/assets/18639794/14770361/251a4406-0a70-11e6-95a7-e30e235ac729.png)
 
-## New in version 1.2
- - Option to specify that shape is defined in reverse order (-reverseorder)
- - Option to set a seed for the edge coloring heuristic (-seed \<n\>), which can be used to adjust the output
- - Fixed parsing of glyph contours starting that start with a curve control point.
+## New in version 1.4
+ - The procedure of how contours are combined together has been reworked, and now supports overlapping contours,
+   which are often present in fonts with auto-generated accented glyphs. Since this is a major change to the core algorithm,
+   the original versions of all functions in [msdfgen.h](msdfgen.h) have been preserved with `_legacy` suffix,
+   and can be enabled in the command line tool with **-legacy** switch.
+ - A major bug has been fixed in the evaluation of signed distance of cubic curves, in which at least one of the control points
+   lies at the endpoint. If you use an older version, you should update now.
+ - In the standalone program, the orientation of the input is now being automatically detected by sampling the signed distance
+   at an arbitrary point outside the shape's bounding box, and the output adjusted accordingly. This can be disabled
+   by new option **-keeporder** or the pre-existing **-reverseorder**.
 
 ## Getting started
 
-The project can be used either as a library or as a console program. is divided into two parts, **[core](core)**
+The project can be used either as a library or as a console program. It is divided into two parts, **[core](core)**
 and **[extensions](ext)**. The core module has no dependencies and only uses bare C++. It contains all
 key data structures and algorithms, which can be accessed through the [msdfgen.h](msdfgen.h) header.
 Extensions contain utilities for loading fonts and SVG files, as well as saving PNG images.
@@ -32,7 +38,7 @@ and [LodePNG](http://lodev.org/lodepng/).
 
 Additionaly, there is the [main.cpp](main.cpp), which wraps the functionality into
 a comprehensive standalone console program. To start using the program immediately,
-a Windows binary of this program, [msdfgen.exe](msdfgen.exe), is available in the root directory.
+there is a Windows binary available for download in the "Releases" section.
 
 ## Console commands
 
@@ -91,7 +97,7 @@ in order to generate a distance field. Please note that all classes and function
 
  - Acquire a `Shape` object. You can either load it via `loadGlyph` or `loadSvgShape`, or construct it manually.
    It consists of closed contours, which in turn consist of edges. An edge is represented by a `LinearEdge`, `QuadraticEdge`,
-   or `CubicEdge`. You can construct them from two endpoints and 0 to 2 Bézier control points.
+   or `CubicEdge`. You can construct them from two endpoints and 0 to 2 BÃ©zier control points.
  - Normalize the shape using its `normalize` method and assign colors to edges if you need a multi-channel SDF.
    This can be performed automatically using the `edgeColoringSimple` heuristic, or manually by setting each edge's
    `color` member. Keep in mind that at least two color channels must be turned on in each edge, and iff two edges meet
@@ -168,7 +174,7 @@ The text shape description has the following syntax.
  - Points in a contour are separated with semicolons.
  - The last point of each contour must be equal to the first, or the symbol `#` can be used, which represents the first point.
  - There can be an edge segment specification between any two points, also separated by semicolons.
-   This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two Bézier curve control points inside parentheses.
+   This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two BÃ©zier curve control points inside parentheses.
    
 For example,
 ```
@@ -178,4 +184,4 @@ would represent a square with magenta and yellow edges,
 ```
 { 0, 1; (+1.6, -0.8; -1.6, -0.8); # }
 ```
-is a teardrop shape formed by a single cubic Bézier curve.
+is a teardrop shape formed by a single cubic BÃ©zier curve.

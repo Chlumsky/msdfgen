@@ -1,8 +1,8 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.2 (2016-07-20) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.4 (2017-02-09) - standalone console program
  * --------------------------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2016
+ * A utility by Viktor Chlumsky, (c) 2014 - 2017
  *
  */
 
@@ -134,16 +134,16 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
 static void invertColor(Bitmap<FloatRGB> &bitmap) {
     for (int y = 0; y < bitmap.height(); ++y)
         for (int x = 0; x < bitmap.width(); ++x) {
-            bitmap(x, y).r = .5f-bitmap(x, y).r;
-            bitmap(x, y).g = .5f-bitmap(x, y).g;
-            bitmap(x, y).b = .5f-bitmap(x, y).b;
+            bitmap(x, y).r = 1.f-bitmap(x, y).r;
+            bitmap(x, y).g = 1.f-bitmap(x, y).g;
+            bitmap(x, y).b = 1.f-bitmap(x, y).b;
         }
 }
 
 static void invertColor(Bitmap<float> &bitmap) {
     for (int y = 0; y < bitmap.height(); ++y)
         for (int x = 0; x < bitmap.width(); ++x)
-            bitmap(x, y) = .5f-bitmap(x, y);
+            bitmap(x, y) = 1.f-bitmap(x, y);
 }
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {
@@ -300,6 +300,10 @@ static const char *helpText =
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
     "  -help\n"
         "\tDisplays this help.\n"
+    "  -keeporder\n"
+        "\tDisables the detection of shape orientation and keeps it as is.\n"
+    "  -legacy\n"
+        "\tUses the original (legacy) distance field algorithms.\n"
     "  -o <filename>\n"
         "\tSets the output file name. The default value is \"output.png\".\n"
     "  -printmetrics\n"
@@ -320,12 +324,12 @@ static const char *helpText =
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
-    "  -yflip\n"
-        "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
     "  -reverseorder\n"
-        "\tReverses the order of the points in each contour.\n"
+        "\tDisables the detection of shape orientation and reverses the order of its vertices.\n"
     "  -seed <n>\n"
         "\tSets the random seed for edge coloring heuristic.\n"
+    "  -yflip\n"
+        "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
     "\n";
 
 int main(int argc, const char * const *argv) {
@@ -346,6 +350,7 @@ int main(int argc, const char * const *argv) {
         MULTI,
         METRICS
     } mode = MULTI;
+    bool legacyMode = false;
     Format format = AUTO;
     const char *input = NULL;
     const char *output = "output.png";
@@ -375,7 +380,11 @@ int main(int argc, const char * const *argv) {
     bool yFlip = false;
     bool printMetrics = false;
     bool skipColoring = false;
-    bool reverseOrder = false;
+    enum {
+        KEEP,
+        REVERSE,
+        GUESS
+    } orientation = GUESS;
     unsigned long long coloringSeed = 0;
 
     int argPos = 1;
@@ -430,6 +439,11 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-stdout", 0) {
             output = NULL;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-legacy", 0) {
+            legacyMode = true;
             argPos += 1;
             continue;
         }
@@ -566,8 +580,18 @@ int main(int argc, const char * const *argv) {
             argPos += 1;
             continue;
         }
+        ARG_CASE("-keeporder", 0) {
+            orientation = KEEP;
+            argPos += 1;
+            continue;
+        }
         ARG_CASE("-reverseorder", 0) {
-            reverseOrder = true;
+            orientation = REVERSE;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-guessorder", 0) {
+            orientation = GUESS;
             argPos += 1;
             continue;
         }
@@ -653,7 +677,7 @@ int main(int argc, const char * const *argv) {
     } bounds = {
         LARGE_VALUE, LARGE_VALUE, -LARGE_VALUE, -LARGE_VALUE
     };
-    if (autoFrame || mode == METRICS || printMetrics)
+    if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS)
         shape.bounds(bounds.l, bounds.b, bounds.r, bounds.t);
 
     // Auto-frame
@@ -719,12 +743,18 @@ int main(int argc, const char * const *argv) {
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float>(width, height);
-            generateSDF(sdf, shape, range, scale, translate);
+            if (legacyMode)
+                generateSDF_legacy(sdf, shape, range, scale, translate);
+            else
+                generateSDF(sdf, shape, range, scale, translate);
             break;
         }
         case PSEUDO: {
             sdf = Bitmap<float>(width, height);
-            generatePseudoSDF(sdf, shape, range, scale, translate);
+            if (legacyMode)
+                generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
+            else
+                generatePseudoSDF(sdf, shape, range, scale, translate);
             break;
         }
         case MULTI: {
@@ -733,14 +763,30 @@ int main(int argc, const char * const *argv) {
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<FloatRGB>(width, height);
-            generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
+            if (legacyMode)
+                generateMSDF_legacy(msdf, shape, range, scale, translate, edgeThreshold);
+            else
+                generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
             break;
         }
         default:
             break;
     }
 
-    if (reverseOrder) {
+    if (orientation == GUESS) {
+        // Get sign of signed distance outside bounds
+        Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
+        double dummy;
+        SignedDistance minDistance;
+        for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+            for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                SignedDistance distance = (*edge)->signedDistance(p, dummy);
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+        orientation = minDistance.distance <= 0 ? KEEP : REVERSE;
+    }
+    if (orientation == REVERSE) {
         invertColor(sdf);
         invertColor(msdf);
     }
