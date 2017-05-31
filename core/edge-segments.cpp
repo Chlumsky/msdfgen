@@ -295,5 +295,17 @@ void CubicSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeS
         point(2/3.), color);
     part3 = new CubicSegment(point(2/3.), mix(mix(p[1], p[2], 2/3.), mix(p[2], p[3], 2/3.), 2/3.), p[2] == p[3] ? p[3] : mix(p[2], p[3], 2/3.), p[3], color);
 }
+    
+bool LinearSegment::isDegenerate() const {
+    return p[0].same(p[1]);
+}
+    
+bool QuadraticSegment::isDegenerate() const {
+    return p[0].same(p[2]);
+}
+
+bool CubicSegment::isDegenerate() const {
+    return p[0].same(p[3]) && (p[0].same(p[1]) || p[2].same(p[1]));
+}
 
 }
