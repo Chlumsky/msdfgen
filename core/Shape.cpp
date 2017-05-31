@@ -38,6 +38,17 @@ bool Shape::validate() const {
 
 void Shape::normalize() {
     for (std::vector<Contour>::iterator contour = contours.begin(); contour != contours.end(); ++contour) {
+        // First, erase all degenerate edges.
+        std::vector<EdgeHolder>::iterator edge_it = contour->edges.begin();
+        while( edge_it != contour->edges.end() ) {
+            if( (*edge_it)->isDegenerate() ) {
+                edge_it = contour->edges.erase(edge_it);
+            }
+            else {
+                edge_it++;
+            }
+        }
+        
         if (contour->edges.size() == 1) {
             EdgeSegment *parts[3] = { };
             contour->edges[0]->splitInThirds(parts[0], parts[1], parts[2]);
