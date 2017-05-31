@@ -333,7 +333,7 @@ static const char *helpText =
     "\n";
 
 int main(int argc, const char * const *argv) {
-    #define ABORT(msg) { puts(msg); return 0; }
+    #define ABORT(msg) { puts(msg); return 1; }
 
     // Parse command line arguments
     enum {
