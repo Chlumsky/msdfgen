@@ -322,6 +322,8 @@ static const char *helpText =
         "\tRenders an image preview using the generated distance field and saves it as a PNG file.\n"
     "  -testrendermulti <filename.png> <width> <height>\n"
         "\tRenders an image preview without flattening the color channels.\n"
+    "  -tolerance <tolerance>  (Default: 0.01)\n"
+    	"\tTolerance when checking for point equality. Helps avoid artifacts in noisy/inaccurate input shapes.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
     "  -reverseorder\n"
@@ -600,6 +602,12 @@ int main(int argc, const char * const *argv) {
                 ABORT("Invalid seed. Use -seed <N> with N being a non-negative integer.");
             argPos += 2;
             continue;
+        }
+        ARG_CASE("-tolerance", 1) {
+        	if (!parseDouble(Vector2::Epsilon, argv[argPos+1]) || Vector2::Epsilon < 0 )
+        		ABORT("Invalid Tolerance value. Use -tolerance <N> with a value >= 0.0.");
+        	argPos += 2;
+        	continue;
         }
         ARG_CASE("-help", 0)
             ABORT(helpText);
