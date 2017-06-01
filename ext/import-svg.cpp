@@ -306,7 +306,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
     return true;
 }
 
-bool loadSvgShape(Shape &output, const char *filename, Vector2 *dimensions) {
+bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *dimensions) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filename))
         return false;
@@ -314,11 +314,29 @@ bool loadSvgShape(Shape &output, const char *filename, Vector2 *dimensions) {
     if (!root)
         return false;
 
-    tinyxml2::XMLElement *path = root->FirstChildElement("path");
-    if (!path) {
-        tinyxml2::XMLElement *g = root->FirstChildElement("g");
-        if (g)
-            path = g->FirstChildElement("path");
+    tinyxml2::XMLElement *path = NULL;
+    if( pathIndex > 0 ) {
+        path = root->FirstChildElement("path");
+        if (!path) {
+            tinyxml2::XMLElement *g = root->FirstChildElement("g");
+            if (g)
+                path = g->FirstChildElement("path");
+        }
+        while (path && --pathIndex > 0)
+            path = path->NextSiblingElement("path");
+    }
+    else {
+        // A pathIndex of 0 means "default", which is the same as specifying a -1 (i.e. last).
+
+        path = root->LastChildElement("path");
+        if (!path) {
+            tinyxml2::XMLElement *g = root->LastChildElement("g");
+            if (g)
+                path = g->LastChildElement("path");
+        }
+        while (path && ++pathIndex < 0) {
+            path = path->PreviousSiblingElement("path");
+        }
     }
     if (!path)
         return false;
