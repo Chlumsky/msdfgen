@@ -70,7 +70,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
         Point2 controlPoint[2];
         Point2 node;
 
-        while (true) {
+        while (*pathDef) {
             switch (nodeType) {
                 case 'M': case 'm':
                     REQUIRE(contourStart);
