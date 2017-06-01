@@ -35,7 +35,6 @@ function(folderize_sources sources prefix)
 
 	  # skip src or include and changes /'s to \\'s
 	  string(REPLACE "${prefix}" "" GROUP "${PARENT_DIR}")
-	  string(REGEX REPLACE "(\\./)?(src|include)/?" "" GROUP "${GROUP}")
 	  string(REPLACE "/" "\\" GROUP "${GROUP}")
 
       # If it's got a path, then append a "\\" separator (otherwise leave it blank)
@@ -52,7 +51,9 @@ endfunction(folderize_sources)
 file(GLOB_RECURSE msdfgen_HEADERS
 	"core/*.h"
 	"lib/*.h"
-	"ext/*.h")
+	"ext/*.h"
+	"include/*.h"
+)
 
 file(GLOB_RECURSE msdfgen_SOURCES
 	"core/*.cpp"
