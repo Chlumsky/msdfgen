@@ -10,7 +10,12 @@
 
 namespace msdfgen {
 
+#if NDEBUG
 #define REQUIRE(cond) { if (!(cond)) return false; }
+#else
+#define REQUIRE(cond) { if (!(cond)) { fprintf(stderr, "SVG Parse Error (%s:%d): " #cond "\n", __FILE__, __LINE__); return false; } }
+#endif
+
 
 static bool readNodeType(char &output, const char *&pathDef) {
     int shift;
@@ -223,7 +228,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
         Point2 controlPoint[2];
         Point2 node;
 
-        while (true) {
+        while (*pathDef) {
             switch (nodeType) {
                 case 'M': case 'm':
                     REQUIRE(contourStart);
