@@ -44,6 +44,11 @@ static bool parseUnsigned(unsigned &value, const char *arg) {
     return sscanf(arg, "%u%c", &value, &c) == 1;
 }
 
+static bool parseInteger(int &value, const char *arg) {
+    static char c;
+    return sscanf(arg, "%d%c", &value, &c) == 1;
+}
+
 static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
     static char c;
     return sscanf(arg, "%llu%c", &value, &c) == 1;
@@ -280,8 +285,10 @@ static const char *helpText =
         "\tLoads text shape description from a file.\n"
     "  -stdin\n"
         "\tReads text shape description from the standard input.\n"
-    "  -svg <filename.svg>\n"
-        "\tLoads the first vector path encountered in the specified SVG file.\n"
+    "  -svg <filename.svg> [<pathIndex>]\n"
+        "\tLoads a vector <path> element from the specified SVG file. The optional index specifies a sibling\n"
+        "\tto use. E.g. 1 = first element, 2 = second element, -1 = last element, -2 = second to last, etc.\n"
+        "\tDefault: -1 (i.e. last path element).\n"
     "\n"
     "OPTIONS\n"
     "  -angle <angle>\n"
@@ -359,6 +366,7 @@ int main(int argc, const char * const *argv) {
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
     int unicode = 0;
+    int svgPathIndex = 0;
 
     int width = 64, height = 64;
     int testWidth = 0, testHeight = 0;
@@ -404,6 +412,10 @@ int main(int argc, const char * const *argv) {
             inputType = SVG;
             input = argv[argPos+1];
             argPos += 2;
+            // Optional path specifier
+            if( argPos+1 < argc && parseInteger(svgPathIndex, argv[argPos]) ) {
+                argPos += 1;
+            }
             continue;
         }
         ARG_CASE("-font", 2) {
@@ -618,7 +630,7 @@ int main(int argc, const char * const *argv) {
     Shape shape;
     switch (inputType) {
         case SVG: {
-            if (!loadSvgShape(shape, input, &svgDims))
+            if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
                 ABORT("Failed to load shape from SVG file.");
             break;
         }
