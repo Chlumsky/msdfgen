@@ -70,6 +70,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
     Point2 prevNode(0, 0);
     bool haveInput = pathDef && *pathDef;
     while (haveInput && readNodeType(nodeType, haveInput, pathDef)) {
+IMPLICIT_NEXT_CONTOUR:
         Contour &contour = shape.addContour();
         bool contourStart = true;
 
@@ -80,7 +81,10 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
         while (haveInput) {
             switch (nodeType) {
                 case 'M': case 'm':
-                    REQUIRE(contourStart);
+                    // Have to use a goto here because you can't change a reference once it's
+                    // been assigned. However, jumping to the start of the block re-initializes it.
+                    if (!contourStart)
+                        goto IMPLICIT_NEXT_CONTOUR;
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'm')
                         node += prevNode;
