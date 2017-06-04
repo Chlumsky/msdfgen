@@ -10,12 +10,18 @@
 
 namespace msdfgen {
 
+#if NDEBUG
 #define REQUIRE(cond) { if (!(cond)) return false; }
+#else
+#define REQUIRE(cond) { if (!(cond)) { fprintf(stderr, "SVG Parse Error (%s:%d): " #cond "\n", __FILE__, __LINE__); return false; } }
+#endif
 
-static bool readNodeType(char &output, const char *&pathDef) {
+
+static bool readNodeType(char &output, bool &haveInput, const char *&pathDef) {
     int shift;
     char nodeType;
-    if (sscanf(pathDef, " %c%n", &nodeType, &shift) == 1 && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
+    haveInput = sscanf(pathDef, " %c%n", &nodeType, &shift) == 1;
+    if ( haveInput && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
         pathDef += shift;
         output = nodeType;
         return true;
@@ -62,7 +68,9 @@ static void consumeOptionalComma(const char *&pathDef) {
 static bool buildFromPath(Shape &shape, const char *pathDef) {
     char nodeType;
     Point2 prevNode(0, 0);
-    while (readNodeType(nodeType, pathDef)) {
+    bool haveInput = pathDef && *pathDef;
+    while (haveInput && readNodeType(nodeType, haveInput, pathDef)) {
+IMPLICIT_NEXT_CONTOUR:
         Contour &contour = shape.addContour();
         bool contourStart = true;
 
@@ -70,10 +78,13 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
         Point2 controlPoint[2];
         Point2 node;
 
-        while (true) {
+        while (haveInput) {
             switch (nodeType) {
                 case 'M': case 'm':
-                    REQUIRE(contourStart);
+                    // Have to use a goto here because you can't change a reference once it's
+                    // been assigned. However, jumping to the start of the block re-initializes it.
+                    if (!contourStart)
+                        goto IMPLICIT_NEXT_CONTOUR;
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'm')
                         node += prevNode;
@@ -144,7 +155,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef) {
             }
             contourStart &= nodeType == 'M' || nodeType == 'm';
             prevNode = node;
-            readNodeType(nodeType, pathDef);
+            readNodeType(nodeType, haveInput, pathDef);
         }
     NEXT_CONTOUR:;
     }
