@@ -33,6 +33,10 @@ struct Vector2 {
     Vector2 getOrthonormal(bool polarity = true, bool allowZero = false) const;
     /// Returns a vector projected along this one.
     Vector2 project(const Vector2 &vector, bool positive = false) const;
+    /// Returns a vector that is rotated by the angle around a center
+    Vector2 rotateAround(const Vector2 &center, double angleDegree) const;
+    /// Returns a vector that is rotated by the angle around the origin
+    Vector2 rotate(double angleDegree) const;
     operator const void *() const;
     bool operator!() const;
     bool operator==(const Vector2 &other) const;
