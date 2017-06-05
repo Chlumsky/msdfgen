@@ -281,7 +281,7 @@ static const char *helpText =
     "  -stdin\n"
         "\tReads text shape description from the standard input.\n"
     "  -svg <filename.svg>\n"
-        "\tLoads the first vector path encountered in the specified SVG file.\n"
+        "\tLoads the last vector path found in the specified SVG file.\n"
     "\n"
     "OPTIONS\n"
     "  -angle <angle>\n"
@@ -359,6 +359,7 @@ int main(int argc, const char * const *argv) {
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
     int unicode = 0;
+    int svgPathIndex = 0;
 
     int width = 64, height = 64;
     int testWidth = 0, testHeight = 0;
@@ -618,7 +619,7 @@ int main(int argc, const char * const *argv) {
     Shape shape;
     switch (inputType) {
         case SVG: {
-            if (!loadSvgShape(shape, input, &svgDims))
+            if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
                 ABORT("Failed to load shape from SVG file.");
             break;
         }
