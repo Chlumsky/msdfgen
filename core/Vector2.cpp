@@ -49,23 +49,6 @@ Vector2 Vector2::project(const Vector2 &vector, bool positive) const {
     return t*n;
 }
 
-Vector2 Vector2::rotateAround(const Vector2 &center, double angleDegree) const {
-    Vector2 result = *this - center;
-    double s = std::sin(angleDegree * M_PI / 180);
-    double c = std::cos(angleDegree * M_PI / 180);
-    result.x = result.x * c - result.y * s;
-    result.y = result.x * s + result.y * c;
-    return result + center;
-}
-
-Vector2 Vector2::rotate(double angleDegree) const {
-    double s = std::sin(angleDegree * M_PI / 180);
-    double c = std::cos(angleDegree * M_PI / 180);
-    double newX = x * c - y * s;
-    double newY = x * s + y * c;
-    return Vector2(newX, newY);
-}
-
 Vector2::operator const void*() const {
     return x || y ? this : NULL;
 }
