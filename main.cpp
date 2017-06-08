@@ -350,7 +350,7 @@ int main(int argc, const char * const *argv) {
         MULTI,
         METRICS
     } mode = MULTI;
-    bool legacyMode = false;
+    unsigned int legacyMode = 0;
     Format format = AUTO;
     const char *input = NULL;
     const char *output = "output.png";
@@ -444,8 +444,16 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-legacy", 0) {
-            legacyMode = true;
+            legacyMode = 1;
             argPos += 1;
+            // Optional mode specifier
+            if( argPos+1 < argc && parseUnsigned(legacyMode, argv[argPos]) ) {
+                argPos += 1;
+            }
+            if (legacyMode < 0 || legacyMode > 2) {
+                ABORT("Invalid legacy mode");
+            }
+            
             continue;
         }
         ARG_CASE("-format", 1) {
@@ -744,18 +752,30 @@ int main(int argc, const char * const *argv) {
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float>(width, height);
-            if (legacyMode)
-                generateSDF_legacy(sdf, shape, range, scale, translate);
-            else
-                generateSDF(sdf, shape, range, scale, translate);
+            switch( legacyMode ) {
+                case 2:
+                    generateSDF_v2(sdf, shape, range, scale, translate);
+                    break;
+                case 1:
+                    generateSDF_v1(sdf, shape, range, scale, translate);
+                    break;
+                default:
+                    generateSDF(sdf, shape, range, scale, translate);
+            }
             break;
         }
         case PSEUDO: {
             sdf = Bitmap<float>(width, height);
-            if (legacyMode)
-                generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
-            else
-                generatePseudoSDF(sdf, shape, range, scale, translate);
+            switch( legacyMode ) {
+                case 2:
+                    generatePseudoSDF_v2(sdf, shape, range, scale, translate);
+                    break;
+                case 1:
+                    generatePseudoSDF_v1(sdf, shape, range, scale, translate);
+                    break;
+                default:
+                    generatePseudoSDF(sdf, shape, range, scale, translate);
+            }
             break;
         }
         case MULTI: {
@@ -764,17 +784,25 @@ int main(int argc, const char * const *argv) {
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<FloatRGB>(width, height);
-            if (legacyMode)
-                generateMSDF_legacy(msdf, shape, range, scale, translate, edgeThreshold);
-            else
-                generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
+            switch( legacyMode ) {
+                case 2:
+                    generateMSDF_v2(msdf, shape, range, scale, translate, edgeThreshold);
+                    break;
+                case 1:
+                    generateMSDF_v1(msdf, shape, range, scale, translate, edgeThreshold);
+                    break;
+                default:
+                    generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
+                    break;
+            }
             break;
         }
         default:
             break;
     }
 
-    if (orientation == GUESS) {
+    // This guess doesn't work when using fill rules, so skip it.
+    if (orientation == GUESS && (legacyMode == 1 || legacyMode == 2)) {
         // Get sign of signed distance outside bounds
         Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
         double dummy;

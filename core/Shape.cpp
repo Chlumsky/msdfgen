@@ -3,7 +3,7 @@
 
 namespace msdfgen {
 
-Shape::Shape() : inverseYAxis(false) { }
+Shape::Shape() : inverseYAxis(false), fillRule(FillRule::NonZero) { }
 
 void Shape::addContour(const Contour &contour) {
     contours.push_back(contour);

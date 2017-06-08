@@ -66,6 +66,30 @@ static bool readBool(bool &output, const char *&pathDef) {
     return false;
 }
 
+static bool readFillRule(FillRule &fillRule, const char *&str) {
+
+    const char *p = str;
+
+    if (strncasecmp(p, "fill-rule:", 10) == 0) {
+        p += 10;
+        while (*p && isspace(*p))
+            p++;
+    }
+    
+    if (strncasecmp(p, "nonzero", 7) == 0) {
+        fillRule = FillRule::NonZero;
+        str = p + 7;
+        return true;
+    }
+    if (strncasecmp(p, "evenodd", 7) == 0) {
+        fillRule = FillRule::EvenOdd;
+        str = p + 7;
+        return true;
+    }
+    
+    return false;
+}
+
 static void consumeWhitespace(const char *&pathDef) {
     while (*pathDef == ' ' || *pathDef == '\t' || *pathDef == '\r' || *pathDef == '\n')
         ++pathDef;
@@ -310,6 +334,30 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     }
     if (dimensions)
         *dimensions = dims;
+    
+    // Try and determine fill-rule. It's not perfect, because full SVG implementations
+    // can use CSS and whatnot to inject this property. But we'll make a best effort
+    // attempt.
+    tinyxml2::XMLNode *node = path;
+    while (node) {
+        tinyxml2::XMLElement *el = node->ToElement();
+        if (!el)
+            break;
+        
+        // Check explicit attribute.
+        const char *p = el->Attribute("fill-rule");
+        if (p && readFillRule(output.fillRule, p))
+            break;
+        
+        // Or see if it's in the style attribute
+        p = el->Attribute("style");
+        if (p && (p = strstr(p, "fill-rule:")) != NULL && readFillRule(output.fillRule, p))
+            break;
+        
+        // Otherwise, seek up the hierarchy until we do get one (or run out of parents).
+        node = node->Parent();
+    }
+    
     return buildFromPath(output, pd, dims.length());
 }
 
