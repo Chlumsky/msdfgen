@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.12)
 
 project(msdfgen)
 
+include(CTest)
+
 find_package(Freetype REQUIRED)
 
 include(CheckCXXCompilerFlag)
@@ -48,6 +50,11 @@ endfunction(folderize_sources)
 
 
 
+#----------------------------------------------------------------
+# Build Rules
+#----------------------------------------------------------------
+
+
 file(GLOB_RECURSE msdfgen_HEADERS
 	"core/*.h"
 	"lib/*.h"
@@ -77,3 +84,20 @@ target_link_libraries(lib_msdfgen ${FREETYPE_LIBRARIES})
 add_executable(msdfgen main.cpp)
 target_compile_definitions(msdfgen PRIVATE MSDFGEN_STANDALONE)
 target_link_libraries(msdfgen lib_msdfgen)
+
+
+#----------------------------------------------------------------
+# Tests
+#----------------------------------------------------------------
+
+if (BUILD_TESTING)
+	file(GLOB TEST_DRIVER "test/test_msdf.py")
+	file(GLOB_RECURSE TEST_SVG_SOURCES
+		"test/test-*.svg")
+	foreach(FILE ${TEST_SVG_SOURCES})
+		get_filename_component(NAME "${FILE}" NAME)
+		add_test(NAME ${NAME} COMMAND python "${TEST_DRIVER}" --svg "${FILE}" --exe "$<TARGET_FILE:msdfgen>")
+	endforeach()
+endif()
+
+
