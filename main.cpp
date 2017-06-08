@@ -450,7 +450,7 @@ int main(int argc, const char * const *argv) {
             if( argPos+1 < argc && parseUnsigned(legacyMode, argv[argPos]) ) {
                 argPos += 1;
             }
-            if (legacyMode < 0 || legacyMode > 2) {
+            if (legacyMode > 2) {
                 ABORT("Invalid legacy mode");
             }
             
