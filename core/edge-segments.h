@@ -41,6 +41,25 @@ public:
     
     virtual bool isDegenerate() const = 0;
 
+    
+    
+    class CrossingCallback {
+    public:
+        virtual ~CrossingCallback() {}
+        /// Callback for receiving intersection points. Winding is either:
+        /// +1 if the segment is increasing in the Y axis
+        /// -1 if the segment is decreasing in the Y axis
+        virtual void intersection(const Point2& p, int winding) = 0;
+    };
+    
+    /// Calculate how many times the segment intersects the infinite ray that extends
+    /// to the right (+X) from the given point. Returns:
+    ///  0 for no intersection (or co-linear)
+    /// +1 for each intersection where Y is increasing
+    /// -1 for each intersection where Y is decreasing.
+    virtual int crossings(const Point2 &r, CrossingCallback *cb = NULL) const = 0;
+    
+    
 };
 
 /// A line segment.
@@ -62,6 +81,7 @@ public:
     
     bool isDegenerate() const;
 
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 /// A quadratic Bezier curve.
@@ -83,6 +103,7 @@ public:
 
     bool isDegenerate() const;
 
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 /// A cubic Bezier curve.
@@ -104,6 +125,7 @@ public:
 
     bool isDegenerate() const;
 
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 }
