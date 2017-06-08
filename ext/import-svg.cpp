@@ -1,27 +1,30 @@
 
+#define _USE_MATH_DEFINES
 #include "import-svg.h"
 
 #include <cstdio>
 #include <tinyxml2.h>
+#include "../core/arithmetics.hpp"
 
 #ifdef _WIN32
     #pragma warning(disable:4996)
 #endif
 
+#define ARC_SEGMENTS_PER_PI 2
+#define ENDPOINT_SNAP_RANGE_PROPORTION (1/16384.)
+
 namespace msdfgen {
 
-#if NDEBUG
-#define REQUIRE(cond) { if (!(cond)) return false; }
-#else
+#if defined(_DEBUG) || !NDEBUG
 #define REQUIRE(cond) { if (!(cond)) { fprintf(stderr, "SVG Parse Error (%s:%d): " #cond "\n", __FILE__, __LINE__); return false; } }
+#else
+#define REQUIRE(cond) { if (!(cond)) return false; }
 #endif
 
-
-static bool readNodeType(char &output, bool &haveInput, const char *&pathDef) {
+static bool readNodeType(char &output, const char *&pathDef) {
     int shift;
     char nodeType;
-    haveInput = sscanf(pathDef, " %c%n", &nodeType, &shift) == 1;
-    if ( haveInput && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
+    if (sscanf(pathDef, " %c%n", &nodeType, &shift) == 1 && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
         pathDef += shift;
         output = nodeType;
         return true;
@@ -32,13 +35,7 @@ static bool readNodeType(char &output, bool &haveInput, const char *&pathDef) {
 static bool readCoord(Point2 &output, const char *&pathDef) {
     int shift;
     double x, y;
-    if (sscanf(pathDef, "%lf%lf%n", &x, &y, &shift) == 2) {
-        output.x = x;
-        output.y = y;
-        pathDef += shift;
-        return true;
-    }
-    if (sscanf(pathDef, "%lf,%lf%n", &x, &y, &shift) == 2) {
+    if (sscanf(pathDef, " %lf%lf%n", &x, &y, &shift) == 2 || sscanf(pathDef, " %lf , %lf%n", &x, &y, &shift) == 2) {
         output.x = x;
         output.y = y;
         pathDef += shift;
@@ -50,7 +47,7 @@ static bool readCoord(Point2 &output, const char *&pathDef) {
 static bool readDouble(double &output, const char *&pathDef) {
     int shift;
     double v;
-    if (sscanf(pathDef, "%lf%n", &v, &shift) == 1) {
+    if (sscanf(pathDef, " %lf%n", &v, &shift) == 1) {
         pathDef += shift;
         output = v;
         return true;
@@ -61,169 +58,89 @@ static bool readDouble(double &output, const char *&pathDef) {
 static bool readBool(bool &output, const char *&pathDef) {
     int shift;
     int v;
-    if (sscanf(pathDef, "%d%n", &v, &shift) == 1) {
+    if (sscanf(pathDef, " %d%n", &v, &shift) == 1) {
         pathDef += shift;
-        output = static_cast<bool>(v);
+        output = v != 0;
         return true;
     }
     return false;
 }
 
-static void consumeOptionalComma(const char *&pathDef) {
-    while (*pathDef == ' ')
+static void consumeWhitespace(const char *&pathDef) {
+    while (*pathDef == ' ' || *pathDef == '\t' || *pathDef == '\r' || *pathDef == '\n')
         ++pathDef;
+}
+
+static void consumeOptionalComma(const char *&pathDef) {
+    consumeWhitespace(pathDef);
     if (*pathDef == ',')
         ++pathDef;
 }
 
-static double toDegrees(double rad) {
-    return rad * 180.0 / M_PI;
+static double arcAngle(Vector2 u, Vector2 v) {
+    return nonZeroSign(crossProduct(u, v))*acos(clamp(dotProduct(u, v)/(u.length()*v.length()), -1., +1.));
 }
 
-static double toRad(double degrees) {
-    return degrees * M_PI / 180.0;
+static Vector2 rotateVector(Vector2 v, Vector2 direction) {
+    return Vector2(direction.x*v.x-direction.y*v.y, direction.y*v.x+direction.x*v.y);
 }
 
-static Point2 handleArc(const char *&pathDef, char nodeType, Point2 prevNode, Contour &contour) {
-    Point2 arcEnd;
-    double radiusX = 0;
-    double radiusY = 0;
-    double xAxisRotation = 0;
-    bool largeArc = false;
-    bool sweep = false;
+static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoint, Vector2 radius, double rotation, bool largeArc, bool sweep) {
+    if (endPoint == startPoint)
+        return;
+    if (radius.x == 0 || radius.y == 0)
+        return contour.addEdge(new LinearSegment(startPoint, endPoint));
 
-    // arc syntax
-    // A rx ry x-axis-rotation large-arc-flag sweep-flag x y
-    // a rx ry x-axis-rotation large-arc-flag sweep-flag dx dy
-    REQUIRE(readDouble(radiusX, pathDef));
-    radiusX = std::abs(radiusX);
-    consumeOptionalComma(pathDef);
-    REQUIRE(readDouble(radiusY, pathDef));
-    radiusY = std::abs(radiusY);
-    consumeOptionalComma(pathDef);
-    REQUIRE(readDouble(xAxisRotation, pathDef));
-    consumeOptionalComma(pathDef);
-    REQUIRE(readBool(largeArc, pathDef));
-    consumeOptionalComma(pathDef);
-    REQUIRE(readBool(sweep, pathDef));
-    consumeOptionalComma(pathDef);
-    REQUIRE(readCoord(arcEnd, pathDef));
-    if (nodeType == 'a') {
-        arcEnd += prevNode;
+    radius.x = fabs(radius.x);
+    radius.y = fabs(radius.y);
+    Vector2 axis(cos(rotation), sin(rotation));
+
+    Vector2 rm = rotateVector(.5*(startPoint-endPoint), Vector2(axis.x, -axis.y));
+    Vector2 rm2 = rm*rm;
+    Vector2 radius2 = radius*radius;
+    double radiusGap = rm2.x/radius2.x+rm2.y/radius2.y;
+    if (radiusGap > 1) {
+        radius *= sqrt(radiusGap);
+        radius2 = radius*radius;
     }
+    double dq = (radius2.x*rm2.y+radius2.y*rm2.x);
+    double pq = radius2.x*radius2.y/dq-1;
+    double q = (largeArc == sweep ? -1 : +1)*sqrt(max(pq, 0.));
+    Vector2 rc(q*radius.x*rm.y/radius.y, -q*radius.y*rm.x/radius.x);
+    Point2 center = .5*(startPoint+endPoint)+rotateVector(rc, axis);
 
-    // Zero arc radius results in a straight line
-    if (radiusX == 0 || radiusY == 0) {
-        contour.addEdge(new LinearSegment(prevNode, arcEnd));
-        return arcEnd;
-    }
+    double angleStart = arcAngle(Vector2(1, 0), (rm-rc)/radius);
+    double angleExtent = arcAngle((rm-rc)/radius, (-rm-rc)/radius);
+    if (!sweep && angleExtent > 0)
+        angleExtent -= 2*M_PI;
+    else if (sweep && angleExtent < 0)
+        angleExtent += 2*M_PI;
 
-    if (prevNode.x == arcEnd.x && prevNode.y == arcEnd.y) {
-        // End point matches previous node,
-        // which means it has a length of zero and can be ignored
-        return prevNode;
-    }
+    int segments = (int) ceil(ARC_SEGMENTS_PER_PI/M_PI*fabs(angleExtent));
+    double angleIncrement = angleExtent/segments;
+    double cl = 4/3.*sin(.5*angleIncrement)/(1+cos(.5*angleIncrement));
 
-    double xAxisRotationRad = toRad(std::fmod(xAxisRotation, 360.0));
-    double cosRotation = std::cos(xAxisRotationRad);
-    double sinRotation = std::sin(xAxisRotationRad);
-    Point2 mid = (prevNode - arcEnd) / 2.0;
-
-    // Compute transformed start point
-    double x1 = (cosRotation * mid.x + sinRotation * mid.y);
-    double y1 = (-sinRotation * mid.x + cosRotation * mid.y);
-    double radXsq = std::pow(radiusX, 2);
-    double radYsq = std::pow(radiusY, 2);
-    double x1sq = std::pow(x1, 2);
-    double y1sq = std::pow(y1, 2);
-
-    // Scale the radius if it is not big enough
-    double radiiCheck = x1sq / radXsq + y1sq / radYsq;
-    if (radiiCheck > 1) {
-        radiusX = std::sqrt(radiiCheck) * radiusX;
-        radiusY = std::sqrt(radiiCheck) * radiusY;
-        radXsq = std::pow(radiusX, 2);
-        radYsq = std::pow(radiusY, 2);
-    }
-
-    // Compute centre point
-    double sign = (largeArc == sweep) ? -1 : 1;
-    double sq = ((radXsq * radYsq) - (radXsq * y1sq) - (radYsq * x1sq)) / ((radXsq * y1sq) + (radYsq * x1sq));
-    sq = (sq < 0) ? 0 : sq;
-    double coefficient = sign * std::sqrt(sq);
-    double cx1 = coefficient * ((radiusX * y1) / radiusY);
-    double cy1 = coefficient * -((radiusY * x1) / radiusX);
-    Point2 sx = (prevNode + arcEnd) / 2.0;
-    double cx = sx.x + (cosRotation * cx1 - sinRotation * cy1);
-    double cy = sx.y + (sinRotation * cx1 + cosRotation * cy1);
-    Point2 center(cx, cy);
-
-    // Compute the angle start
-    double ux = (x1 - cx1) / radiusX;
-    double uy = (y1 - cy1) / radiusY;
-    double n = std::sqrt((ux * ux) + (uy * uy));
-    double p = ux;
-    sign = (uy < 0) ? -1.0 : 1.0;
-    double angleStart = toDegrees(sign * std::acos(p / n));
-
-    // Compute the angle extent
-    double vx = (-x1 - cx1) / radiusX;
-    double vy = (-y1 - cy1) / radiusY;
-    n = std::sqrt((ux * ux + uy * uy) * (vx * vx + vy * vy));
-    p = ux * vx + uy * vy;
-    sign = (ux * vy - uy * vx < 0) ? -1.0 : 1.0;
-    double angleExtent = toDegrees(sign * std::acos(p / n));
-    if (!sweep && angleExtent > 0) {
-        angleExtent -= 360;
-    } else if (sweep && angleExtent < 0) {
-        angleExtent += 360;
-    }
-
-    // generate bezier curves for a unit circle that covers the given arc angles
-    int segmentCount = static_cast<int>(std::ceil(std::abs(angleExtent) / 90.0));
-    angleStart = toRad(std::fmod(angleStart, 360.0));
-    angleExtent = toRad(std::fmod(angleExtent, 360.0));
-    double angleIncrement = angleExtent / segmentCount;
-    double controlLength = 4.0 / 3.0 * std::sin(angleIncrement / 2.0) / (1.0 + std::cos(angleIncrement / 2.0));
-
-    Point2 startPoint = prevNode;
-    Point2 bezEndpoint;
-    Point2 controlPoint[2];
-    for (int i = 0; i < segmentCount; i++) {
-        double angle = angleStart + i * angleIncrement;
-        double dx = std::cos(angle);
-        double dy = std::sin(angle);
-        controlPoint[0].x = (dx - controlLength * dy) * radiusX;
-        controlPoint[0].y = (dy + controlLength * dx) * radiusY;
-        controlPoint[0] = controlPoint[0].rotate(xAxisRotation) + center;
+    Point2 prevNode = startPoint;
+    double angle = angleStart;
+    for (int i = 0; i < segments; ++i) {
+        Point2 controlPoint[2];
+        Vector2 d(cos(angle), sin(angle));
+        controlPoint[0] = center+rotateVector(Vector2(d.x-cl*d.y, d.y+cl*d.x)*radius, axis);
         angle += angleIncrement;
-        dx = std::cos(angle);
-        dy = std::sin(angle);
-        controlPoint[1].x = (dx + controlLength * dy) * radiusX;
-        controlPoint[1].y = (dy - controlLength * dx) * radiusY;
-        controlPoint[1] = controlPoint[1].rotate(xAxisRotation) + center;
-        bezEndpoint.x = dx * radiusX;
-        bezEndpoint.y = dy * radiusY;
-        bezEndpoint = bezEndpoint.rotate(xAxisRotation);
-        bezEndpoint = bezEndpoint + center;
-        if (i == segmentCount - 1) {
-            // to prevent rounding errors
-            bezEndpoint = arcEnd;
-        }
-
-        contour.addEdge(new CubicSegment(startPoint, controlPoint[0], controlPoint[1], bezEndpoint));
-        startPoint = bezEndpoint;
+        d.set(cos(angle), sin(angle));
+        controlPoint[1] = center+rotateVector(Vector2(d.x+cl*d.y, d.y-cl*d.x)*radius, axis);
+        Point2 node = i == segments-1 ? endPoint : center+rotateVector(d*radius, axis);
+        contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
+        prevNode = node;
     }
-
-    return arcEnd;
 }
 
-static bool buildFromPath(Shape &shape, const char *pathDef) {
+static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     char nodeType;
     Point2 prevNode(0, 0);
-    bool haveInput = pathDef && *pathDef;
-    while (haveInput && readNodeType(nodeType, haveInput, pathDef)) {
-IMPLICIT_NEXT_CONTOUR:
+    bool nodeTypePreread = false;
+    while (nodeTypePreread || readNodeType(nodeType, pathDef)) {
+        nodeTypePreread = false;
         Contour &contour = shape.addContour();
         bool contourStart = true;
 
@@ -231,13 +148,13 @@ IMPLICIT_NEXT_CONTOUR:
         Point2 controlPoint[2];
         Point2 node;
 
-        while (haveInput) {
+        while (*pathDef) {
             switch (nodeType) {
                 case 'M': case 'm':
-                    // Have to use a goto here because you can't change a reference once it's
-                    // been assigned. However, jumping to the start of the block re-initializes it.
-                    if (!contourStart)
-                        goto IMPLICIT_NEXT_CONTOUR;
+                    if (!contourStart) {
+                        nodeTypePreread = true;
+                        goto NEXT_CONTOUR;
+                    }
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'm')
                         node += prevNode;
@@ -245,9 +162,7 @@ IMPLICIT_NEXT_CONTOUR:
                     --nodeType; // to 'L' or 'l'
                     break;
                 case 'Z': case 'z':
-                    if (prevNode != startPoint)
-                        contour.addEdge(new LinearSegment(prevNode, startPoint));
-                    prevNode = startPoint;
+                    REQUIRE(!contourStart);
                     goto NEXT_CONTOUR;
                 case 'L': case 'l':
                     REQUIRE(readCoord(node, pathDef));
@@ -277,7 +192,13 @@ IMPLICIT_NEXT_CONTOUR:
                     }
                     contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
                     break;
-                // TODO T, t
+                case 'T': case 't':
+                    controlPoint[0] = node+node-controlPoint[0];
+                    REQUIRE(readCoord(node, pathDef));
+                    if (nodeType == 't')
+                        node += prevNode;
+                    contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
+                    break;
                 case 'C': case 'c':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
                     consumeOptionalComma(pathDef);
@@ -303,16 +224,43 @@ IMPLICIT_NEXT_CONTOUR:
                     contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
                 case 'A': case 'a':
-                    node = handleArc(pathDef, nodeType, prevNode, contour);
+                    {
+                        Vector2 radius;
+                        double angle;
+                        bool largeArg;
+                        bool sweep;
+                        REQUIRE(readCoord(radius, pathDef));
+                        consumeOptionalComma(pathDef);
+                        REQUIRE(readDouble(angle, pathDef));
+                        consumeOptionalComma(pathDef);
+                        REQUIRE(readBool(largeArg, pathDef));
+                        consumeOptionalComma(pathDef);
+                        REQUIRE(readBool(sweep, pathDef));
+                        consumeOptionalComma(pathDef);
+                        REQUIRE(readCoord(node, pathDef));
+                        if (nodeType == 'a')
+                            node += prevNode;
+                        angle *= M_PI/180.0;
+                        addArcApproximate(contour, prevNode, node, radius, angle, largeArg, sweep);
+                    }
                     break;
                 default:
-                    REQUIRE(false);
+                    REQUIRE(!"Unknown node type");
             }
             contourStart &= nodeType == 'M' || nodeType == 'm';
             prevNode = node;
-            readNodeType(nodeType, haveInput, pathDef);
+            readNodeType(nodeType, pathDef);
+            consumeWhitespace(pathDef);
         }
-    NEXT_CONTOUR:;
+    NEXT_CONTOUR:
+        // Fix contour if it isn't properly closed
+        if (!contour.edges.empty() && prevNode != startPoint) {
+            if ((contour.edges[contour.edges.size()-1]->point(1)-contour.edges[0]->point(0)).length() < ENDPOINT_SNAP_RANGE_PROPORTION*size)
+                contour.edges[contour.edges.size()-1]->moveEndPoint(contour.edges[0]->point(0));
+            else
+                contour.addEdge(new LinearSegment(prevNode, startPoint));
+        }
+        prevNode = startPoint;
     }
     return true;
 }
@@ -326,7 +274,7 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
         return false;
 
     tinyxml2::XMLElement *path = NULL;
-    if( pathIndex > 0 ) {
+    if (pathIndex > 0) {
         path = root->FirstChildElement("path");
         if (!path) {
             tinyxml2::XMLElement *g = root->FirstChildElement("g");
@@ -335,20 +283,16 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
         }
         while (path && --pathIndex > 0)
             path = path->NextSiblingElement("path");
-    }
-    else {
-        // A pathIndex of 0 means "default", which is the same as specifying a -1 (i.e. last).
-
+    } else {
         path = root->LastChildElement("path");
         if (!path) {
             tinyxml2::XMLElement *g = root->LastChildElement("g");
             if (g)
                 path = g->LastChildElement("path");
         }
-        while (path && ++pathIndex < 0) {
+        while (path && ++pathIndex < 0)
             path = path->PreviousSiblingElement("path");
-        }
-    }
+     }
     if (!path)
         return false;
     const char *pd = path->Attribute("d");
@@ -357,11 +301,16 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
 
     output.contours.clear();
     output.inverseYAxis = true;
-    if (dimensions) {
-        dimensions->x = root->DoubleAttribute("width");
-        dimensions->y = root->DoubleAttribute("height");
+    Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
+    if (!dims) {
+        double left, top;
+        const char *viewBox = root->Attribute("viewBox");
+        if (viewBox)
+            sscanf(viewBox, "%lf %lf %lf %lf", &left, &top, &dims.x, &dims.y);
     }
-    return buildFromPath(output, pd);
+    if (dimensions)
+        *dimensions = dims;
+    return buildFromPath(output, pd, dims.length());
 }
 
 }
