@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import sys
+import codecs
 from subprocess import Popen, PIPE, call
 
 
@@ -173,7 +174,12 @@ def main():
                 test_svg(path, args, runner)
     if args.svg:
         for file in args.svg:
-            test_svg(file, args, runner)
+            if file.startswith('@'):
+                # Use ImageMagick style @filename.txt for loading filenames to test.
+                for line in codecs.open(file[1:], 'r', 'utf-8'):
+                    test_svg(line.rstrip('\n'), args, runner)
+            else:
+                test_svg(file, args, runner)
 
     if args.montage:
         # We keep the diff montage at actual size (we want to see details)
