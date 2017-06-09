@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import codecs
+import tempfile
 from subprocess import Popen, PIPE, call
 
 
@@ -15,23 +16,30 @@ class Runner:
     def __init__(self):
         pass
 
-    def add_fail(self, path, msg):
-        print("FAIL \"%s\" %s" % (path, msg))
-        self.fail_count += 1
-        if self.stop_on_fail:
-            sys.exit(1)
-        return False
+    def add_pass(self, input_path, msg, out_path=None, render_path=None, diff_path=None):
+        return self.add_result(True, input_path, msg, out_path, render_path, diff_path)
 
-    def add_pass(self, path, msg):
-        self.pass_count += 1
-        print("PASS \"%s\" %s" % (path, msg))
-        return True
+    def add_fail(self, input_path, msg, out_path=None, render_path=None, diff_path=None):
+        return self.add_result(False, input_path, msg, out_path, render_path, diff_path)
 
-    def add_output(self, out_path, render_path, diff_path):
+    def add_result(self, passed, input_path, msg, out_path=None, render_path=None, diff_path=None):
+        if passed:
+            self.pass_count += 1
+            print("PASS \"%s\" %s" % (input_path, msg))
+        else:
+            self.fail_count += 1
+            print("FAIL \"%s\" %s" % (input_path, msg))
+            if self.stop_on_fail:
+                sys.exit(1)
+
         self.results.append({
+            'pass': passed,
+            'in': input_path,
             'out': out_path,
             'render': render_path,
             'diff': diff_path})
+
+        return passed
 
     def get_outputs(self, key):
         ret = []
@@ -88,28 +96,31 @@ def test_svg(path, args, runner):
     p = Popen(["compare -fuzz %f%% -metric AE \"%s\" \"%s\" \"%s\"" % (args.fuzz, path, render_path, diff_path)],
               stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     output, err = p.communicate("")
+    passed = False
     if p.returncode == 1:
-        runner.add_output(sdf_path, render_path, diff_path)
         # Ran successfully, but they are different. Let's parse the output and check the actual error metric.
         match = re.match(r'^(\d+)$', err)
+        passed = False
         if match:
             try:
                 pixels = int(match.group(1))
                 e = float(pixels) / total_pixels * 100.0
                 if e > args.fail_threshold:
-                    return runner.add_fail(path, "Error = %.3f %% (%d)" % (e, pixels))
+                    msg = "Error = %.3f %% (%d)" % (e, pixels)
                 else:
-                    return runner.add_pass(path, "OK = %.3f %% (%d)" % (e, pixels))
+                    passed = True
+                    msg = "OK = %.3f %% (%d)" % (e, pixels)
             except ValueError:
-                return runner.add_fail(path, "(Unknown) Error metric = %s" % err)
+                msg = "(Unknown) Error metric = %s" % err
         else:
-            return runner.add_fail(path, "(Unknown) Error metric = %s" % err)
+            msg = "(Unknown) Error metric = %s" % err
     elif p.returncode != 0:
-        return runner.add_fail(path, "Error comparing to %s [%d]: %s" % (render_path, p.returncode, err))
+        msg = "Error comparing to %s [%d]: %s" % (render_path, p.returncode, err)
+    else:
+        passed = True
+        msg = "Identical"
 
-    runner.add_output(sdf_path, render_path, diff_path)
-
-    return runner.add_pass(path, output)
+    return runner.add_result(passed, path, msg, sdf_path, render_path, diff_path)
 
 
 def main():
@@ -146,7 +157,7 @@ def main():
                         help="Use legacy <Version> mode algorithm",
                         default='0')
     parser.add_argument("--montage",
-                        help="Generate montage image(s) for results",
+                        help="Generate montage image of failed results (diffs)",
                         default=False,
                         action='store_true')
     parser.add_argument("--stop-on-fail",
@@ -183,13 +194,19 @@ def main():
 
     if args.montage:
         # We keep the diff montage at actual size (we want to see details)
-        call(["montage -geometry +1+1 %s montage-%s-%s-diff.png" %
-              (" ".join(runner.get_outputs('diff')), args.mode, args.legacy)], shell=True)
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write("\n".join(runner.get_outputs('diff')))
+            temp_file.close()
+            montage_name = "montage-%s-%s-diff.png" % (args.mode, args.legacy)
+            call(["montage -geometry +1+1 @%s %s" % (temp_file.name, montage_name)], shell=True)
+            os.unlink(temp_file.name)
+            # print("Wrote: %s" % montage_name)
+
         # The others, we can let IM do some resizing because it's really just for quick glances.
-        call(["montage %s montage-%s-%s-out.png" %
-              (" ".join(runner.get_outputs('out')), args.mode, args.legacy)], shell=True)
-        call(["montage %s montage-%s-%s-render.png" %
-              (" ".join(runner.get_outputs('render')), args.mode, args.legacy)], shell=True)
+        # call(["montage %s montage-%s-%s-out.png" %
+        #       (" ".join(runner.get_outputs('out')), args.mode, args.legacy)], shell=True)
+        # call(["montage %s montage-%s-%s-render.png" %
+        #       (" ".join(runner.get_outputs('render')), args.mode, args.legacy)], shell=True)
 
     if runner.fail_count > 0:
         sys.exit(1)
