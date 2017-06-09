@@ -163,14 +163,15 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     char nodeType;
     Point2 prevNode(0, 0);
     bool nodeTypePreread = false;
+    Point2 startPoint;
+    Point2 controlPoint[2];
+    Point2 node;
+    char prevNodeType = '\0';
+    
     while (nodeTypePreread || readNodeType(nodeType, pathDef)) {
         nodeTypePreread = false;
         Contour &contour = shape.addContour();
         bool contourStart = true;
-
-        Point2 startPoint;
-        Point2 controlPoint[2];
-        Point2 node;
 
         while (*pathDef) {
             switch (nodeType) {
@@ -237,7 +238,10 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                     contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
                 case 'S': case 's':
-                    controlPoint[0] = node+node-controlPoint[1];
+                    if (prevNodeType != 'c' && prevNodeType != 'C' && prevNodeType != 's' && prevNodeType != 'S')
+                        controlPoint[0] = node;
+                    else
+                        controlPoint[0] = node+node-controlPoint[1];
                     REQUIRE(readCoord(controlPoint[1], pathDef));
                     consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
@@ -284,6 +288,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
             else
                 contour.addEdge(new LinearSegment(prevNode, startPoint));
         }
+        prevNodeType = nodeType;
         prevNode = startPoint;
     }
     return true;
