@@ -135,6 +135,8 @@ void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const 
     int w = output.width(), h = output.height();
     
     WindingSpanner spanner;
+    double bound_l, bound_t, bound_b, bound_r;
+    shape.bounds(bound_l, bound_b, bound_r, bound_t);
     
 #ifdef MSDFGEN_USE_OPENMP
 #pragma omp parallel
@@ -147,7 +149,7 @@ void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const 
             int row = shape.inverseYAxis ? h-y-1 : y;
             
             // Start slightly off the -X edge so we ensure we find all spans.
-            spanner.collect(shape, Vector2(-0.5, y + 0.5)/scale - translate);
+            spanner.collect(shape, Vector2(bound_l - 0.5, (y + 0.5)/scale.y - translate.y));
             
             for (int x = 0; x < w; ++x) {
                 Point2 p = Vector2(x+.5, y+.5)/scale-translate;
@@ -176,6 +178,8 @@ void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, 
     int w = output.width(), h = output.height();
     
     WindingSpanner spanner;
+    double bound_l, bound_t, bound_b, bound_r;
+    shape.bounds(bound_l, bound_b, bound_r, bound_t);
     
 #ifdef MSDFGEN_USE_OPENMP
 #pragma omp parallel
@@ -188,7 +192,7 @@ void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, 
             int row = shape.inverseYAxis ? h-y-1 : y;
             
             // Start slightly off the -X edge so we ensure we find all spans.
-            spanner.collect(shape, Vector2(-0.5, y + 0.5)/scale - translate);
+            spanner.collect(shape, Vector2(bound_l - 0.5, (y + 0.5)/scale.y - translate.y));
 
             for (int x = 0; x < w; ++x) {
                 Point2 p = Vector2(x+.5, y+.5)/scale-translate;
@@ -225,10 +229,8 @@ void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, co
     int w = output.width(), h = output.height();
     
     WindingSpanner spanner;
-    std::vector<int> windings;
-    windings.reserve(contourCount);
-    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-        windings.push_back(contour->winding());
+    double bound_l, bound_t, bound_b, bound_r;
+    shape.bounds(bound_l, bound_b, bound_r, bound_t);
     
 #ifdef MSDFGEN_USE_OPENMP
 #pragma omp parallel
@@ -243,7 +245,7 @@ void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, co
             int row = shape.inverseYAxis ? h-y-1 : y;
             
             // Start slightly off the -X edge so we ensure we find all spans.
-            spanner.collect(shape, Vector2(-0.5, y + 0.5)/scale - translate);
+            spanner.collect(shape, Vector2(bound_l - 0.5, (y + 0.5)/scale.y - translate.y));
             
             for (int x = 0; x < w; ++x) {
                 Point2 p = Vector2(x+.5, y+.5)/scale-translate;
