@@ -7,6 +7,13 @@ import tempfile
 from subprocess import Popen, PIPE, call
 
 
+def println(msg):
+    sys.stdout.write(msg)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+    return msg
+
+
 class Runner:
     pass_count = 0
     fail_count = 0
@@ -25,10 +32,10 @@ class Runner:
     def add_result(self, passed, input_path, msg, out_path=None, render_path=None, diff_path=None):
         if passed:
             self.pass_count += 1
-            print("PASS \"%s\" %s" % (input_path, msg))
+            println("PASS \"%s\" %s" % (input_path, msg))
         else:
             self.fail_count += 1
-            print("FAIL \"%s\" %s" % (input_path, msg))
+            println("FAIL \"%s\" %s" % (input_path, msg))
             if self.stop_on_fail:
                 sys.exit(1)
 
@@ -54,7 +61,7 @@ def check_imagemagick():
               stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     output, err = p.communicate("")
     if p.returncode != 0:
-        print "Cannot find ImageMagick <http://www.imagemagick.org> on your PATH. It is required to run tests."
+        println("Cannot find ImageMagick <http://www.imagemagick.org> on your PATH. It is required to run tests.")
         sys.exit(1)
 
 
