@@ -277,6 +277,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
             }
             contourStart &= nodeType == 'M' || nodeType == 'm';
             prevNode = node;
+            prevNodeType = nodeType;
             readNodeType(nodeType, pathDef);
             consumeWhitespace(pathDef);
         }
