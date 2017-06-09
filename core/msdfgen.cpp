@@ -365,17 +365,26 @@ void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, co
 
 void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
     int w = output.width(), h = output.height();
+    std::vector<EdgeBounds> edgeBounds = buildEdgeBounds(shape);
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel for
 #endif
+    EdgeHolder closestEdge;
     for (int y = 0; y < h; ++y) {
         int row = shape.inverseYAxis ? h-y-1 : y;
         for (int x = 0; x < w; ++x) {
             double dummy;
             Point2 p = Vector2(x+.5, y+.5)/scale-translate;
             SignedDistance minDistance;
+            if (closestEdge)
+                minDistance = closestEdge->signedDistance(p, dummy);
+            std::vector<EdgeBounds>::const_iterator bounds = edgeBounds.begin();
             for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge, ++bounds) {
+                    double absDist = fabs(minDistance.distance);
+                    if (p.x + absDist < bounds->l || bounds->r + absDist < p.x || p.y + absDist < bounds->b || bounds->t + absDist < p.y)
+                        continue;
+                    
                     SignedDistance distance = (*edge)->signedDistance(p, dummy);
                     if (distance < minDistance)
                         minDistance = distance;
