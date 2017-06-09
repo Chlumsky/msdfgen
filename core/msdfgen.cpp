@@ -10,6 +10,10 @@ struct MultiDistance {
     double med;
 };
 
+struct EdgeBounds {
+    double l, b, r, t;
+};
+
 static inline bool pixelClash(const FloatRGB &a, const FloatRGB &b, double threshold) {
     // Only consider pair where both are on the inside or both are on the outside
     bool aIn = (a.r > .5f)+(a.g > .5f)+(a.b > .5f) >= 2;
@@ -44,6 +48,20 @@ static inline bool pixelClash(const FloatRGB &a, const FloatRGB &b, double thres
         && fabsf(ac-.5f) >= fabsf(bc-.5f); // Out of the pair, only flag the pixel farther from a shape edge
 }
 
+static std::vector<EdgeBounds> buildEdgeBounds(const Shape &shape) {
+    std::vector<EdgeBounds> edgeBounds;
+    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
+        for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+            EdgeBounds bounds;
+            bounds.l = bounds.b = fabs(SignedDistance::INFINITE.distance);
+            bounds.r = bounds.t = -fabs(SignedDistance::INFINITE.distance);
+            (*edge)->bounds(bounds.l, bounds.b, bounds.r, bounds.t);
+            edgeBounds.push_back(bounds);
+        }
+    }
+    return edgeBounds;
+}
+
 void msdfErrorCorrection(Bitmap<FloatRGB> &output, const Vector2 &threshold) {
     std::vector<std::pair<int, int> > clashes;
     int w = output.width(), h = output.height();
@@ -69,6 +87,7 @@ void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const 
     windings.reserve(contourCount);
     for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
         windings.push_back(contour->winding());
+    std::vector<EdgeBounds> edgeBounds = buildEdgeBounds(shape);
 
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel
@@ -79,6 +98,7 @@ void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const 
 #ifdef MSDFGEN_USE_OPENMP
         #pragma omp for
 #endif
+        EdgeHolder closestEdge;
         for (int y = 0; y < h; ++y) {
             int row = shape.inverseYAxis ? h-y-1 : y;
             for (int x = 0; x < w; ++x) {
@@ -89,12 +109,22 @@ void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const 
                 int winding = 0;
 
                 std::vector<Contour>::const_iterator contour = shape.contours.begin();
+                std::vector<EdgeBounds>::const_iterator bounds = edgeBounds.begin();
                 for (int i = 0; i < contourCount; ++i, ++contour) {
                     SignedDistance minDistance;
-                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                    if (closestEdge)
+                        minDistance = closestEdge->signedDistance(p, dummy);
+
+                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge, ++bounds) {
+                        double absDist = fabs(minDistance.distance);
+                        if (p.x + absDist < bounds->l || bounds->r + absDist < p.x || p.y + absDist < bounds->b || bounds->t + absDist < p.y)
+                            continue;
+
                         SignedDistance distance = (*edge)->signedDistance(p, dummy);
-                        if (distance < minDistance)
+                        if (distance < minDistance) {
                             minDistance = distance;
+                            closestEdge = *edge;
+                        }
                     }
                     contourSD[i] = minDistance.distance;
                     if (windings[i] > 0 && minDistance.distance >= 0 && fabs(minDistance.distance) < fabs(posDist))
