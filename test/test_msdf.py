@@ -67,7 +67,7 @@ def test_svg(path, args, runner):
                        # '-range', '8',
                        # '-tolerance', '0.01',
                        # '-legacy', str(args.legacy),
-                       '-scale', str(sz / 512.0), '-size', str(sz), str(sz),
+                       '-scale', str(sz / float(args.render_size)), '-size', str(sz), str(sz),
                        # '-exportshape', 'shape.txt',
                        '-testrender', render_path, rsz, rsz
                        ], shell=False)
@@ -76,23 +76,33 @@ def test_svg(path, args, runner):
     except OSError as er:
         return runner.add_fail(path, "Error running %s: %s" % (args.exe, er))
 
-    # Use imagemagick to rasterize the reference image and compare it
-    p = Popen(["compare -metric RMSE \"%s\" \"%s\" \"%s\"" % (path, render_path, diff_path)],
+    # Use imagemagick to rasterize the reference image and compare it.
+    # We use a very fuzzy comparison to try and account for differences in aliasing introduced around edges of
+    # an image, which comes from both the down/up rezzing introduced by going through the SDF process, but also
+    # minor differences with IM's SVG rasterizer. What we're trying to catch is full on pixel mismatches that
+    # indicate a shape was mis-handled (curve shooting off to the edge, fill rule violation, etc).
+
+    total_pixels = args.render_size * args.render_size
+
+    p = Popen(["compare -fuzz %f%% -metric AE \"%s\" \"%s\" \"%s\"" % (args.fuzz, path, render_path, diff_path)],
               stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     output, err = p.communicate("")
     if p.returncode == 1:
         runner.add_output(sdf_path, render_path, diff_path)
         # Ran successfully, but they are different. Let's parse the output and check the actual error metric.
-        # RMSE output = "<error> (<normalized error>)"
-        match = re.match(r'\S+ \(([^)]+)\)', err)
+        match = re.match(r'^(\d+)$', err)
         if match:
-            e = float(match.group(1))
-            if e > args.fail_threshold:
-                return runner.add_fail(path, "Error = %s" % e)
-            else:
-                return runner.add_pass(path, "(Acceptable) Error = %s" % e)
+            try:
+                pixels = int(match.group(1))
+                e = float(pixels) / total_pixels * 100.0
+                if e > args.fail_threshold:
+                    return runner.add_fail(path, "Error = %.3f %% (%d)" % (e, pixels))
+                else:
+                    return runner.add_pass(path, "OK = %.3f %% (%d)" % (e, pixels))
+            except ValueError:
+                return runner.add_fail(path, "(Unknown) Error metric = %s" % err)
         else:
-            runner.add_fail(path, "(Unknown) Error metric = %s" % err)
+            return runner.add_fail(path, "(Unknown) Error metric = %s" % err)
     elif p.returncode != 0:
         return runner.add_fail(path, "Error comparing to %s [%d]: %s" % (render_path, p.returncode, err))
 
@@ -107,7 +117,8 @@ def main():
     parser.add_argument("--svg-dir",
                         help="Directory to scan for SVG files.")
     parser.add_argument("--svg",
-                        help="SVG file to test")
+                        help="SVG file to test",
+                        action='append')
     parser.add_argument("--mode",
                         help="Algorithm: [sdf, psdf, msdf] (default=msdf)",
                         default="msdf")
@@ -123,8 +134,12 @@ def main():
                         help="Path to MSDFGEN executable",
                         default="msdfgen")
     parser.add_argument("--fail-threshold",
-                        help="Threshold for normalized RMSE that will flag a test as failure (Default: 0.07)",
-                        default=0.07,
+                        help="Percentage of pixels that are allowed to be different without flagging a failure. (Default: 0.06%)",
+                        default=0.06,  # Found experimentally (~150.0 / (512 * 512))
+                        type=float)
+    parser.add_argument("--fuzz",
+                        help="Fuzz percentage to use when comparing",
+                        default=99.5,
                         type=float)
     parser.add_argument("--legacy",
                         help="Use legacy <Version> mode algorithm",
@@ -157,7 +172,8 @@ def main():
                 path = os.path.join(root, name)
                 test_svg(path, args, runner)
     if args.svg:
-        test_svg(args.svg, args, runner)
+        for file in args.svg:
+            test_svg(file, args, runner)
 
     if args.montage:
         # We keep the diff montage at actual size (we want to see details)
