@@ -24,10 +24,12 @@ namespace msdfgen {
 static bool readNodeType(char &output, const char *&pathDef) {
     int shift;
     char nodeType;
-    if (sscanf(pathDef, " %c%n", &nodeType, &shift) == 1 && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
+    if (sscanf(pathDef, " %c%n", &nodeType, &shift) == 1) {
         pathDef += shift;
-        output = nodeType;
-        return true;
+		if (nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
+			output = nodeType;
+			return true;
+		}
     }
     return false;
 }
