@@ -10,3 +10,5 @@ Release/
 *.VC.opendb
 output.png
 render.png
+out/
+build_xcode/
