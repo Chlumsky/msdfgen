@@ -42,8 +42,10 @@ struct FtContext {
     Contour *contour;
 };
 
+double unitScale = 1.0;
+
 static Point2 ftPoint2(const FT_Vector &vector) {
-    return Point2(vector.x/64., vector.y/64.);
+    return Point2(unitScale*vector.x/64., unitScale*vector.y/64.);
 }
 
 static int ftMoveTo(const FT_Vector *to, void *user) {
@@ -129,10 +131,15 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
     if (error)
         return false;
+
+    double unitsPerEm;
+    getFontScale(unitsPerEm, font);
+    unitScale = 32.0 / unitsPerEm;
+
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = font->face->glyph->advance.x/64.;
+        *advance = unitScale * font->face->glyph->advance.x/64.;
 
     FtContext context = { };
     context.shape = &output;
