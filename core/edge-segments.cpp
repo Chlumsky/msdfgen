@@ -321,7 +321,7 @@ static int crossLine(const Point2& r, const Point2& p0, const Point2& p1, EdgeSe
     if (r.x >= max(p0.x, p1.x))
         return 0;
     // Intersect the line at r.y and see if the intersection is before or after the origin.
-    int xintercept = (p0.x + (r.y - p0.y) * (p1.x - p0.x) / (p1.y - p0.y));
+    double xintercept = (p0.x + (r.y - p0.y) * (p1.x - p0.x) / (p1.y - p0.y));
     if (r.x < xintercept) {
         int w = (p0.y < p1.y) ? 1 : -1;
         if( cb != NULL ) {
