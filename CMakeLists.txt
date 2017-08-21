@@ -99,6 +99,12 @@ if (BUILD_TESTING)
 		get_filename_component(NAME "${FILE}" NAME)
 		add_test(NAME ${NAME} COMMAND python "${TEST_DRIVER}" --svg "${FILE}" --exe "$<TARGET_FILE:msdfgen>")
 	endforeach()
+	file(GLOB_RECURSE TEST_SHAPEDESC_SOURCES
+		"test/test-*.shapedesc.txt")
+	foreach(FILE ${TEST_SHAPEDESC_SOURCES})
+		get_filename_component(NAME "${FILE}" NAME)
+		add_test(NAME ${NAME} COMMAND python "${TEST_DRIVER}" --shapedesc "${FILE}" --exe "$<TARGET_FILE:msdfgen>")
+	endforeach()
 endif()
 
 
