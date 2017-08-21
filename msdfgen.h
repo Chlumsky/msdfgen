@@ -2,7 +2,7 @@
 #pragma once
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.4 (2017-02-09)
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.5 (2017-07-23)
  * ---------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2017
  *
@@ -24,7 +24,7 @@
 #include "core/save-bmp.h"
 #include "core/shape-description.h"
 
-#define MSDFGEN_VERSION "1.4"
+#define MSDFGEN_VERSION "1.5"
 
 namespace msdfgen {
 

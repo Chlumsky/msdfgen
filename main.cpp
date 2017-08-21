@@ -1,6 +1,6 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.4 (2017-02-09) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.5 (2017-07-23) - standalone console program
  * --------------------------------------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2017
  *

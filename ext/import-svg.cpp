@@ -21,11 +21,16 @@ namespace msdfgen {
 #define REQUIRE(cond) { if (!(cond)) return false; }
 #endif
 
+static void skipExtraChars(const char *&pathDef) {
+    while (*pathDef == ',' || *pathDef == ' ' || *pathDef == '\t' || *pathDef == '\r' || *pathDef == '\n')
+        ++pathDef;
+}
+
 static bool readNodeType(char &output, const char *&pathDef) {
-    int shift;
-    char nodeType;
-    if (sscanf(pathDef, " %c%n", &nodeType, &shift) == 1 && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
-        pathDef += shift;
+    skipExtraChars(pathDef);
+    char nodeType = *pathDef;
+    if (nodeType && nodeType != '+' && nodeType != '-' && nodeType != '.' && nodeType != ',' && (nodeType < '0' || nodeType > '9')) {
+        ++pathDef;
         output = nodeType;
         return true;
     }
@@ -33,9 +38,10 @@ static bool readNodeType(char &output, const char *&pathDef) {
 }
 
 static bool readCoord(Point2 &output, const char *&pathDef) {
+    skipExtraChars(pathDef);
     int shift;
     double x, y;
-    if (sscanf(pathDef, " %lf%lf%n", &x, &y, &shift) == 2 || sscanf(pathDef, " %lf , %lf%n", &x, &y, &shift) == 2) {
+    if (sscanf(pathDef, "%lf%lf%n", &x, &y, &shift) == 2 || sscanf(pathDef, "%lf , %lf%n", &x, &y, &shift) == 2) {
         output.x = x;
         output.y = y;
         pathDef += shift;
@@ -45,9 +51,10 @@ static bool readCoord(Point2 &output, const char *&pathDef) {
 }
 
 static bool readDouble(double &output, const char *&pathDef) {
+    skipExtraChars(pathDef);
     int shift;
     double v;
-    if (sscanf(pathDef, " %lf%n", &v, &shift) == 1) {
+    if (sscanf(pathDef, "%lf%n", &v, &shift) == 1) {
         pathDef += shift;
         output = v;
         return true;
@@ -56,9 +63,10 @@ static bool readDouble(double &output, const char *&pathDef) {
 }
 
 static bool readBool(bool &output, const char *&pathDef) {
+    skipExtraChars(pathDef);
     int shift;
     int v;
-    if (sscanf(pathDef, " %d%n", &v, &shift) == 1) {
+    if (sscanf(pathDef, "%d%n", &v, &shift) == 1) {
         pathDef += shift;
         output = v != 0;
         return true;
@@ -160,13 +168,13 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
 }
 
 static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
-    char nodeType;
+    char nodeType = '\0';
+    char prevNodeType = '\0';
     Point2 prevNode(0, 0);
     bool nodeTypePreread = false;
     Point2 startPoint;
     Point2 controlPoint[2];
     Point2 node;
-    char prevNodeType = '\0';
     
     while (nodeTypePreread || readNodeType(nodeType, pathDef)) {
         nodeTypePreread = false;
@@ -209,7 +217,6 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                     break;
                 case 'Q': case 'q':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
-                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'q') {
                         controlPoint[0] += prevNode;
@@ -218,7 +225,10 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                     contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
                     break;
                 case 'T': case 't':
-                    controlPoint[0] = node+node-controlPoint[0];
+                    if (prevNodeType == 'Q' || prevNodeType == 'q' || prevNodeType == 'T' || prevNodeType == 't')
+                        controlPoint[0] = node+node-controlPoint[0];
+                    else
+                        controlPoint[0] = node;
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 't')
                         node += prevNode;
@@ -226,9 +236,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                     break;
                 case 'C': case 'c':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
-                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(controlPoint[1], pathDef));
-                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'c') {
                         controlPoint[0] += prevNode;
@@ -238,12 +246,11 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                     contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
                 case 'S': case 's':
-                    if (prevNodeType != 'c' && prevNodeType != 'C' && prevNodeType != 's' && prevNodeType != 'S')
-                        controlPoint[0] = node;
-                    else
+                    if (prevNodeType == 'C' || prevNodeType == 'c' || prevNodeType == 'S' || prevNodeType == 's')
                         controlPoint[0] = node+node-controlPoint[1];
+                    else
+                        controlPoint[0] = node;
                     REQUIRE(readCoord(controlPoint[1], pathDef));
-                    consumeOptionalComma(pathDef);
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 's') {
                         controlPoint[1] += prevNode;
@@ -258,13 +265,9 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
                         bool largeArg;
                         bool sweep;
                         REQUIRE(readCoord(radius, pathDef));
-                        consumeOptionalComma(pathDef);
                         REQUIRE(readDouble(angle, pathDef));
-                        consumeOptionalComma(pathDef);
                         REQUIRE(readBool(largeArg, pathDef));
-                        consumeOptionalComma(pathDef);
                         REQUIRE(readBool(sweep, pathDef));
-                        consumeOptionalComma(pathDef);
                         REQUIRE(readCoord(node, pathDef));
                         if (nodeType == 'a')
                             node += prevNode;
@@ -279,7 +282,6 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
             prevNode = node;
             prevNodeType = nodeType;
             readNodeType(nodeType, pathDef);
-            consumeWhitespace(pathDef);
         }
     NEXT_CONTOUR:
         // Fix contour if it isn't properly closed
@@ -291,6 +293,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
         }
         prevNodeType = nodeType;
         prevNode = startPoint;
+        prevNodeType = '\0';
     }
     return true;
 }
