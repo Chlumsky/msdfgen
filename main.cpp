@@ -383,7 +383,6 @@ int main(int argc, const char * const *argv) {
     bool scaleSpecified = false;
     double angleThreshold = 3;
     double edgeThreshold = 1.00000001;
-    bool defEdgeAssignment = true;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
     bool printMetrics = false;

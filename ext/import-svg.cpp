@@ -98,17 +98,6 @@ static bool readFillRule(FillRule &fillRule, const char *&str) {
     return false;
 }
 
-static void consumeWhitespace(const char *&pathDef) {
-    while (*pathDef == ' ' || *pathDef == '\t' || *pathDef == '\r' || *pathDef == '\n')
-        ++pathDef;
-}
-
-static void consumeOptionalComma(const char *&pathDef) {
-    consumeWhitespace(pathDef);
-    if (*pathDef == ',')
-        ++pathDef;
-}
-
 static double arcAngle(Vector2 u, Vector2 v) {
     return nonZeroSign(crossProduct(u, v))*acos(clamp(dotProduct(u, v)/(u.length()*v.length()), -1., +1.));
 }
