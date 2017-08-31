@@ -2,6 +2,9 @@
 #include "../msdfgen.h"
 
 #include "arithmetics.hpp"
+#include <algorithm> // for std::sort
+
+using namespace std; // to access signbit, not all libraries put signbit in std
 
 namespace msdfgen {
 
