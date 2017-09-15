@@ -306,9 +306,9 @@ void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, co
                 if (sb.nearEdge)
                     (*sb.nearEdge)->distanceToPseudoDistance(sb.minDistance, p, sb.nearParam);
 
-                float dr = sr.minDistance.distance;
-                float dg = sg.minDistance.distance;
-                float db = sb.minDistance.distance;
+                double dr = sr.minDistance.distance;
+                double dg = sg.minDistance.distance;
+                double db = sb.minDistance.distance;
                 
                 double med = median(dr, dg, db);
                 // Note: Use signbit() not sign() here because we need to know -0 case.
