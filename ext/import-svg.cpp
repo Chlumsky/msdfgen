@@ -8,6 +8,7 @@
 
 #ifdef _WIN32
     #pragma warning(disable:4996)
+    #define strncasecmp(s1, s2, n) _strnicmp(s1, s2, n)
 #endif
 
 #define ARC_SEGMENTS_PER_PI 2
