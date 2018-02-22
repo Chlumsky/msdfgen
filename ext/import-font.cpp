@@ -129,10 +129,17 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
     if (error)
         return false;
+
+    return loadGlyphGlyph(output, font->face->glyph, advance);
+}
+
+bool loadGlyphGlyph(Shape &output, FT_GlyphSlot glyph, double *advance) {
+    if (!glyph)
+        return false;
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = font->face->glyph->advance.x/64.;
+        *advance = glyph->advance.x/64.;
 
     FtContext context = { };
     context.shape = &output;
@@ -143,7 +150,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     ftFunctions.cubic_to = &ftCubicTo;
     ftFunctions.shift = 0;
     ftFunctions.delta = 0;
-    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    FT_Error error = FT_Outline_Decompose(&glyph->outline, &ftFunctions, &context);
     if (error)
         return false;
     return true;
