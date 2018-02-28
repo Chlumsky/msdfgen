@@ -130,10 +130,10 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     if (error)
         return false;
 
-    return loadGlyphGlyph(output, font->face->glyph, advance);
+    return loadGlyphSlot(output, font->face->glyph, advance);
 }
 
-bool loadGlyphGlyph(Shape &output, FT_GlyphSlot glyph, double *advance) {
+bool loadGlyphSlot(Shape &output, FT_GlyphSlot glyph, double *advance) {
     if (!glyph)
         return false;
     output.contours.clear();

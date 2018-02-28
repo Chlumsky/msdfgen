@@ -25,8 +25,8 @@ bool getFontScale(double &output, FontHandle *font);
 bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
 /// Loads the shape prototype of a glyph from font file
 bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance = NULL);
-/// Loads the spahe prototype of a glyph directly from FT glyph slot
-bool loadGlyphGlyph(Shape &output, FT_GlyphSlot glyph, double *advance = NULL);
+/// Loads the shape prototype of a glyph directly from FT glyph slot
+bool loadGlyphSlot(Shape &output, FT_GlyphSlot glyph, double *advance = NULL);
 /// Returns the kerning distance adjustment between two specific glyphs.
 bool getKerning(double &output, FontHandle *font, int unicode1, int unicode2);
 
