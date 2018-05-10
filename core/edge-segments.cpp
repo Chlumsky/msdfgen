@@ -344,6 +344,10 @@ static int crossQuad(const Point2& r, const Point2& p0, const Point2& c0, const 
         return 0;
     if (r.x >= max(p0.x, max(c0.x, p1.x)))
         return 0;
+        
+    // Is the quadratic segment actually a horizontal line?
+    if (p0.y == p1.y && p0.y == c0.y)
+    	return 0;
 
     // Recursively subdivide the curve to find the intersection point(s). If we haven't
     // converged on a solution by a given depth, just treat it as a linear segment
