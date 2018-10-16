@@ -295,5 +295,124 @@ void CubicSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeS
         point(2/3.), color);
     part3 = new CubicSegment(point(2/3.), mix(mix(p[1], p[2], 2/3.), mix(p[2], p[3], 2/3.), 2/3.), p[2] == p[3] ? p[3] : mix(p[2], p[3], 2/3.), p[3], color);
 }
+    
+bool LinearSegment::isDegenerate() const {
+    return p[0].same(p[1]);
+}
+    
+bool QuadraticSegment::isDegenerate() const {
+    return p[0].same(p[2]);
+}
 
+bool CubicSegment::isDegenerate() const {
+    return p[0].same(p[3]) && (p[0].same(p[1]) || p[2].same(p[1]));
+}
+
+/// Check how many times a ray from point R extending to the +X direction intersects
+/// the given segment:
+///  0 = no intersection or co-linear
+/// +1 = intersection increasing in the Y axis
+/// -1 = intersection decreasing in the Y axis
+static int crossLine(const Point2& r, const Point2& p0, const Point2& p1, EdgeSegment::CrossingCallback* cb) {
+    if (r.y < min(p0.y, p1.y))
+        return 0;
+    if (r.y >= max(p0.y, p1.y))
+        return 0;
+    if (r.x >= max(p0.x, p1.x))
+        return 0;
+    // Intersect the line at r.y and see if the intersection is before or after the origin.
+    double xintercept = (p0.x + (r.y - p0.y) * (p1.x - p0.x) / (p1.y - p0.y));
+    if (r.x < xintercept) {
+        int w = (p0.y < p1.y) ? 1 : -1;
+        if( cb != NULL ) {
+            cb->intersection(Point2(xintercept, r.y), w);
+        }
+        return w;
+    }
+    return 0;
+}
+
+/// Check how many times a ray from point R extending to the +X direction intersects
+/// the given segment:
+///  0 = no intersection or co-linear
+/// +1 = for each intersection increasing in the Y axis
+/// -1 = for each intersection decreasing in the Y axis
+static int crossQuad(const Point2& r, const Point2& p0, const Point2& c0, const Point2& p1, int depth, EdgeSegment::CrossingCallback* cb) {
+    if (r.y < min(p0.y, min(c0.y, p1.y)))
+        return 0;
+    if (r.y > max(p0.y, max(c0.y, p1.y)))
+        return 0;
+    if (r.x >= max(p0.x, max(c0.x, p1.x)))
+        return 0;
+        
+    // Is the quadratic segment actually a horizontal line?
+    if (p0.y == p1.y && p0.y == c0.y)
+    	return 0;
+
+    // Recursively subdivide the curve to find the intersection point(s). If we haven't
+    // converged on a solution by a given depth, just treat it as a linear segment
+    // and call the approximation good enough.
+    if( depth > 30 )
+        return crossLine(r, p0, p1, cb);
+
+    depth++;
+
+    Point2 mc0 = (p0 + c0) * 0.5;
+    Point2 mc1 = (c0 + p1) * 0.5;
+    Point2 mid = (mc0 + mc1) * 0.5;
+
+    return crossQuad(r, p0, mc0, mid, depth, cb) + crossQuad(r, mid, mc1, p1, depth, cb);
+}
+
+/// Check how many times a ray from point R extending to the +X direction intersects
+/// the given segment:
+///  0 = no intersection or co-linear
+/// +1 = for each intersection increasing in the Y axis
+/// -1 = for each intersection decreasing in the Y axis
+static int crossCubic(const Point2& r, const Point2& p0, const Point2& c0, const Point2& c1, const Point2& p1, int depth, EdgeSegment::CrossingCallback* cb) {
+    if (r.y < min(p0.y, min(c0.y, min(c1.y, p1.y))))
+        return 0;
+    if (r.y > max(p0.y, max(c0.y, max(c1.y, p1.y))))
+        return 0;
+    if (r.x >= max(p0.x, max(c0.x, max(c1.x, p1.x))))
+        return 0;
+        
+    // Is it a flat horizontal line?
+    if (p0.y == p1.y && p0.y == c0.y && p0.y == c1.y)
+    	return 0;
+    
+    // Recursively subdivide the curve to find the intersection point(s). If we haven't
+    // converged on a solution by a given depth, just treat it as a linear segment
+    // and call the approximation good enough.
+    if( depth > 30 )
+        return crossLine(r, p0, p1, cb);
+    
+    depth++;
+    
+    Point2 mid = (c0 + c1) * 0.5;
+    Point2 c00 = (p0 + c0) * 0.5;
+    Point2 c11 = (c1 + p1) * 0.5;
+    Point2 c01 = (c00 + mid) * 0.5;
+    Point2 c10 = (c11 + mid) * 0.5;
+    
+    mid = (c01 + c10) * 0.5;
+    
+    return crossCubic(r, p0, c00, c01, mid, depth, cb) + crossCubic(r, mid, c10, c11, p1, depth, cb);
+}
+    
+    
+int LinearSegment::crossings(const Point2 &r, CrossingCallback* cb) const {
+    return crossLine(r, p[0], p[1], cb);
+}
+
+    
+int QuadraticSegment::crossings(const Point2 &r, CrossingCallback* cb) const {
+    return crossQuad(r, p[0], p[1], p[2], 0, cb);
+}
+
+    
+int CubicSegment::crossings(const Point2 &r, CrossingCallback* cb) const {
+    return crossCubic(r, p[0], p[1], p[2], p[3], 0, cb);
+}
+    
 }

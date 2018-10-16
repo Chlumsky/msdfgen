@@ -7,7 +7,7 @@
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(MSDFGEN_NO_PRAGMA_LIB)
     #pragma comment(lib, "freetype.lib")
 #endif
 
@@ -132,6 +132,13 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     if (error)
         return false;
 
+    return loadGlyphSlot(output, font, font->face->glyph, advance);
+}
+
+bool loadGlyphSlot(Shape &output, FontHandle *font, FT_GlyphSlot glyph, double *advance) {
+    if (!glyph)
+        return false;
+
     double unitsPerEm;
     getFontScale(unitsPerEm, font);
     unitScale = 32.0 / unitsPerEm;
@@ -139,7 +146,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = unitScale * font->face->glyph->advance.x/64.;
+        *advance = unitScale * glyph->advance.x/64.;
 
     FtContext context = { };
     context.shape = &output;
@@ -150,7 +157,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     ftFunctions.cubic_to = &ftCubicTo;
     ftFunctions.shift = 0;
     ftFunctions.delta = 0;
-    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    FT_Error error = FT_Outline_Decompose(&glyph->outline, &ftFunctions, &context);
     if (error)
         return false;
     return true;
