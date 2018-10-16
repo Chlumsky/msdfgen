@@ -11,4 +11,5 @@ Release/
 output.png
 render.png
 out/
+out-*/
 build_xcode/

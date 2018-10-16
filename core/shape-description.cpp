@@ -78,7 +78,6 @@ static bool readContour(T *input, Contour &output, const Point2 *first, int term
     while ((c = readChar(input)) != terminator) {
         if (c != ';')
             return false;
-        bool parenthesis = false;
         EdgeColor color = WHITE;
         int result = readCoord(input, p[1]);
         if (result == 2) {

@@ -38,7 +38,28 @@ public:
     virtual void moveEndPoint(Point2 to) = 0;
     /// Splits the edge segments into thirds which together represent the original edge.
     virtual void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const = 0;
+    
+    virtual bool isDegenerate() const = 0;
 
+    
+    
+    class CrossingCallback {
+    public:
+        virtual ~CrossingCallback() {}
+        /// Callback for receiving intersection points. Winding is either:
+        /// +1 if the segment is increasing in the Y axis
+        /// -1 if the segment is decreasing in the Y axis
+        virtual void intersection(const Point2& p, int winding) = 0;
+    };
+    
+    /// Calculate how many times the segment intersects the infinite ray that extends
+    /// to the right (+X) from the given point. Returns:
+    ///  0 for no intersection (or co-linear)
+    /// +1 for each intersection where Y is increasing
+    /// -1 for each intersection where Y is decreasing.
+    virtual int crossings(const Point2 &r, CrossingCallback *cb = NULL) const = 0;
+    
+    
 };
 
 /// A line segment.
@@ -57,7 +78,10 @@ public:
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    
+    bool isDegenerate() const;
 
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 /// A quadratic Bezier curve.
@@ -77,6 +101,9 @@ public:
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
 
+    bool isDegenerate() const;
+
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 /// A cubic Bezier curve.
@@ -96,6 +123,9 @@ public:
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
 
+    bool isDegenerate() const;
+
+    int crossings(const Point2 &r, CrossingCallback *cb = NULL) const;
 };
 
 }

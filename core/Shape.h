@@ -5,6 +5,13 @@
 #include "Contour.h"
 
 namespace msdfgen {
+    
+    /// Fill rules compatible with SVG: https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
+    enum FillRule {
+        None = 0, // Legacy
+        NonZero = 1,
+        EvenOdd = 2,
+    };
 
 /// Vector shape representation.
 class Shape {
@@ -14,6 +21,9 @@ public:
     std::vector<Contour> contours;
     /// Specifies whether the shape uses bottom-to-top (false) or top-to-bottom (true) Y coordinates.
     bool inverseYAxis;
+    /// Fill rule for this shape.
+    FillRule fillRule;
+    
 
     Shape();
     /// Adds a contour.

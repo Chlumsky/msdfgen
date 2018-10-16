@@ -7,7 +7,7 @@
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(MSDFGEN_NO_PRAGMA_LIB)
     #pragma comment(lib, "freetype.lib")
 #endif
 
@@ -42,8 +42,10 @@ struct FtContext {
     Contour *contour;
 };
 
+double unitScale = 1.0;
+
 static Point2 ftPoint2(const FT_Vector &vector) {
-    return Point2(vector.x/64., vector.y/64.);
+    return Point2(unitScale*vector.x/64., unitScale*vector.y/64.);
 }
 
 static int ftMoveTo(const FT_Vector *to, void *user) {
@@ -129,10 +131,22 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
     if (error)
         return false;
+
+    return loadGlyphSlot(output, font, font->face->glyph, advance);
+}
+
+bool loadGlyphSlot(Shape &output, FontHandle *font, FT_GlyphSlot glyph, double *advance) {
+    if (!glyph)
+        return false;
+
+    double unitsPerEm;
+    getFontScale(unitsPerEm, font);
+    unitScale = 32.0 / unitsPerEm;
+
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = font->face->glyph->advance.x/64.;
+        *advance = unitScale * glyph->advance.x/64.;
 
     FtContext context = { };
     context.shape = &output;
@@ -143,7 +157,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     ftFunctions.cubic_to = &ftCubicTo;
     ftFunctions.shift = 0;
     ftFunctions.delta = 0;
-    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    FT_Error error = FT_Outline_Decompose(&glyph->outline, &ftFunctions, &context);
     if (error)
         return false;
     return true;

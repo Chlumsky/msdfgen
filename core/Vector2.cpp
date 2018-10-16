@@ -65,6 +65,12 @@ bool Vector2::operator!=(const Vector2 &other) const {
     return x != other.x || y != other.y;
 }
 
+double Vector2::Epsilon = 0.01;
+    
+bool Vector2::same(const Vector2 &other) const {
+    return fabs(x - other.x) <= Epsilon && fabs(y - other.y) <= Epsilon;
+}
+
 Vector2 Vector2::operator+() const {
     return *this;
 }

@@ -38,8 +38,13 @@ void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, 
 void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
 
 // Original simpler versions of the previous functions, which work well under normal circumstances, but cannot deal with overlapping contours.
-void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
-void generatePseudoSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
-void generateMSDF_legacy(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
+void generateSDF_v1(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generatePseudoSDF_v1(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generateMSDF_v1(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
+
+// Pre-fill-rule versions.
+void generateSDF_v2(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generatePseudoSDF_v2(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
+void generateMSDF_v2(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.00000001);
 
 }
