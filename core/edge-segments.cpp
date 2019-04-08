@@ -111,7 +111,7 @@ SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const
 SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
     Vector2 qa = p[0]-origin;
     Vector2 ab = p[1]-p[0];
-    Vector2 br = p[0]+p[2]-p[1]-p[1];
+    Vector2 br = p[2]-p[1]-ab;
     double a = dotProduct(br, br);
     double b = 3*dotProduct(ab, br);
     double c = 2*dotProduct(ab, ab)+dotProduct(qa, br);
@@ -191,6 +191,126 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
         return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
     else
         return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[3]-origin).normalize())));
+}
+
+int LinearSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+    if ((y >= p[0].y && y < p[1].y) || (y >= p[1].y && y < p[0].y)) {
+        double param = (y-p[0].y)/(p[1].y-p[0].y);
+        x[0] = mix(p[0].x, p[1].x, param);
+        dy[0] = sign(p[1].y-p[0].y);
+        return 1;
+    }
+    return 0;
+}
+
+int QuadraticSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+    int total = 0;
+    int nextDY = y > p[0].y ? 1 : -1;
+    x[total] = p[0].x;
+    if (p[0].y == y) {
+        if (p[0].y < p[1].y || (p[0].y == p[1].y && p[0].y < p[2].y))
+            dy[total++] = 1;
+        else
+            nextDY = 1;
+    }
+    {
+        Vector2 ab = p[1]-p[0];
+        Vector2 br = p[2]-p[1]-ab;
+        double t[2];
+        int solutions = solveQuadratic(t, br.y, 2*ab.y, p[0].y-y);
+        // Sort solutions
+        double tmp;
+        if (solutions >= 2 && t[0] > t[1])
+            tmp = t[0], t[0] = t[1], t[1] = tmp;
+        for (int i = 0; i < solutions && total < 2; ++i) {
+            if (t[i] > 0 && t[i] < 1) {
+                x[total] = p[0].x+2*t[i]*ab.x+t[i]*t[i]*br.x;
+                if (nextDY*(ab.y+t[i]*br.y) >= 0) {
+                    dy[total++] = nextDY;
+                    nextDY = -nextDY;
+                }
+            }
+        }
+    }
+    if (p[2].y == y) {
+        if (nextDY > 0 && total > 0) {
+            --total;
+            nextDY = -1;
+        }
+        if ((p[2].y < p[1].y || (p[2].y == p[1].y && p[2].y < p[0].y)) && total < 2) {
+            x[total] = p[2].x;
+            if (nextDY < 0) {
+                dy[total++] = -1;
+                nextDY = 1;
+            }
+        }
+    }
+    if (nextDY != (y >= p[2].y ? 1 : -1)) {
+        if (total > 0)
+            --total;
+        else
+            dy[total++] = nextDY;
+    }
+    return total;
+}
+
+int CubicSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+    int total = 0;
+    int nextDY = y > p[0].y ? 1 : -1;
+    x[total] = p[0].x;
+    if (p[0].y == y) {
+        if (p[0].y < p[1].y || (p[0].y == p[1].y && (p[0].y < p[2].y || (p[0].y == p[2].y && p[0].y < p[3].y))))
+            dy[total++] = 1;
+        else
+            nextDY = 1;
+    }
+    {
+        Vector2 ab = p[1]-p[0];
+        Vector2 br = p[2]-p[1]-ab;
+        Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
+        double t[3];
+        int solutions = solveCubic(t, as.y, 3*br.y, 3*ab.y, p[0].y-y);
+        // Sort solutions
+        double tmp;
+        if (solutions >= 2) {
+            if (t[0] > t[1])
+                tmp = t[0], t[0] = t[1], t[1] = tmp;
+            if (solutions >= 3 && t[1] > t[2]) {
+                tmp = t[1], t[1] = t[2], t[2] = tmp;
+                if (t[0] > t[1])
+                    tmp = t[0], t[0] = t[1], t[1] = tmp;
+            }
+        }
+        for (int i = 0; i < solutions && total < 3; ++i) {
+            if (t[i] > 0 && t[i] < 1) {
+                x[total] = p[0].x+3*t[i]*ab.x+3*t[i]*t[i]*br.x+t[i]*t[i]*t[i]*as.x;
+                if (nextDY*(ab.y+2*t[i]*br.y+t[i]*t[i]*as.y) >= 0) {
+                    dy[total++] = nextDY;
+                    nextDY = -nextDY;
+                }
+            }
+        }
+    }
+    if (p[3].y == y) {
+        if (nextDY > 0 && total > 0) {
+            --total;
+            nextDY = -1;
+        }
+        if ((p[3].y < p[2].y || (p[3].y == p[2].y && (p[3].y < p[1].y || (p[3].y == p[1].y && p[3].y < p[0].y)))) && total < 3) {
+            x[total] = p[3].x;
+            if (nextDY < 0) {
+                dy[total++] = -1;
+                nextDY = 1;
+            }
+        }
+    }
+    if (nextDY != (y >= p[3].y ? 1 : -1)) {
+        if (total > 0)
+            --total;
+        else
+            dy[total++] = nextDY;
+    }
+    return total;
 }
 
 static void pointBounds(Point2 p, double &l, double &b, double &r, double &t) {

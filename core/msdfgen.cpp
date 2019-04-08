@@ -1,47 +1,125 @@
 
 #include "../msdfgen.h"
 
-#include "arithmetics.hpp"
+#include <vector>
+#include "edge-selectors.h"
+#include "contour-combiners.h"
 
 namespace msdfgen {
 
-struct MultiDistance {
-    double r, g, b;
-    double med;
+template <typename DistanceType>
+class DistancePixelConversion;
+
+template <>
+class DistancePixelConversion<double> {
+public:
+    typedef float PixelType;
+    inline static PixelType convert(double distance, double range) {
+        return PixelType(distance/range+.5);
+    }
 };
 
-static inline bool pixelClash(const FloatRGB &a, const FloatRGB &b, double threshold) {
-    // Only consider pair where both are on the inside or both are on the outside
-    bool aIn = (a.r > .5f)+(a.g > .5f)+(a.b > .5f) >= 2;
-    bool bIn = (b.r > .5f)+(b.g > .5f)+(b.b > .5f) >= 2;
-    if (aIn != bIn) return false;
-    // If the change is 0 <-> 1 or 2 <-> 3 channels and not 1 <-> 1 or 2 <-> 2, it is not a clash
-    if ((a.r > .5f && a.g > .5f && a.b > .5f) || (a.r < .5f && a.g < .5f && a.b < .5f)
-        || (b.r > .5f && b.g > .5f && b.b > .5f) || (b.r < .5f && b.g < .5f && b.b < .5f))
-        return false;
-    // Find which color is which: _a, _b = the changing channels, _c = the remaining one
-    float aa, ab, ba, bb, ac, bc;
-    if ((a.r > .5f) != (b.r > .5f) && (a.r < .5f) != (b.r < .5f)) {
-        aa = a.r, ba = b.r;
-        if ((a.g > .5f) != (b.g > .5f) && (a.g < .5f) != (b.g < .5f)) {
-            ab = a.g, bb = b.g;
-            ac = a.b, bc = b.b;
-        } else if ((a.b > .5f) != (b.b > .5f) && (a.b < .5f) != (b.b < .5f)) {
-            ab = a.b, bb = b.b;
-            ac = a.g, bc = b.g;
-        } else
-            return false; // this should never happen
-    } else if ((a.g > .5f) != (b.g > .5f) && (a.g < .5f) != (b.g < .5f)
-        && (a.b > .5f) != (b.b > .5f) && (a.b < .5f) != (b.b < .5f)) {
-        aa = a.g, ba = b.g;
-        ab = a.b, bb = b.b;
-        ac = a.r, bc = b.r;
-    } else
-        return false;
-    // Find if the channels are in fact discontinuous
-    return (fabsf(aa-ba) >= threshold)
-        && (fabsf(ab-bb) >= threshold)
-        && fabsf(ac-.5f) >= fabsf(bc-.5f); // Out of the pair, only flag the pixel farther from a shape edge
+template <>
+class DistancePixelConversion<MultiDistance> {
+public:
+    typedef FloatRGB PixelType;
+    inline static PixelType convert(const MultiDistance &distance, double range) {
+        PixelType pixel;
+        pixel.r = float(distance.r/range+.5);
+        pixel.g = float(distance.g/range+.5);
+        pixel.b = float(distance.b/range+.5);
+        return pixel;
+    }
+};
+
+template <class ContourCombiner>
+void generateDistanceField(Bitmap<typename DistancePixelConversion<typename ContourCombiner::DistanceType>::PixelType> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int w = output.width(), h = output.height();
+
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel
+#endif
+    {
+        ContourCombiner contourCombiner(shape);
+        Point2 p;
+#ifdef MSDFGEN_USE_OPENMP
+        #pragma omp for
+#endif
+        for (int y = 0; y < h; ++y) {
+            int row = shape.inverseYAxis ? h-y-1 : y;
+            p.y = (y+.5)/scale.y-translate.y;
+            for (int x = 0; x < w; ++x) {
+                p.x = (x+.5)/scale.x-translate.x;
+
+                contourCombiner.reset(p);
+
+                for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
+                    if (!contour->edges.empty()) {
+                        ContourCombiner::EdgeSelectorType edgeSelector(p);
+
+                        const EdgeSegment *prevEdge = contour->edges.size() >= 2 ? *(contour->edges.end()-2) : *contour->edges.begin();
+                        const EdgeSegment *curEdge = contour->edges.back();
+                        for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                            const EdgeSegment *nextEdge = *edge;
+                            edgeSelector.addEdge(prevEdge, curEdge, nextEdge);
+                            prevEdge = curEdge;
+                            curEdge = nextEdge;
+                        }
+
+                        contourCombiner.setContourEdge(int(contour-shape.contours.begin()), edgeSelector);
+                    }
+                }
+
+                ContourCombiner::DistanceType distance = contourCombiner.distance();
+                output(x, row) = DistancePixelConversion<ContourCombiner::DistanceType>::convert(distance, range);
+            }
+        }
+    }
+}
+
+void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
+    if (overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<TrueDistanceSelector> >(output, shape, range, scale, translate);
+    else
+        generateDistanceField<SimpleContourCombiner<TrueDistanceSelector> >(output, shape, range, scale, translate);
+}
+
+void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
+    if (overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<PseudoDistanceSelector> >(output, shape, range, scale, translate);
+    else
+        generateDistanceField<SimpleContourCombiner<PseudoDistanceSelector> >(output, shape, range, scale, translate);
+}
+
+void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold, bool overlapSupport) {
+    if (overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<MultiDistanceSelector> >(output, shape, range, scale, translate);
+    else
+        generateDistanceField<SimpleContourCombiner<MultiDistanceSelector> >(output, shape, range, scale, translate);
+    if (edgeThreshold > 0)
+        msdfErrorCorrection(output, edgeThreshold/(scale*range));
+}
+
+inline static bool detectClash(const FloatRGB &a, const FloatRGB &b, double threshold) {
+    // Sort channels so that pairs (a0, b0), (a1, b1), (a2, b2) go from biggest to smallest absolute difference
+    float a0 = a.r, a1 = a.g, a2 = a.b;
+    float b0 = b.r, b1 = b.g, b2 = b.b;
+    float tmp;
+    if (fabsf(b0-a0) < fabsf(b1-a1)) {
+        tmp = a0, a0 = a1, a1 = tmp;
+        tmp = b0, b0 = b1, b1 = tmp;
+    }
+    if (fabsf(b1-a1) < fabsf(b2-a2)) {
+        tmp = a1, a1 = a2, a2 = tmp;
+        tmp = b1, b1 = b2, b2 = tmp;
+        if (fabsf(b0-a0) < fabsf(b1-a1)) {
+            tmp = a0, a0 = a1, a1 = tmp;
+            tmp = b0, b0 = b1, b1 = tmp;
+        }
+    }
+    return (fabsf(b1-a1) >= threshold) &&
+        !(b0 == b1 && b0 == b2) && // Ignore if other pixel has been equalized
+        fabsf(a2-.5f) >= fabsf(b2-.5f); // Out of the pair, only flag the pixel farther from a shape edge
 }
 
 void msdfErrorCorrection(Bitmap<FloatRGB> &output, const Vector2 &threshold) {
@@ -49,10 +127,12 @@ void msdfErrorCorrection(Bitmap<FloatRGB> &output, const Vector2 &threshold) {
     int w = output.width(), h = output.height();
     for (int y = 0; y < h; ++y)
         for (int x = 0; x < w; ++x) {
-            if ((x > 0 && pixelClash(output(x, y), output(x-1, y), threshold.x))
-                || (x < w-1 && pixelClash(output(x, y), output(x+1, y), threshold.x))
-                || (y > 0 && pixelClash(output(x, y), output(x, y-1), threshold.y))
-                || (y < h-1 && pixelClash(output(x, y), output(x, y+1), threshold.y)))
+            if (
+                (x > 0 && detectClash(output(x, y), output(x-1, y), threshold.x)) ||
+                (x < w-1 && detectClash(output(x, y), output(x+1, y), threshold.x)) ||
+                (y > 0 && detectClash(output(x, y), output(x, y-1), threshold.y)) ||
+                (y < h-1 && detectClash(output(x, y), output(x, y+1), threshold.y))
+            )
                 clashes.push_back(std::make_pair(x, y));
         }
     for (std::vector<std::pair<int, int> >::const_iterator clash = clashes.begin(); clash != clashes.end(); ++clash) {
@@ -60,278 +140,27 @@ void msdfErrorCorrection(Bitmap<FloatRGB> &output, const Vector2 &threshold) {
         float med = median(pixel.r, pixel.g, pixel.b);
         pixel.r = med, pixel.g = med, pixel.b = med;
     }
-}
-
-void generateSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
-    int contourCount = shape.contours.size();
-    int w = output.width(), h = output.height();
-    std::vector<int> windings;
-    windings.reserve(contourCount);
-    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-        windings.push_back(contour->winding());
-
-#ifdef MSDFGEN_USE_OPENMP
-    #pragma omp parallel
-#endif
-    {
-        std::vector<double> contourSD;
-        contourSD.resize(contourCount);
-#ifdef MSDFGEN_USE_OPENMP
-        #pragma omp for
-#endif
-        for (int y = 0; y < h; ++y) {
-            int row = shape.inverseYAxis ? h-y-1 : y;
-            for (int x = 0; x < w; ++x) {
-                double dummy;
-                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
-                double negDist = -SignedDistance::INFINITE.distance;
-                double posDist = SignedDistance::INFINITE.distance;
-                int winding = 0;
-
-                std::vector<Contour>::const_iterator contour = shape.contours.begin();
-                for (int i = 0; i < contourCount; ++i, ++contour) {
-                    SignedDistance minDistance;
-                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                        SignedDistance distance = (*edge)->signedDistance(p, dummy);
-                        if (distance < minDistance)
-                            minDistance = distance;
-                    }
-                    contourSD[i] = minDistance.distance;
-                    if (windings[i] > 0 && minDistance.distance >= 0 && fabs(minDistance.distance) < fabs(posDist))
-                        posDist = minDistance.distance;
-                    if (windings[i] < 0 && minDistance.distance <= 0 && fabs(minDistance.distance) < fabs(negDist))
-                        negDist = minDistance.distance;
-                }
-
-                double sd = SignedDistance::INFINITE.distance;
-                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
-                    sd = posDist;
-                    winding = 1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] > 0 && contourSD[i] > sd && fabs(contourSD[i]) < fabs(negDist))
-                            sd = contourSD[i];
-                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
-                    sd = negDist;
-                    winding = -1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] < 0 && contourSD[i] < sd && fabs(contourSD[i]) < fabs(posDist))
-                            sd = contourSD[i];
-                }
-                for (int i = 0; i < contourCount; ++i)
-                    if (windings[i] != winding && fabs(contourSD[i]) < fabs(sd))
-                        sd = contourSD[i];
-
-                output(x, row) = float(sd/range+.5);
-            }
+#ifndef MSDFGEN_NO_DIAGONAL_CLASH_DETECTION
+    clashes.clear();
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            if (
+                (x > 0 && y > 0 && detectClash(output(x, y), output(x-1, y-1), threshold.x+threshold.y)) ||
+                (x < w-1 && y > 0 && detectClash(output(x, y), output(x+1, y-1), threshold.x+threshold.y)) ||
+                (x > 0 && y < h-1 && detectClash(output(x, y), output(x-1, y+1), threshold.x+threshold.y)) ||
+                (x < w-1 && y < h-1 && detectClash(output(x, y), output(x+1, y+1), threshold.x+threshold.y))
+            )
+                clashes.push_back(std::make_pair(x, y));
         }
+    for (std::vector<std::pair<int, int> >::const_iterator clash = clashes.begin(); clash != clashes.end(); ++clash) {
+        FloatRGB &pixel = output(clash->first, clash->second);
+        float med = median(pixel.r, pixel.g, pixel.b);
+        pixel.r = med, pixel.g = med, pixel.b = med;
     }
+#endif
 }
 
-void generatePseudoSDF(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
-    int contourCount = shape.contours.size();
-    int w = output.width(), h = output.height();
-    std::vector<int> windings;
-    windings.reserve(contourCount);
-    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-        windings.push_back(contour->winding());
-
-#ifdef MSDFGEN_USE_OPENMP
-    #pragma omp parallel
-#endif
-    {
-        std::vector<double> contourSD;
-        contourSD.resize(contourCount);
-#ifdef MSDFGEN_USE_OPENMP
-        #pragma omp for
-#endif
-        for (int y = 0; y < h; ++y) {
-            int row = shape.inverseYAxis ? h-y-1 : y;
-            for (int x = 0; x < w; ++x) {
-                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
-                double sd = SignedDistance::INFINITE.distance;
-                double negDist = -SignedDistance::INFINITE.distance;
-                double posDist = SignedDistance::INFINITE.distance;
-                int winding = 0;
-
-                std::vector<Contour>::const_iterator contour = shape.contours.begin();
-                for (int i = 0; i < contourCount; ++i, ++contour) {
-                    SignedDistance minDistance;
-                    const EdgeHolder *nearEdge = NULL;
-                    double nearParam = 0;
-                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                        double param;
-                        SignedDistance distance = (*edge)->signedDistance(p, param);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            nearEdge = &*edge;
-                            nearParam = param;
-                        }
-                    }
-                    if (fabs(minDistance.distance) < fabs(sd)) {
-                        sd = minDistance.distance;
-                        winding = -windings[i];
-                    }
-                    if (nearEdge)
-                        (*nearEdge)->distanceToPseudoDistance(minDistance, p, nearParam);
-                    contourSD[i] = minDistance.distance;
-                    if (windings[i] > 0 && minDistance.distance >= 0 && fabs(minDistance.distance) < fabs(posDist))
-                        posDist = minDistance.distance;
-                    if (windings[i] < 0 && minDistance.distance <= 0 && fabs(minDistance.distance) < fabs(negDist))
-                        negDist = minDistance.distance;
-                }
-
-                double psd = SignedDistance::INFINITE.distance;
-                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
-                    psd = posDist;
-                    winding = 1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] > 0 && contourSD[i] > psd && fabs(contourSD[i]) < fabs(negDist))
-                            psd = contourSD[i];
-                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
-                    psd = negDist;
-                    winding = -1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] < 0 && contourSD[i] < psd && fabs(contourSD[i]) < fabs(posDist))
-                            psd = contourSD[i];
-                }
-                for (int i = 0; i < contourCount; ++i)
-                    if (windings[i] != winding && fabs(contourSD[i]) < fabs(psd))
-                        psd = contourSD[i];
-
-                output(x, row) = float(psd/range+.5);
-            }
-        }
-    }
-}
-
-void generateMSDF(Bitmap<FloatRGB> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
-    int contourCount = shape.contours.size();
-    int w = output.width(), h = output.height();
-    std::vector<int> windings;
-    windings.reserve(contourCount);
-    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-        windings.push_back(contour->winding());
-
-#ifdef MSDFGEN_USE_OPENMP
-    #pragma omp parallel
-#endif
-    {
-        std::vector<MultiDistance> contourSD;
-        contourSD.resize(contourCount);
-#ifdef MSDFGEN_USE_OPENMP
-        #pragma omp for
-#endif
-        for (int y = 0; y < h; ++y) {
-            int row = shape.inverseYAxis ? h-y-1 : y;
-            for (int x = 0; x < w; ++x) {
-                Point2 p = Vector2(x+.5, y+.5)/scale-translate;
-
-                struct EdgePoint {
-                    SignedDistance minDistance;
-                    const EdgeHolder *nearEdge;
-                    double nearParam;
-                } sr, sg, sb;
-                sr.nearEdge = sg.nearEdge = sb.nearEdge = NULL;
-                sr.nearParam = sg.nearParam = sb.nearParam = 0;
-                double d = fabs(SignedDistance::INFINITE.distance);
-                double negDist = -SignedDistance::INFINITE.distance;
-                double posDist = SignedDistance::INFINITE.distance;
-                int winding = 0;
-
-                std::vector<Contour>::const_iterator contour = shape.contours.begin();
-                for (int i = 0; i < contourCount; ++i, ++contour) {
-                    EdgePoint r, g, b;
-                    r.nearEdge = g.nearEdge = b.nearEdge = NULL;
-                    r.nearParam = g.nearParam = b.nearParam = 0;
-
-                    for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                        double param;
-                        SignedDistance distance = (*edge)->signedDistance(p, param);
-                        if ((*edge)->color&RED && distance < r.minDistance) {
-                            r.minDistance = distance;
-                            r.nearEdge = &*edge;
-                            r.nearParam = param;
-                        }
-                        if ((*edge)->color&GREEN && distance < g.minDistance) {
-                            g.minDistance = distance;
-                            g.nearEdge = &*edge;
-                            g.nearParam = param;
-                        }
-                        if ((*edge)->color&BLUE && distance < b.minDistance) {
-                            b.minDistance = distance;
-                            b.nearEdge = &*edge;
-                            b.nearParam = param;
-                        }
-                    }
-                    if (r.minDistance < sr.minDistance)
-                        sr = r;
-                    if (g.minDistance < sg.minDistance)
-                        sg = g;
-                    if (b.minDistance < sb.minDistance)
-                        sb = b;
-
-                    double medMinDistance = fabs(median(r.minDistance.distance, g.minDistance.distance, b.minDistance.distance));
-                    if (medMinDistance < d) {
-                        d = medMinDistance;
-                        winding = -windings[i];
-                    }
-                    if (r.nearEdge)
-                        (*r.nearEdge)->distanceToPseudoDistance(r.minDistance, p, r.nearParam);
-                    if (g.nearEdge)
-                        (*g.nearEdge)->distanceToPseudoDistance(g.minDistance, p, g.nearParam);
-                    if (b.nearEdge)
-                        (*b.nearEdge)->distanceToPseudoDistance(b.minDistance, p, b.nearParam);
-                    medMinDistance = median(r.minDistance.distance, g.minDistance.distance, b.minDistance.distance);
-                    contourSD[i].r = r.minDistance.distance;
-                    contourSD[i].g = g.minDistance.distance;
-                    contourSD[i].b = b.minDistance.distance;
-                    contourSD[i].med = medMinDistance;
-                    if (windings[i] > 0 && medMinDistance >= 0 && fabs(medMinDistance) < fabs(posDist))
-                        posDist = medMinDistance;
-                    if (windings[i] < 0 && medMinDistance <= 0 && fabs(medMinDistance) < fabs(negDist))
-                        negDist = medMinDistance;
-                }
-                if (sr.nearEdge)
-                    (*sr.nearEdge)->distanceToPseudoDistance(sr.minDistance, p, sr.nearParam);
-                if (sg.nearEdge)
-                    (*sg.nearEdge)->distanceToPseudoDistance(sg.minDistance, p, sg.nearParam);
-                if (sb.nearEdge)
-                    (*sb.nearEdge)->distanceToPseudoDistance(sb.minDistance, p, sb.nearParam);
-
-                MultiDistance msd;
-                msd.r = msd.g = msd.b = msd.med = SignedDistance::INFINITE.distance;
-                if (posDist >= 0 && fabs(posDist) <= fabs(negDist)) {
-                    msd.med = SignedDistance::INFINITE.distance;
-                    winding = 1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] > 0 && contourSD[i].med > msd.med && fabs(contourSD[i].med) < fabs(negDist))
-                            msd = contourSD[i];
-                } else if (negDist <= 0 && fabs(negDist) <= fabs(posDist)) {
-                    msd.med = -SignedDistance::INFINITE.distance;
-                    winding = -1;
-                    for (int i = 0; i < contourCount; ++i)
-                        if (windings[i] < 0 && contourSD[i].med < msd.med && fabs(contourSD[i].med) < fabs(posDist))
-                            msd = contourSD[i];
-                }
-                for (int i = 0; i < contourCount; ++i)
-                    if (windings[i] != winding && fabs(contourSD[i].med) < fabs(msd.med))
-                        msd = contourSD[i];
-                if (median(sr.minDistance.distance, sg.minDistance.distance, sb.minDistance.distance) == msd.med) {
-                    msd.r = sr.minDistance.distance;
-                    msd.g = sg.minDistance.distance;
-                    msd.b = sb.minDistance.distance;
-                }
-
-                output(x, row).r = float(msd.r/range+.5);
-                output(x, row).g = float(msd.g/range+.5);
-                output(x, row).b = float(msd.b/range+.5);
-            }
-        }
-    }
-
-    if (edgeThreshold > 0)
-        msdfErrorCorrection(output, edgeThreshold/(scale*range));
-}
+// Legacy version
 
 void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
     int w = output.width(), h = output.height();

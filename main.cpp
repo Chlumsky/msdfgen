@@ -1,8 +1,8 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.5 (2017-07-23) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.6 (2019-04-08) - standalone console program
  * --------------------------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2017
+ * A utility by Viktor Chlumsky, (c) 2014 - 2019
  *
  */
 
@@ -82,7 +82,7 @@ static bool parseAngle(double &value, const char *arg) {
     if (result == 1)
         return true;
     if (result == 2 && (c1 == 'd' || c1 == 'D')) {
-        value = M_PI*value/180;
+        value *= M_PI/180;
         return true;
     }
     return false;
@@ -131,6 +131,12 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
     }
 }
 
+static void invertColor(Bitmap<float> &bitmap) {
+    for (int y = 0; y < bitmap.height(); ++y)
+        for (int x = 0; x < bitmap.width(); ++x)
+            bitmap(x, y) = 1.f-bitmap(x, y);
+}
+
 static void invertColor(Bitmap<FloatRGB> &bitmap) {
     for (int y = 0; y < bitmap.height(); ++y)
         for (int x = 0; x < bitmap.width(); ++x) {
@@ -138,12 +144,6 @@ static void invertColor(Bitmap<FloatRGB> &bitmap) {
             bitmap(x, y).g = 1.f-bitmap(x, y).g;
             bitmap(x, y).b = 1.f-bitmap(x, y).b;
         }
-}
-
-static void invertColor(Bitmap<float> &bitmap) {
-    for (int y = 0; y < bitmap.height(); ++y)
-        for (int x = 0; x < bitmap.width(); ++x)
-            bitmap(x, y) = 1.f-bitmap(x, y);
 }
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {
@@ -241,8 +241,7 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
                 fclose(file);
                 return NULL;
             }
-            default:
-                break;
+            default:;
         }
     } else {
         if (format == AUTO || format == TEXT)
@@ -296,14 +295,20 @@ static const char *helpText =
         "\tChanges the threshold used to detect and correct potential artifacts. 0 disables error correction.\n"
     "  -exportshape <filename.txt>\n"
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
+    "  -fillrule <nonzero / evenodd / positive / negative>\n"
+        "\tSets the fill rule for the scanline pass. Default is nonzero.\n"
     "  -format <png / bmp / text / textfloat / bin / binfloat / binfloatbe>\n"
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
+    "  -guessorder\n"
+        "\tAttempts to detect if shape contours have the wrong winding and generates the SDF with the right one.\n"
     "  -help\n"
         "\tDisplays this help.\n"
-    "  -keeporder\n"
-        "\tDisables the detection of shape orientation and keeps it as is.\n"
     "  -legacy\n"
         "\tUses the original (legacy) distance field algorithms.\n"
+    "  -nooverlap\n"
+        "\tDisables resolution of overlapping contours.\n"
+    "  -noscanline\n"
+        "\tDisables the scanline pass, which corrects the distance field's signs according to the selected fill rule.\n"
     "  -o <filename>\n"
         "\tSets the output file name. The default value is \"output.png\".\n"
     "  -printmetrics\n"
@@ -312,8 +317,12 @@ static const char *helpText =
         "\tSets the width of the range between the lowest and highest signed distance in pixels.\n"
     "  -range <range>\n"
         "\tSets the width of the range between the lowest and highest signed distance in shape units.\n"
+    "  -reverseorder\n"
+        "\tGenerates the distance field as if shape vertices were in reverse order.\n"
     "  -scale <scale>\n"
         "\tSets the scale used to convert shape units to pixels.\n"
+    "  -seed <n>\n"
+        "\tSets the random seed for edge coloring heuristic.\n"
     "  -size <width> <height>\n"
         "\tSets the dimensions of the output image.\n"
     "  -stdout\n"
@@ -324,10 +333,6 @@ static const char *helpText =
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
-    "  -reverseorder\n"
-        "\tDisables the detection of shape orientation and reverses the order of its vertices.\n"
-    "  -seed <n>\n"
-        "\tSets the random seed for edge coloring heuristic.\n"
     "  -yflip\n"
         "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
     "\n";
@@ -351,6 +356,9 @@ int main(int argc, const char * const *argv) {
         METRICS
     } mode = MULTI;
     bool legacyMode = false;
+    bool overlapSupport = true;
+    bool scanlinePass = true;
+    FillRule fillRule = FILL_NONZERO;
     Format format = AUTO;
     const char *input = NULL;
     const char *output = "output.png";
@@ -375,7 +383,7 @@ int main(int argc, const char * const *argv) {
     Vector2 scale = 1;
     bool scaleSpecified = false;
     double angleThreshold = 3;
-    double edgeThreshold = 1.00000001;
+    double edgeThreshold = 1.001;
     bool defEdgeAssignment = true;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -385,7 +393,7 @@ int main(int argc, const char * const *argv) {
         KEEP,
         REVERSE,
         GUESS
-    } orientation = GUESS;
+    } orientation = KEEP;
     unsigned long long coloringSeed = 0;
 
     int argPos = 1;
@@ -394,7 +402,7 @@ int main(int argc, const char * const *argv) {
         const char *arg = argv[argPos];
         #define ARG_CASE(s, p) if (!strcmp(arg, s) && argPos+(p) < argc)
         #define ARG_MODE(s, m) if (!strcmp(arg, s)) { mode = m; ++argPos; continue; }
-        #define SETFORMAT(fmt, ext) do { format = fmt; if (!outputSpecified) output = "output." ext; } while (false)
+        #define SET_FORMAT(fmt, ext) do { format = fmt; if (!outputSpecified) output = "output." ext; } while (false)
 
         ARG_MODE("sdf", SINGLE)
         ARG_MODE("psdf", PSEUDO)
@@ -448,15 +456,40 @@ int main(int argc, const char * const *argv) {
             argPos += 1;
             continue;
         }
+        ARG_CASE("-nooverlap", 0) {
+            overlapSupport = false;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-noscanline", 0) {
+            scanlinePass = false;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-scanline", 0) {
+            scanlinePass = true;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-fillrule", 1) {
+            if (!strcmp(argv[argPos+1], "nonzero")) fillRule = FILL_NONZERO;
+            else if (!strcmp(argv[argPos+1], "evenodd") || !strcmp(argv[argPos+1], "odd")) fillRule = FILL_ODD;
+            else if (!strcmp(argv[argPos+1], "positive")) fillRule = FILL_POSITIVE;
+            else if (!strcmp(argv[argPos+1], "negative")) fillRule = FILL_NEGATIVE;
+            else
+                puts("Unknown fill rule specified.");
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-format", 1) {
             if (!strcmp(argv[argPos+1], "auto")) format = AUTO;
-            else if (!strcmp(argv[argPos+1], "png")) SETFORMAT(PNG, "png");
-            else if (!strcmp(argv[argPos+1], "bmp")) SETFORMAT(BMP, "bmp");
-            else if (!strcmp(argv[argPos+1], "text") || !strcmp(argv[argPos+1], "txt")) SETFORMAT(TEXT, "txt");
-            else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SETFORMAT(TEXT_FLOAT, "txt");
-            else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SETFORMAT(BINARY, "bin");
-            else if (!strcmp(argv[argPos+1], "binfloat") || !strcmp(argv[argPos+1], "binfloatle")) SETFORMAT(BINARY_FLOAT, "bin");
-            else if (!strcmp(argv[argPos+1], "binfloatbe")) SETFORMAT(BINART_FLOAT_BE, "bin");
+            else if (!strcmp(argv[argPos+1], "png")) SET_FORMAT(PNG, "png");
+            else if (!strcmp(argv[argPos+1], "bmp")) SET_FORMAT(BMP, "bmp");
+            else if (!strcmp(argv[argPos+1], "text") || !strcmp(argv[argPos+1], "txt")) SET_FORMAT(TEXT, "txt");
+            else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
+            else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SET_FORMAT(BINARY, "bin");
+            else if (!strcmp(argv[argPos+1], "binfloat") || !strcmp(argv[argPos+1], "binfloatle")) SET_FORMAT(BINARY_FLOAT, "bin");
+            else if (!strcmp(argv[argPos+1], "binfloatbe")) SET_FORMAT(BINART_FLOAT_BE, "bin");
             else
                 puts("Unknown format specified.");
             argPos += 2;
@@ -661,8 +694,7 @@ int main(int argc, const char * const *argv) {
             fclose(file);
             break;
         }
-        default:
-            break;
+        default:;
     }
 
     // Validate and normalize shape
@@ -686,9 +718,9 @@ int main(int argc, const char * const *argv) {
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         Vector2 frame(width, height);
         if (rangeMode == RANGE_UNIT)
-            l -= range, b -= range, r += range, t += range;
+            l -= .5*range, b -= .5*range, r += .5*range, t += .5*range;
         else if (!scaleSpecified)
-            frame -= 2*pxRange;
+            frame -= pxRange;
         if (l >= r || b >= t)
             l = 0, b = 0, r = 1, t = 1;
         if (frame.x <= 0 || frame.y <= 0)
@@ -706,7 +738,7 @@ int main(int argc, const char * const *argv) {
             }
         }
         if (rangeMode == RANGE_PX && !scaleSpecified)
-            translate += pxRange/scale;
+            translate += .5*pxRange/scale;
     }
 
     if (rangeMode == RANGE_PX)
@@ -747,7 +779,7 @@ int main(int argc, const char * const *argv) {
             if (legacyMode)
                 generateSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generateSDF(sdf, shape, range, scale, translate);
+                generateSDF(sdf, shape, range, scale, translate, overlapSupport);
             break;
         }
         case PSEUDO: {
@@ -755,7 +787,7 @@ int main(int argc, const char * const *argv) {
             if (legacyMode)
                 generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generatePseudoSDF(sdf, shape, range, scale, translate);
+                generatePseudoSDF(sdf, shape, range, scale, translate, overlapSupport);
             break;
         }
         case MULTI: {
@@ -765,13 +797,12 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<FloatRGB>(width, height);
             if (legacyMode)
-                generateMSDF_legacy(msdf, shape, range, scale, translate, edgeThreshold);
+                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold);
             else
-                generateMSDF(msdf, shape, range, scale, translate, edgeThreshold);
+                generateMSDF(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold, overlapSupport);
             break;
         }
-        default:
-            break;
+        default:;
     }
 
     if (orientation == GUESS) {
@@ -788,8 +819,30 @@ int main(int argc, const char * const *argv) {
         orientation = minDistance.distance <= 0 ? KEEP : REVERSE;
     }
     if (orientation == REVERSE) {
-        invertColor(sdf);
-        invertColor(msdf);
+        switch (mode) {
+            case SINGLE:
+            case PSEUDO:
+                invertColor(sdf);
+                break;
+            case MULTI:
+                invertColor(msdf);
+                break;
+            default:;
+        }
+    }
+    if (scanlinePass) {
+        switch (mode) {
+            case SINGLE:
+            case PSEUDO:
+                distanceSignCorrection(sdf, shape, scale, translate, fillRule);
+                break;
+            case MULTI:
+                distanceSignCorrection(msdf, shape, scale, translate, fillRule);
+                if (edgeThreshold > 0)
+                    msdfErrorCorrection(msdf, edgeThreshold/(scale*range));
+                break;
+            default:;
+        }
     }
 
     // Save output
@@ -842,8 +895,7 @@ int main(int argc, const char * const *argv) {
                     ABORT("Failed to write test render file.");
             }
             break;
-        default:
-            break;
+        default:;
     }
 
     return 0;

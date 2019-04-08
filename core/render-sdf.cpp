@@ -33,8 +33,8 @@ static T sample(const Bitmap<T> &bitmap, Point2 pos) {
 
 static float distVal(float dist, double pxRange) {
     if (!pxRange)
-        return dist > .5;
-    return (float) clamp((dist-.5)*pxRange+.5);
+        return dist > .5f;
+    return (float) clamp((dist-.5f)*pxRange+.5);
 }
 
 void renderSDF(Bitmap<float> &output, const Bitmap<float> &sdf, double pxRange) {

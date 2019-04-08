@@ -1,5 +1,9 @@
 Debug/
 Release/
+Debug Library/
+Release Library/
+x86/
+x64/
 *.exe
 *.user
 *.sdf
@@ -8,7 +12,10 @@ Release/
 *.iobj
 *.suo
 *.VC.opendb
+*.VC.db
+bin/*.lib
 output.png
 render.png
 out/
+build/
 build_xcode/

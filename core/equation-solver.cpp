@@ -29,7 +29,7 @@ int solveQuadratic(double x[2], double a, double b, double c) {
         return 0;
 }
 
-int solveCubicNormed(double *x, double a, double b, double c) {
+static int solveCubicNormed(double x[3], double a, double b, double c) {
     double a2 = a*a;
     double q  = (a2 - 3*b)/9; 
     double r  = (a*(2*a2-9*b) + 27*c)/54;

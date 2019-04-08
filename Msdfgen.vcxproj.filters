@@ -78,6 +78,18 @@
       <Filter>Extensions</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="core\Scanline.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\contour-combiners.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\edge-selectors.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\rasterization.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -135,6 +147,18 @@
       <Filter>Source Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="core\msdfgen.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\Scanline.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\contour-combiners.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\edge-selectors.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\rasterization.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>

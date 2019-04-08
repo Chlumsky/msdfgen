@@ -31,7 +31,7 @@ void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long 
         // Identify corners
         corners.clear();
         if (!contour->edges.empty()) {
-            Vector2 prevDirection = (*(contour->edges.end()-1))->direction(1);
+            Vector2 prevDirection = contour->edges.back()->direction(1);
             int index = 0;
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge, ++index) {
                 if (isCorner(prevDirection.normalize(), (*edge)->direction(0).normalize(), crossThreshold))
@@ -51,7 +51,7 @@ void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long 
             switchColor(colors[2] = colors[0], seed);
             int corner = corners[0];
             if (contour->edges.size() >= 3) {
-                int m = contour->edges.size();
+                int m = (int) contour->edges.size();
                 for (int i = 0; i < m; ++i)
                     contour->edges[(corner+i)%m]->color = (colors+1)[int(3+2.875*i/(m-1)-1.4375+.5)-3];
             } else if (contour->edges.size() >= 1) {
@@ -75,10 +75,10 @@ void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long 
         }
         // Multiple corners
         else {
-            int cornerCount = corners.size();
+            int cornerCount = (int) corners.size();
             int spline = 0;
             int start = corners[0];
-            int m = contour->edges.size();
+            int m = (int) contour->edges.size();
             EdgeColor color = WHITE;
             switchColor(color, seed);
             EdgeColor initialColor = color;

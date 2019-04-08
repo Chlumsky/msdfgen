@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Contour.h"
+#include "Scanline.h"
 
 namespace msdfgen {
 
@@ -27,8 +28,10 @@ public:
     void normalize();
     /// Performs basic checks to determine if the object represents a valid shape.
     bool validate() const;
-    /// Computes the shape's bounding box.
+    /// Adjusts the bounding box to fit the shape.
     void bounds(double &l, double &b, double &r, double &t) const;
+    /// Outputs the scanline that intersects the shape at y.
+    void scanline(Scanline &line, double y) const;
 
 };
 

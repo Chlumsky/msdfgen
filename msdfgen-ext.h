@@ -2,9 +2,9 @@
 #pragma once
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.5 (2017-07-23) - extensions
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.6 (2019-04-08) - extensions
  * ----------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2017
+ * A utility by Viktor Chlumsky, (c) 2014 - 2019
  *
  * The extension module provides ways to easily load input and save output using popular formats.
  *

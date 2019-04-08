@@ -235,7 +235,7 @@ bool writeShapeDescription(FILE *output, const Shape &shape) {
                     case MAGENTA: colorCode = 'm'; break;
                     case CYAN: colorCode = 'c'; break;
                     case WHITE: colorCode = 'w'; break;
-                    default: break;
+                    default:;
                 }
                 {
                     const LinearSegment *e = dynamic_cast<const LinearSegment *>(&**edge);

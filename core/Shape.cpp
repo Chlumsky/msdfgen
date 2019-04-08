@@ -23,7 +23,7 @@ Contour & Shape::addContour() {
 bool Shape::validate() const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour) {
         if (!contour->edges.empty()) {
-            Point2 corner = (*(contour->edges.end()-1))->point(1);
+            Point2 corner = contour->edges.back()->point(1);
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                 if (!*edge)
                     return false;
@@ -51,6 +51,26 @@ void Shape::normalize() {
 void Shape::bounds(double &l, double &b, double &r, double &t) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->bounds(l, b, r, t);
+}
+
+void Shape::scanline(Scanline &line, double y) const {
+    std::vector<Scanline::Intersection> intersections;
+    double x[3];
+    int dy[3];
+    for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour) {
+        for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+            int n = (*edge)->scanlineIntersections(x, dy, y);
+            for (int i = 0; i < n; ++i) {
+                Scanline::Intersection intersection = { x[i], dy[i] };
+                intersections.push_back(intersection);
+            }
+        }
+    }
+#ifdef MSDFGEN_USE_CPP11
+    line.setIntersections((std::vector<Scanline::Intersection> &&) intersections);
+#else
+    line.setIntersections(intersections);
+#endif
 }
 
 }
