@@ -816,7 +816,7 @@ int main(int argc, const char * const *argv) {
                 if (distance < minDistance)
                     minDistance = distance;
             }
-        orientation = minDistance.distance <= 0 ? KEEP : REVERSE;
+        orientation = minDistance.sqDistance <= 0 ? KEEP : REVERSE;
     }
     if (orientation == REVERSE) {
         switch (mode) {

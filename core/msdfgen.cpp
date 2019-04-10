@@ -1,39 +1,38 @@
 
 #include "../msdfgen.h"
 
-#include <vector>
 #include "edge-selectors.h"
 #include "contour-combiners.h"
 
 namespace msdfgen {
 
 template <typename DistanceType>
-class DistancePixelConversion;
+class SquaredDistancePixelConversion;
 
 template <>
-class DistancePixelConversion<double> {
+class SquaredDistancePixelConversion<double> {
 public:
     typedef float PixelType;
-    inline static PixelType convert(double distance, double range) {
-        return PixelType(distance/range+.5);
+    inline static PixelType convert(double sqDistance, double range) {
+        return PixelType(sign(sqDistance)*sqrt(fabs(sqDistance))/range+.5);
     }
 };
 
 template <>
-class DistancePixelConversion<MultiDistance> {
+class SquaredDistancePixelConversion<MultiDistance> {
 public:
     typedef FloatRGB PixelType;
-    inline static PixelType convert(const MultiDistance &distance, double range) {
+    inline static PixelType convert(const MultiDistance &sqDistance, double range) {
         PixelType pixel;
-        pixel.r = float(distance.r/range+.5);
-        pixel.g = float(distance.g/range+.5);
-        pixel.b = float(distance.b/range+.5);
+        pixel.r = float(sign(sqDistance.r)*sqrt(fabs(sqDistance.r))/range+.5);
+        pixel.g = float(sign(sqDistance.g)*sqrt(fabs(sqDistance.g))/range+.5);
+        pixel.b = float(sign(sqDistance.b)*sqrt(fabs(sqDistance.b))/range+.5);
         return pixel;
     }
 };
 
 template <class ContourCombiner>
-void generateDistanceField(Bitmap<typename DistancePixelConversion<typename ContourCombiner::DistanceType>::PixelType> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+void generateDistanceField(Bitmap<typename SquaredDistancePixelConversion<typename ContourCombiner::DistanceType>::PixelType> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
     int w = output.width(), h = output.height();
 
 #ifdef MSDFGEN_USE_OPENMP
@@ -66,12 +65,12 @@ void generateDistanceField(Bitmap<typename DistancePixelConversion<typename Cont
                             curEdge = nextEdge;
                         }
 
-                        contourCombiner.setContourEdge(int(contour-shape.contours.begin()), edgeSelector);
+                        contourCombiner.setContourEdgeSelection(int(contour-shape.contours.begin()), edgeSelector);
                     }
                 }
 
-                ContourCombiner::DistanceType distance = contourCombiner.distance();
-                output(x, row) = DistancePixelConversion<ContourCombiner::DistanceType>::convert(distance, range);
+                ContourCombiner::DistanceType sqDistance = contourCombiner.squaredDistance();
+                output(x, row) = SquaredDistancePixelConversion<ContourCombiner::DistanceType>::convert(sqDistance, range);
             }
         }
     }
@@ -179,7 +178,7 @@ void generateSDF_legacy(Bitmap<float> &output, const Shape &shape, double range,
                     if (distance < minDistance)
                         minDistance = distance;
                 }
-            output(x, row) = float(minDistance.distance/range+.5);
+            output(x, row) = float(minDistance.distance()/range+.5);
         }
     }
 }
@@ -208,7 +207,7 @@ void generatePseudoSDF_legacy(Bitmap<float> &output, const Shape &shape, double 
                 }
             if (nearEdge)
                 (*nearEdge)->distanceToPseudoDistance(minDistance, p, nearParam);
-            output(x, row) = float(minDistance.distance/range+.5);
+            output(x, row) = float(minDistance.distance()/range+.5);
         }
     }
 }
@@ -258,9 +257,9 @@ void generateMSDF_legacy(Bitmap<FloatRGB> &output, const Shape &shape, double ra
                 (*g.nearEdge)->distanceToPseudoDistance(g.minDistance, p, g.nearParam);
             if (b.nearEdge)
                 (*b.nearEdge)->distanceToPseudoDistance(b.minDistance, p, b.nearParam);
-            output(x, row).r = float(r.minDistance.distance/range+.5);
-            output(x, row).g = float(g.minDistance.distance/range+.5);
-            output(x, row).b = float(b.minDistance.distance/range+.5);
+            output(x, row).r = float(r.minDistance.distance()/range+.5);
+            output(x, row).g = float(g.minDistance.distance()/range+.5);
+            output(x, row).b = float(b.minDistance.distance()/range+.5);
         }
     }
 

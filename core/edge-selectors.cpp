@@ -17,8 +17,8 @@ void TrueDistanceSelector::merge(const TrueDistanceSelector &other) {
         minDistance = other.minDistance;
 }
 
-TrueDistanceSelector::DistanceType TrueDistanceSelector::distance() const {
-    return minDistance.distance;
+TrueDistanceSelector::DistanceType TrueDistanceSelector::squaredDistance() const {
+    return minDistance.sqDistance;
 }
 
 bool PseudoDistanceSelectorBase::pointFacingEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param) {
@@ -48,7 +48,7 @@ void PseudoDistanceSelectorBase::addEdgeTrueDistance(const EdgeSegment *edge, co
 }
 
 void PseudoDistanceSelectorBase::addEdgePseudoDistance(const SignedDistance &distance) {
-    SignedDistance &minPseudoDistance = distance.distance < 0 ? minNegativePseudoDistance : minPositivePseudoDistance;
+    SignedDistance &minPseudoDistance = distance.sqDistance < 0 ? minNegativePseudoDistance : minPositivePseudoDistance;
     if (distance < minPseudoDistance)
         minPseudoDistance = distance;
 }
@@ -65,15 +65,15 @@ void PseudoDistanceSelectorBase::merge(const PseudoDistanceSelectorBase &other) 
         minPositivePseudoDistance = other.minPositivePseudoDistance;
 }
 
-double PseudoDistanceSelectorBase::computeDistance(const Point2 &p) const {
-    double minDistance = minTrueDistance.distance < 0 ? minNegativePseudoDistance.distance : minPositivePseudoDistance.distance;
+double PseudoDistanceSelectorBase::computeSquaredDistance(const Point2 &p) const {
+    double sqDistance = minTrueDistance.sqDistance < 0 ? minNegativePseudoDistance.sqDistance : minPositivePseudoDistance.sqDistance;
     if (nearEdge) {
         SignedDistance distance = minTrueDistance;
         nearEdge->distanceToPseudoDistance(distance, p, nearEdgeParam);
-        if (fabs(distance.distance) < fabs(minDistance))
-            minDistance = distance.distance;
+        if (fabs(distance.sqDistance) < fabs(sqDistance))
+            sqDistance = distance.sqDistance;
     }
-    return minDistance;
+    return sqDistance;
 }
 
 PseudoDistanceSelector::PseudoDistanceSelector(const Point2 &p) : p(p) { }
@@ -88,8 +88,8 @@ void PseudoDistanceSelector::addEdge(const EdgeSegment *prevEdge, const EdgeSegm
     }
 }
 
-PseudoDistanceSelector::DistanceType PseudoDistanceSelector::distance() const {
-    return computeDistance(p);
+PseudoDistanceSelector::DistanceType PseudoDistanceSelector::squaredDistance() const {
+    return computeSquaredDistance(p);
 }
 
 MultiDistanceSelector::MultiDistanceSelector(const Point2 &p) : p(p) { }
@@ -103,7 +103,7 @@ void MultiDistanceSelector::addEdge(const EdgeSegment *prevEdge, const EdgeSegme
         g.addEdgeTrueDistance(edge, distance, param);
     if (edge->color&BLUE)
         b.addEdgeTrueDistance(edge, distance, param);
-    if (PseudoDistanceSelector::pointFacingEdge(prevEdge, edge, nextEdge, p, param)) {
+    if (PseudoDistanceSelectorBase::pointFacingEdge(prevEdge, edge, nextEdge, p, param)) {
         edge->distanceToPseudoDistance(distance, p, param);
         if (edge->color&RED)
             r.addEdgePseudoDistance(distance);
@@ -120,12 +120,12 @@ void MultiDistanceSelector::merge(const MultiDistanceSelector &other) {
     b.merge(other.b);
 }
 
-MultiDistanceSelector::DistanceType MultiDistanceSelector::distance() const {
-    MultiDistance multiDistance;
-    multiDistance.r = r.computeDistance(p);
-    multiDistance.g = g.computeDistance(p);
-    multiDistance.b = b.computeDistance(p);
-    return multiDistance;
+MultiDistanceSelector::DistanceType MultiDistanceSelector::squaredDistance() const {
+    MultiDistance sqDistance;
+    sqDistance.r = r.computeSquaredDistance(p);
+    sqDistance.g = g.computeSquaredDistance(p);
+    sqDistance.b = b.computeSquaredDistance(p);
+    return sqDistance;
 }
 
 }

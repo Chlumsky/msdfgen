@@ -20,7 +20,7 @@ public:
     explicit TrueDistanceSelector(const Point2 &p = Point2());
     void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     void merge(const TrueDistanceSelector &other);
-    DistanceType distance() const;
+    DistanceType squaredDistance() const;
 
 private:
     Point2 p;
@@ -37,7 +37,7 @@ public:
     void addEdgeTrueDistance(const EdgeSegment *edge, const SignedDistance &distance, double param);
     void addEdgePseudoDistance(const SignedDistance &distance);
     void merge(const PseudoDistanceSelectorBase &other);
-    double computeDistance(const Point2 &p) const;
+    double computeSquaredDistance(const Point2 &p) const;
 
 private:
     SignedDistance minTrueDistance;
@@ -56,7 +56,7 @@ public:
 
     explicit PseudoDistanceSelector(const Point2 &p = Point2());
     void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
-    DistanceType distance() const;
+    DistanceType squaredDistance() const;
 
 private:
     Point2 p;
@@ -72,7 +72,7 @@ public:
     explicit MultiDistanceSelector(const Point2 &p = Point2());
     void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     void merge(const MultiDistanceSelector &other);
-    DistanceType distance() const;
+    DistanceType squaredDistance() const;
 
 private:
     Point2 p;

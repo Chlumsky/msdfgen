@@ -23,6 +23,8 @@ struct Vector2 {
     void set(double x, double y);
     /// Returns the vector's length.
     double length() const;
+    /// Returns the vector's squared length. (less expensive operation than length)
+    double squaredLength() const;
     /// Returns the angle of the vector in radians (atan2).
     double direction() const;
     /// Returns the normalized vector - one that has the same direction but unit length.

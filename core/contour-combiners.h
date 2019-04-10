@@ -16,8 +16,8 @@ public:
 
     explicit SimpleContourCombiner(const Shape &shape);
     void reset(const Point2 &p);
-    void setContourEdge(int i, const EdgeSelector &edgeSelector);
-    DistanceType distance() const;
+    void setContourEdgeSelection(int i, const EdgeSelector &edgeSelector);
+    DistanceType squaredDistance() const;
 
 private:
     EdgeSelector shapeEdgeSelector;
@@ -34,8 +34,8 @@ public:
 
     explicit OverlappingContourCombiner(const Shape &shape);
     void reset(const Point2 &p);
-    void setContourEdge(int i, const EdgeSelector &edgeSelector);
-    DistanceType distance() const;
+    void setContourEdgeSelection(int i, const EdgeSelector &edgeSelector);
+    DistanceType squaredDistance() const;
 
 private:
     std::vector<int> windings;

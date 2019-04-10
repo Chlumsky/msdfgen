@@ -5,22 +5,22 @@
 
 namespace msdfgen {
 
-static void initDistance(double &distance) {
-    distance = SignedDistance::INFINITE.distance;
+static void initDistance(double &sqDistance) {
+    sqDistance = SignedDistance::INFINITE.sqDistance;
 }
 
-static void initDistance(MultiDistance &distance) {
-    distance.r = SignedDistance::INFINITE.distance;
-    distance.g = SignedDistance::INFINITE.distance;
-    distance.b = SignedDistance::INFINITE.distance;
+static void initDistance(MultiDistance &sqDistance) {
+    sqDistance.r = SignedDistance::INFINITE.sqDistance;
+    sqDistance.g = SignedDistance::INFINITE.sqDistance;
+    sqDistance.b = SignedDistance::INFINITE.sqDistance;
 }
 
-static double resolveDistance(double distance) {
-    return distance;
+static double resolveDistance(double sqDistance) {
+    return sqDistance;
 }
 
-static double resolveDistance(const MultiDistance &distance) {
-    return median(distance.r, distance.g, distance.b);
+static double resolveDistance(const MultiDistance &sqDistance) {
+    return median(sqDistance.r, sqDistance.g, sqDistance.b);
 }
 
 template <class EdgeSelector>
@@ -32,13 +32,13 @@ void SimpleContourCombiner<EdgeSelector>::reset(const Point2 &p) {
 }
 
 template <class EdgeSelector>
-void SimpleContourCombiner<EdgeSelector>::setContourEdge(int i, const EdgeSelector &edgeSelector) {
+void SimpleContourCombiner<EdgeSelector>::setContourEdgeSelection(int i, const EdgeSelector &edgeSelector) {
     shapeEdgeSelector.merge(edgeSelector);
 }
 
 template <class EdgeSelector>
-typename SimpleContourCombiner<EdgeSelector>::DistanceType SimpleContourCombiner<EdgeSelector>::distance() const {
-    return shapeEdgeSelector.distance();
+typename SimpleContourCombiner<EdgeSelector>::DistanceType SimpleContourCombiner<EdgeSelector>::squaredDistance() const {
+    return shapeEdgeSelector.squaredDistance();
 }
 
 template class SimpleContourCombiner<TrueDistanceSelector>;
@@ -61,58 +61,58 @@ void OverlappingContourCombiner<EdgeSelector>::reset(const Point2 &p) {
 }
 
 template <class EdgeSelector>
-void OverlappingContourCombiner<EdgeSelector>::setContourEdge(int i, const EdgeSelector &edgeSelector) {
-    DistanceType edgeDistance = edgeSelector.distance();
+void OverlappingContourCombiner<EdgeSelector>::setContourEdgeSelection(int i, const EdgeSelector &edgeSelector) {
+    DistanceType edgeSqDistance = edgeSelector.squaredDistance();
     edgeSelectors[i] = edgeSelector;
     shapeEdgeSelector.merge(edgeSelector);
-    if (windings[i] > 0 && resolveDistance(edgeDistance) >= 0)
+    if (windings[i] > 0 && resolveDistance(edgeSqDistance) >= 0)
         innerEdgeSelector.merge(edgeSelector);
-    if (windings[i] < 0 && resolveDistance(edgeDistance) <= 0)
+    if (windings[i] < 0 && resolveDistance(edgeSqDistance) <= 0)
         outerEdgeSelector.merge(edgeSelector);
 }
 
 template <class EdgeSelector>
-typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingContourCombiner<EdgeSelector>::distance() const {
-    DistanceType shapeDistance = shapeEdgeSelector.distance();
-    DistanceType innerDistance = innerEdgeSelector.distance();
-    DistanceType outerDistance = outerEdgeSelector.distance();
-    double innerScalarDistance = resolveDistance(innerDistance);
-    double outerScalarDistance = resolveDistance(outerDistance);
-    DistanceType distance;
-    initDistance(distance);
+typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingContourCombiner<EdgeSelector>::squaredDistance() const {
+    DistanceType shapeSqDistance = shapeEdgeSelector.squaredDistance();
+    DistanceType innerSqDistance = innerEdgeSelector.squaredDistance();
+    DistanceType outerSqDistance = outerEdgeSelector.squaredDistance();
+    double innerScalarSqDistance = resolveDistance(innerSqDistance);
+    double outerScalarSqDistance = resolveDistance(outerSqDistance);
+    DistanceType sqDistance;
+    initDistance(sqDistance);
     int contourCount = (int) windings.size();
 
     int winding = 0;
-    if (innerScalarDistance >= 0 && fabs(innerScalarDistance) <= fabs(outerScalarDistance)) {
-        distance = innerDistance;
+    if (innerScalarSqDistance >= 0 && fabs(innerScalarSqDistance) <= fabs(outerScalarSqDistance)) {
+        sqDistance = innerSqDistance;
         winding = 1;
         for (int i = 0; i < contourCount; ++i)
             if (windings[i] > 0) {
-                DistanceType contourDistance = edgeSelectors[i].distance();
-                if (fabs(resolveDistance(contourDistance)) < fabs(outerScalarDistance) && resolveDistance(contourDistance) > resolveDistance(distance))
-                    distance = contourDistance;
+                DistanceType contourSqDistance = edgeSelectors[i].squaredDistance();
+                if (fabs(resolveDistance(contourSqDistance)) < fabs(outerScalarSqDistance) && resolveDistance(contourSqDistance) > resolveDistance(sqDistance))
+                    sqDistance = contourSqDistance;
             }
-    } else if (outerScalarDistance <= 0 && fabs(outerScalarDistance) < fabs(innerScalarDistance)) {
-        distance = outerDistance;
+    } else if (outerScalarSqDistance <= 0 && fabs(outerScalarSqDistance) < fabs(innerScalarSqDistance)) {
+        sqDistance = outerSqDistance;
         winding = -1;
         for (int i = 0; i < contourCount; ++i)
             if (windings[i] < 0) {
-                DistanceType contourDistance = edgeSelectors[i].distance();
-                if (fabs(resolveDistance(contourDistance)) < fabs(innerScalarDistance) && resolveDistance(contourDistance) < resolveDistance(distance))
-                    distance = contourDistance;
+                DistanceType contourSqDistance = edgeSelectors[i].squaredDistance();
+                if (fabs(resolveDistance(contourSqDistance)) < fabs(innerScalarSqDistance) && resolveDistance(contourSqDistance) < resolveDistance(sqDistance))
+                    sqDistance = contourSqDistance;
             }
     } else
-        return shapeDistance;
+        return shapeSqDistance;
 
     for (int i = 0; i < contourCount; ++i)
         if (windings[i] != winding) {
-            DistanceType contourDistance = edgeSelectors[i].distance();
-            if (resolveDistance(contourDistance)*resolveDistance(distance) >= 0 && fabs(resolveDistance(contourDistance)) < fabs(resolveDistance(distance)))
-                distance = contourDistance;
+            DistanceType contourSqDistance = edgeSelectors[i].squaredDistance();
+            if (resolveDistance(contourSqDistance)*resolveDistance(sqDistance) >= 0 && fabs(resolveDistance(contourSqDistance)) < fabs(resolveDistance(sqDistance)))
+                sqDistance = contourSqDistance;
         }
-    if (resolveDistance(distance) == resolveDistance(shapeDistance))
-        distance = shapeDistance;
-    return distance;
+    if (resolveDistance(sqDistance) == resolveDistance(shapeSqDistance))
+        sqDistance = shapeSqDistance;
+    return sqDistance;
 }
 
 template class OverlappingContourCombiner<TrueDistanceSelector>;

@@ -19,6 +19,10 @@ double Vector2::length() const {
     return sqrt(x*x+y*y);
 }
 
+double Vector2::squaredLength() const {
+    return x*x+y*y;
+}
+
 double Vector2::direction() const {
     return atan2(y, x);
 }

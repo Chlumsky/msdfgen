@@ -12,9 +12,10 @@ void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 orig
         Vector2 aq = origin-point(0);
         double ts = dotProduct(aq, dir);
         if (ts < 0) {
+            // TODO can we get squared pseudo-distance without squaring it?
             double pseudoDistance = crossProduct(aq, dir);
-            if (fabs(pseudoDistance) <= fabs(distance.distance)) {
-                distance.distance = pseudoDistance;
+            if (pseudoDistance*pseudoDistance <= fabs(distance.sqDistance)) {
+                distance.sqDistance = pseudoDistance*fabs(pseudoDistance);
                 distance.dot = 0;
             }
         }
@@ -23,9 +24,10 @@ void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 orig
         Vector2 bq = origin-point(1);
         double ts = dotProduct(bq, dir);
         if (ts > 0) {
+            // TODO can we get squared pseudo-distance without squaring it?
             double pseudoDistance = crossProduct(bq, dir);
-            if (fabs(pseudoDistance) <= fabs(distance.distance)) {
-                distance.distance = pseudoDistance;
+            if (pseudoDistance*pseudoDistance <= fabs(distance.sqDistance)) {
+                distance.sqDistance = pseudoDistance*fabs(pseudoDistance);
                 distance.dot = 0;
             }
         }
@@ -98,14 +100,11 @@ SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const
     Vector2 aq = origin-p[0];
     Vector2 ab = p[1]-p[0];
     param = dotProduct(aq, ab)/dotProduct(ab, ab);
-    Vector2 eq = p[param > .5]-origin;
-    double endpointDistance = eq.length();
-    if (param > 0 && param < 1) {
-        double orthoDistance = dotProduct(ab.getOrthonormal(false), aq);
-        if (fabs(orthoDistance) < endpointDistance)
-            return SignedDistance(orthoDistance, 0);
-    }
-    return SignedDistance(nonZeroSign(crossProduct(aq, ab))*endpointDistance, fabs(dotProduct(ab.normalize(), eq.normalize())));
+    double distanceSign = nonZeroSign(crossProduct(aq, ab));
+    if (param > 0 && param < 1)
+        return SignedDistance(distanceSign*(param*ab-aq).squaredLength(), 0);
+    Vector2 qe = p[param > .5]-origin;
+    return SignedDistance(distanceSign*qe.squaredLength(), fabs(dotProduct(ab.normalize(), qe.normalize())));
 }
 
 SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
@@ -119,32 +118,32 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     double t[3];
     int solutions = solveCubic(t, a, b, c, d);
 
-    double minDistance = nonZeroSign(crossProduct(ab, qa))*qa.length(); // distance from A
+    double minSqDistance = nonZeroSign(crossProduct(ab, qa))*qa.squaredLength(); // distance from A
     param = -dotProduct(qa, ab)/dotProduct(ab, ab);
     {
-        double distance = nonZeroSign(crossProduct(p[2]-p[1], p[2]-origin))*(p[2]-origin).length(); // distance from B
-        if (fabs(distance) < fabs(minDistance)) {
-            minDistance = distance;
+        double sqDistance = nonZeroSign(crossProduct(p[2]-p[1], p[2]-origin))*(p[2]-origin).squaredLength(); // distance from B
+        if (fabs(sqDistance) < fabs(minSqDistance)) {
+            minSqDistance = sqDistance;
             param = dotProduct(origin-p[1], p[2]-p[1])/dotProduct(p[2]-p[1], p[2]-p[1]);
         }
     }
     for (int i = 0; i < solutions; ++i) {
         if (t[i] > 0 && t[i] < 1) {
-            Point2 endpoint = p[0]+2*t[i]*ab+t[i]*t[i]*br;
-            double distance = nonZeroSign(crossProduct(p[2]-p[0], endpoint-origin))*(endpoint-origin).length();
-            if (fabs(distance) <= fabs(minDistance)) {
-                minDistance = distance;
+            Vector2 qe = qa+2*t[i]*ab+t[i]*t[i]*br;
+            double sqDistance = nonZeroSign(crossProduct(p[2]-p[0], qe))*qe.squaredLength();
+            if (fabs(sqDistance) <= fabs(minSqDistance)) {
+                minSqDistance = sqDistance;
                 param = t[i];
             }
         }
     }
 
     if (param >= 0 && param <= 1)
-        return SignedDistance(minDistance, 0);
+        return SignedDistance(minSqDistance, 0);
     if (param < .5)
-        return SignedDistance(minDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
+        return SignedDistance(minSqDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
     else
-        return SignedDistance(minDistance, fabs(dotProduct((p[2]-p[1]).normalize(), (p[2]-origin).normalize())));
+        return SignedDistance(minSqDistance, fabs(dotProduct((p[2]-p[1]).normalize(), (p[2]-origin).normalize())));
 }
 
 SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
@@ -154,13 +153,13 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
 
     Vector2 epDir = direction(0);
-    double minDistance = nonZeroSign(crossProduct(epDir, qa))*qa.length(); // distance from A
+    double minSqDistance = nonZeroSign(crossProduct(epDir, qa))*qa.squaredLength(); // distance from A
     param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
         epDir = direction(1);
-        double distance = nonZeroSign(crossProduct(epDir, p[3]-origin))*(p[3]-origin).length(); // distance from B
-        if (fabs(distance) < fabs(minDistance)) {
-            minDistance = distance;
+        double sqDistance = nonZeroSign(crossProduct(epDir, p[3]-origin))*(p[3]-origin).squaredLength(); // distance from B
+        if (fabs(sqDistance) < fabs(minSqDistance)) {
+            minSqDistance = sqDistance;
             param = dotProduct(origin+epDir-p[3], epDir)/dotProduct(epDir, epDir);
         }
     }
@@ -168,10 +167,10 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     for (int i = 0; i <= MSDFGEN_CUBIC_SEARCH_STARTS; ++i) {
         double t = (double) i/MSDFGEN_CUBIC_SEARCH_STARTS;
         for (int step = 0;; ++step) {
-            Vector2 qpt = point(t)-origin;
-            double distance = nonZeroSign(crossProduct(direction(t), qpt))*qpt.length();
-            if (fabs(distance) < fabs(minDistance)) {
-                minDistance = distance;
+            Vector2 qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
+            double sqDistance = nonZeroSign(crossProduct(direction(t), qe))*qe.squaredLength();
+            if (fabs(sqDistance) < fabs(minSqDistance)) {
+                minSqDistance = sqDistance;
                 param = t;
             }
             if (step == MSDFGEN_CUBIC_SEARCH_STEPS)
@@ -179,18 +178,18 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
             // Improve t
             Vector2 d1 = 3*as*t*t+6*br*t+3*ab;
             Vector2 d2 = 6*as*t+6*br;
-            t -= dotProduct(qpt, d1)/(dotProduct(d1, d1)+dotProduct(qpt, d2));
+            t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
             if (t < 0 || t > 1)
                 break;
         }
     }
 
     if (param >= 0 && param <= 1)
-        return SignedDistance(minDistance, 0);
+        return SignedDistance(minSqDistance, 0);
     if (param < .5)
-        return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
+        return SignedDistance(minSqDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
     else
-        return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[3]-origin).normalize())));
+        return SignedDistance(minSqDistance, fabs(dotProduct((p[3]-p[2]).normalize(), (p[3]-origin).normalize())));
 }
 
 int LinearSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
