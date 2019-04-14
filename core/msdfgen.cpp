@@ -55,7 +55,7 @@ void generateDistanceField(Bitmap<typename DistancePixelConversion<typename Cont
 
                 for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
                     if (!contour->edges.empty()) {
-                        ContourCombiner::EdgeSelectorType edgeSelector(p);
+                        typename ContourCombiner::EdgeSelectorType edgeSelector(p);
 
                         const EdgeSegment *prevEdge = contour->edges.size() >= 2 ? *(contour->edges.end()-2) : *contour->edges.begin();
                         const EdgeSegment *curEdge = contour->edges.back();
@@ -70,8 +70,8 @@ void generateDistanceField(Bitmap<typename DistancePixelConversion<typename Cont
                     }
                 }
 
-                ContourCombiner::DistanceType distance = contourCombiner.distance();
-                output(x, row) = DistancePixelConversion<ContourCombiner::DistanceType>::convert(distance, range);
+                typename ContourCombiner::DistanceType distance = contourCombiner.distance();
+                output(x, row) = DistancePixelConversion<typename ContourCombiner::DistanceType>::convert(distance, range);
             }
         }
     }
