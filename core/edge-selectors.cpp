@@ -103,7 +103,7 @@ void MultiDistanceSelector::addEdge(const EdgeSegment *prevEdge, const EdgeSegme
         g.addEdgeTrueDistance(edge, distance, param);
     if (edge->color&BLUE)
         b.addEdgeTrueDistance(edge, distance, param);
-    if (PseudoDistanceSelector::pointFacingEdge(prevEdge, edge, nextEdge, p, param)) {
+    if (PseudoDistanceSelectorBase::pointFacingEdge(prevEdge, edge, nextEdge, p, param)) {
         edge->distanceToPseudoDistance(distance, p, param);
         if (edge->color&RED)
             r.addEdgePseudoDistance(distance);

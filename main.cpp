@@ -131,19 +131,11 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
     }
 }
 
-static void invertColor(Bitmap<float> &bitmap) {
-    for (int y = 0; y < bitmap.height(); ++y)
-        for (int x = 0; x < bitmap.width(); ++x)
-            bitmap(x, y) = 1.f-bitmap(x, y);
-}
-
-static void invertColor(Bitmap<FloatRGB> &bitmap) {
-    for (int y = 0; y < bitmap.height(); ++y)
-        for (int x = 0; x < bitmap.width(); ++x) {
-            bitmap(x, y).r = 1.f-bitmap(x, y).r;
-            bitmap(x, y).g = 1.f-bitmap(x, y).g;
-            bitmap(x, y).b = 1.f-bitmap(x, y).b;
-        }
+template <int N>
+static void invertColor(const BitmapRef<float, N> &bitmap) {
+    const float *end = bitmap.pixels+N*bitmap.width*bitmap.height;
+    for (float *p = bitmap.pixels; p < end; ++p)
+        *p = 1.f-*p;
 }
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {
@@ -205,8 +197,8 @@ static bool cmpExtension(const char *path, const char *ext) {
     return true;
 }
 
-template <typename T>
-static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, Format format) {
+template <int N>
+static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format format) {
     if (filename) {
         if (format == AUTO) {
             if (cmpExtension(filename, ".png")) format = PNG;
@@ -223,9 +215,9 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
                 FILE *file = fopen(filename, "w");
                 if (!file) return "Failed to write output text file.";
                 if (format == TEXT)
-                    writeTextBitmap(file, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width(), bitmap.height());
+                    writeTextBitmap(file, bitmap.pixels, N*bitmap.width, bitmap.height);
                 else if (format == TEXT_FLOAT)
-                    writeTextBitmapFloat(file, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width(), bitmap.height());
+                    writeTextBitmapFloat(file, bitmap.pixels, N*bitmap.width, bitmap.height);
                 fclose(file);
                 return NULL;
             }
@@ -233,11 +225,11 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
                 FILE *file = fopen(filename, "wb");
                 if (!file) return "Failed to write output binary file.";
                 if (format == BINARY)
-                    writeBinBitmap(file, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width()*bitmap.height());
+                    writeBinBitmap(file, bitmap.pixels, N*bitmap.width*bitmap.height);
                 else if (format == BINARY_FLOAT)
-                    writeBinBitmapFloat(file, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width()*bitmap.height());
+                    writeBinBitmapFloat(file, bitmap.pixels, N*bitmap.width*bitmap.height);
                 else if (format == BINART_FLOAT_BE)
-                    writeBinBitmapFloatBE(file, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width()*bitmap.height());
+                    writeBinBitmapFloatBE(file, bitmap.pixels, N*bitmap.width*bitmap.height);
                 fclose(file);
                 return NULL;
             }
@@ -245,9 +237,9 @@ static const char * writeOutput(const Bitmap<T> &bitmap, const char *filename, F
         }
     } else {
         if (format == AUTO || format == TEXT)
-            writeTextBitmap(stdout, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width(), bitmap.height());
+            writeTextBitmap(stdout, bitmap.pixels, N*bitmap.width, bitmap.height);
         else if (format == TEXT_FLOAT)
-            writeTextBitmapFloat(stdout, reinterpret_cast<const float *>(&bitmap(0, 0)), sizeof(T)/sizeof(float)*bitmap.width(), bitmap.height());
+            writeTextBitmapFloat(stdout, bitmap.pixels, N*bitmap.width, bitmap.height);
         else
             return "Unsupported format for standard output.";
     }
@@ -771,11 +763,11 @@ int main(int argc, const char * const *argv) {
     }
 
     // Compute output
-    Bitmap<float> sdf;
-    Bitmap<FloatRGB> msdf;
+    Bitmap<float, 1> sdf;
+    Bitmap<float, 3> msdf;
     switch (mode) {
         case SINGLE: {
-            sdf = Bitmap<float>(width, height);
+            sdf = Bitmap<float, 1>(width, height);
             if (legacyMode)
                 generateSDF_legacy(sdf, shape, range, scale, translate);
             else
@@ -783,7 +775,7 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case PSEUDO: {
-            sdf = Bitmap<float>(width, height);
+            sdf = Bitmap<float, 1>(width, height);
             if (legacyMode)
                 generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
             else
@@ -795,7 +787,7 @@ int main(int argc, const char * const *argv) {
                 edgeColoringSimple(shape, angleThreshold, coloringSeed);
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
-            msdf = Bitmap<FloatRGB>(width, height);
+            msdf = Bitmap<float, 3>(width, height);
             if (legacyMode)
                 generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold);
             else
@@ -822,10 +814,10 @@ int main(int argc, const char * const *argv) {
         switch (mode) {
             case SINGLE:
             case PSEUDO:
-                invertColor(sdf);
+                invertColor<1>(sdf);
                 break;
             case MULTI:
-                invertColor(msdf);
+                invertColor<3>(msdf);
                 break;
             default:;
         }
@@ -858,38 +850,38 @@ int main(int argc, const char * const *argv) {
     switch (mode) {
         case SINGLE:
         case PSEUDO:
-            error = writeOutput(sdf, output, format);
+            error = writeOutput<1>(sdf, output, format);
             if (error)
                 ABORT(error);
             if (testRenderMulti || testRender)
                 simulate8bit(sdf);
             if (testRenderMulti) {
-                Bitmap<FloatRGB> render(testWidthM, testHeightM);
+                Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, sdf, avgScale*range);
                 if (!savePng(render, testRenderMulti))
                     puts("Failed to write test render file.");
             }
             if (testRender) {
-                Bitmap<float> render(testWidth, testHeight);
+                Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, sdf, avgScale*range);
                 if (!savePng(render, testRender))
                     puts("Failed to write test render file.");
             }
             break;
         case MULTI:
-            error = writeOutput(msdf, output, format);
+            error = writeOutput<3>(msdf, output, format);
             if (error)
                 ABORT(error);
             if (testRenderMulti || testRender)
                 simulate8bit(msdf);
             if (testRenderMulti) {
-                Bitmap<FloatRGB> render(testWidthM, testHeightM);
+                Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, msdf, avgScale*range);
                 if (!savePng(render, testRenderMulti))
                     puts("Failed to write test render file.");
             }
             if (testRender) {
-                Bitmap<float> render(testWidth, testHeight);
+                Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, msdf, avgScale*range);
                 if (!savePng(render, testRender))
                     ABORT("Failed to write test render file.");

@@ -32,7 +32,7 @@ void SimpleContourCombiner<EdgeSelector>::reset(const Point2 &p) {
 }
 
 template <class EdgeSelector>
-void SimpleContourCombiner<EdgeSelector>::setContourEdge(int i, const EdgeSelector &edgeSelector) {
+void SimpleContourCombiner<EdgeSelector>::setContourEdgeSelection(int i, const EdgeSelector &edgeSelector) {
     shapeEdgeSelector.merge(edgeSelector);
 }
 
@@ -61,7 +61,7 @@ void OverlappingContourCombiner<EdgeSelector>::reset(const Point2 &p) {
 }
 
 template <class EdgeSelector>
-void OverlappingContourCombiner<EdgeSelector>::setContourEdge(int i, const EdgeSelector &edgeSelector) {
+void OverlappingContourCombiner<EdgeSelector>::setContourEdgeSelection(int i, const EdgeSelector &edgeSelector) {
     DistanceType edgeDistance = edgeSelector.distance();
     edgeSelectors[i] = edgeSelector;
     shapeEdgeSelector.merge(edgeSelector);

@@ -1,30 +1,38 @@
 
 #include "save-png.h"
 
-#include "../core/arithmetics.hpp"
 #include <lodepng.h>
+#include "../core/pixel-conversion.hpp"
 
 namespace msdfgen {
 
-bool savePng(const Bitmap<float> &bitmap, const char *filename) {
-    std::vector<unsigned char> pixels(bitmap.width()*bitmap.height());
-    std::vector<unsigned char>::iterator it = pixels.begin();
-    for (int y = bitmap.height()-1; y >= 0; --y)
-        for (int x = 0; x < bitmap.width(); ++x)
-            *it++ = clamp(int(bitmap(x, y)*0x100), 0xff);
-    return !lodepng::encode(filename, pixels, bitmap.width(), bitmap.height(), LCT_GREY);
+bool savePng(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
+    return !lodepng::encode(filename, bitmap.pixels, bitmap.width, bitmap.height, LCT_GREY);
 }
 
-bool savePng(const Bitmap<FloatRGB> &bitmap, const char *filename) {
-    std::vector<unsigned char> pixels(3*bitmap.width()*bitmap.height());
-    std::vector<unsigned char>::iterator it = pixels.begin();
-    for (int y = bitmap.height()-1; y >= 0; --y)
-        for (int x = 0; x < bitmap.width(); ++x) {
-            *it++ = clamp(int(bitmap(x, y).r*0x100), 0xff);
-            *it++ = clamp(int(bitmap(x, y).g*0x100), 0xff);
-            *it++ = clamp(int(bitmap(x, y).b*0x100), 0xff);
+bool savePng(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
+    return !lodepng::encode(filename, bitmap.pixels, bitmap.width, bitmap.height, LCT_RGB);
+}
+
+bool savePng(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
+    std::vector<byte> pixels(bitmap.width*bitmap.height);
+    std::vector<byte>::iterator it = pixels.begin();
+    for (int y = bitmap.height-1; y >= 0; --y)
+        for (int x = 0; x < bitmap.width; ++x)
+            *it++ = pixelFloatToByte(*bitmap(x, y));
+    return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_GREY);
+}
+
+bool savePng(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
+    std::vector<byte> pixels(3*bitmap.width*bitmap.height);
+    std::vector<byte>::iterator it = pixels.begin();
+    for (int y = bitmap.height-1; y >= 0; --y)
+        for (int x = 0; x < bitmap.width; ++x) {
+            *it++ = pixelFloatToByte(bitmap(x, y)[0]);
+            *it++ = pixelFloatToByte(bitmap(x, y)[1]);
+            *it++ = pixelFloatToByte(bitmap(x, y)[2]);
         }
-    return !lodepng::encode(filename, pixels, bitmap.width(), bitmap.height(), LCT_RGB);
+    return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_RGB);
 }
 
 }

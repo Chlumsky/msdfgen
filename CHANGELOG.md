@@ -1,5 +1,5 @@
 
-## Version 1.6 (2019-04-06)
+## Version 1.6 (2019-04-08)
 
 - Core algorithm rewritten to split up advanced edge selection logic into modular template arguments.
 - Pseudo-distance evaluation reworked to eliminate discontinuities at the midpoint between edges.

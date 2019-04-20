@@ -21,44 +21,42 @@ static bool interpretFillRule(int intersections, FillRule fillRule) {
     return false;
 }
 
-void rasterize(Bitmap<float> &output, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
-    int w = output.width(), h = output.height();
+void rasterize(const BitmapRef<float, 1> &output, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
     Point2 p;
     Scanline scanline;
-    for (int y = 0; y < h; ++y) {
-        int row = shape.inverseYAxis ? h-y-1 : y;
+    for (int y = 0; y < output.height; ++y) {
+        int row = shape.inverseYAxis ? output.height-y-1 : y;
         p.y = (y+.5)/scale.y-translate.y;
         shape.scanline(scanline, p.y);
-        for (int x = 0; x < w; ++x) {
+        for (int x = 0; x < output.width; ++x) {
             p.x = (x+.5)/scale.x-translate.x;
             int intersections = scanline.sumIntersections(p.x);
             bool fill = interpretFillRule(intersections, fillRule);
-            output(x, row) = (float) fill;
+            *output(x, row) = (float) fill;
         }
     }
 }
 
-void distanceSignCorrection(Bitmap<float> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
-    int w = sdf.width(), h = sdf.height();
+void distanceSignCorrection(const BitmapRef<float, 1> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
     Point2 p;
     Scanline scanline;
-    for (int y = 0; y < h; ++y) {
-        int row = shape.inverseYAxis ? h-y-1 : y;
+    for (int y = 0; y < sdf.height; ++y) {
+        int row = shape.inverseYAxis ? sdf.height-y-1 : y;
         p.y = (y+.5)/scale.y-translate.y;
         shape.scanline(scanline, p.y);
-        for (int x = 0; x < w; ++x) {
+        for (int x = 0; x < sdf.width; ++x) {
             p.x = (x+.5)/scale.x-translate.x;
             int intersections = scanline.sumIntersections(p.x);
             bool fill = interpretFillRule(intersections, fillRule);
-            float &sd = sdf(x, row);
+            float &sd = *sdf(x, row);
             if ((sd > .5f) != fill)
                 sd = 1.f-sd;
         }
     }
 }
 
-void distanceSignCorrection(Bitmap<FloatRGB> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
-    int w = sdf.width(), h = sdf.height();
+void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
+    int w = sdf.width, h = sdf.height;
     if (!(w*h))
         return;
     Point2 p;
@@ -75,14 +73,14 @@ void distanceSignCorrection(Bitmap<FloatRGB> &sdf, const Shape &shape, const Vec
             p.x = (x+.5)/scale.x-translate.x;
             int intersections = scanline.sumIntersections(p.x);
             bool fill = interpretFillRule(intersections, fillRule);
-            FloatRGB &msd = sdf(x, row);
-            float sd = median(msd.r, msd.g, msd.b);
+            float *msd = sdf(x, row);
+            float sd = median(msd[0], msd[1], msd[2]);
             if (sd == .5f)
                 ambiguous = true;
             else if ((sd > .5f) != fill) {
-                msd.r = 1.f-msd.r;
-                msd.g = 1.f-msd.g;
-                msd.b = 1.f-msd.b;
+                msd[0] = 1.f-msd[0];
+                msd[1] = 1.f-msd[1];
+                msd[2] = 1.f-msd[2];
                 *match = -1;
             } else
                 *match = 1;
@@ -102,10 +100,10 @@ void distanceSignCorrection(Bitmap<FloatRGB> &sdf, const Shape &shape, const Vec
                     if (y > 0) neighborMatch += *(match-w);
                     if (y < h-1) neighborMatch += *(match+w);
                     if (neighborMatch < 0) {
-                        FloatRGB &msd = sdf(x, row);
-                        msd.r = 1.f-msd.r;
-                        msd.g = 1.f-msd.g;
-                        msd.b = 1.f-msd.b;
+                        float *msd = sdf(x, row);
+                        msd[0] = 1.f-msd[0];
+                        msd[1] = 1.f-msd[1];
+                        msd[2] = 1.f-msd[2];
                     }
                 }
                 ++match;

@@ -82,7 +82,10 @@ Vector2 LinearSegment::direction(double param) const {
 }
 
 Vector2 QuadraticSegment::direction(double param) const {
-    return mix(p[1]-p[0], p[2]-p[1], param);
+    Vector2 tangent = mix(p[1]-p[0], p[2]-p[1], param);
+    if (!tangent)
+        return p[2]-p[0];
+    return tangent;
 }
 
 Vector2 CubicSegment::direction(double param) const {
@@ -119,19 +122,21 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     double t[3];
     int solutions = solveCubic(t, a, b, c, d);
 
-    double minDistance = nonZeroSign(crossProduct(ab, qa))*qa.length(); // distance from A
-    param = -dotProduct(qa, ab)/dotProduct(ab, ab);
+    Vector2 epDir = direction(0);
+    double minDistance = nonZeroSign(crossProduct(epDir, qa))*qa.length(); // distance from A
+    param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
-        double distance = nonZeroSign(crossProduct(p[2]-p[1], p[2]-origin))*(p[2]-origin).length(); // distance from B
+        epDir = direction(1);
+        double distance = nonZeroSign(crossProduct(epDir, p[2]-origin))*(p[2]-origin).length(); // distance from B
         if (fabs(distance) < fabs(minDistance)) {
             minDistance = distance;
-            param = dotProduct(origin-p[1], p[2]-p[1])/dotProduct(p[2]-p[1], p[2]-p[1]);
+            param = dotProduct(origin-p[1], epDir)/dotProduct(epDir, epDir);
         }
     }
     for (int i = 0; i < solutions; ++i) {
         if (t[i] > 0 && t[i] < 1) {
-            Point2 endpoint = p[0]+2*t[i]*ab+t[i]*t[i]*br;
-            double distance = nonZeroSign(crossProduct(p[2]-p[0], endpoint-origin))*(endpoint-origin).length();
+            Point2 qe = p[0]+2*t[i]*ab+t[i]*t[i]*br-origin;
+            double distance = nonZeroSign(crossProduct(p[2]-p[0], qe))*qe.length();
             if (fabs(distance) <= fabs(minDistance)) {
                 minDistance = distance;
                 param = t[i];
@@ -142,9 +147,9 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     if (param >= 0 && param <= 1)
         return SignedDistance(minDistance, 0);
     if (param < .5)
-        return SignedDistance(minDistance, fabs(dotProduct(ab.normalize(), qa.normalize())));
+        return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
     else
-        return SignedDistance(minDistance, fabs(dotProduct((p[2]-p[1]).normalize(), (p[2]-origin).normalize())));
+        return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[2]-origin).normalize())));
 }
 
 SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
@@ -161,15 +166,15 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
         double distance = nonZeroSign(crossProduct(epDir, p[3]-origin))*(p[3]-origin).length(); // distance from B
         if (fabs(distance) < fabs(minDistance)) {
             minDistance = distance;
-            param = dotProduct(origin+epDir-p[3], epDir)/dotProduct(epDir, epDir);
+            param = dotProduct(epDir-(p[3]-origin), epDir)/dotProduct(epDir, epDir);
         }
     }
     // Iterative minimum distance search
     for (int i = 0; i <= MSDFGEN_CUBIC_SEARCH_STARTS; ++i) {
         double t = (double) i/MSDFGEN_CUBIC_SEARCH_STARTS;
         for (int step = 0;; ++step) {
-            Vector2 qpt = point(t)-origin;
-            double distance = nonZeroSign(crossProduct(direction(t), qpt))*qpt.length();
+            Vector2 qe = p[0]+3*t*ab+3*t*t*br+t*t*t*as-origin; // do not simplify with qa !!!
+            double distance = nonZeroSign(crossProduct(direction(t), qe))*qe.length();
             if (fabs(distance) < fabs(minDistance)) {
                 minDistance = distance;
                 param = t;
@@ -179,7 +184,7 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
             // Improve t
             Vector2 d1 = 3*as*t*t+6*br*t+3*ab;
             Vector2 d2 = 6*as*t+6*br;
-            t -= dotProduct(qpt, d1)/(dotProduct(d1, d1)+dotProduct(qpt, d2));
+            t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
             if (t < 0 || t > 1)
                 break;
         }

@@ -291,6 +291,8 @@
   <ItemGroup>
     <ClInclude Include="core\arithmetics.hpp" />
     <ClInclude Include="core\Bitmap.h" />
+    <ClInclude Include="core\Bitmap.hpp" />
+    <ClInclude Include="core\BitmapRef.hpp" />
     <ClInclude Include="core\contour-combiners.h" />
     <ClInclude Include="core\Contour.h" />
     <ClInclude Include="core\edge-coloring.h" />
@@ -299,6 +301,7 @@
     <ClInclude Include="core\EdgeColor.h" />
     <ClInclude Include="core\EdgeHolder.h" />
     <ClInclude Include="core\equation-solver.h" />
+    <ClInclude Include="core\pixel-conversion.hpp" />
     <ClInclude Include="core\rasterization.h" />
     <ClInclude Include="core\render-sdf.h" />
     <ClInclude Include="core\save-bmp.h" />
@@ -315,7 +318,6 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="core\Bitmap.cpp" />
     <ClCompile Include="core\contour-combiners.cpp" />
     <ClCompile Include="core\Contour.cpp" />
     <ClCompile Include="core\edge-coloring.cpp" />

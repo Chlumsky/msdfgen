@@ -16,7 +16,7 @@ public:
 
     explicit SimpleContourCombiner(const Shape &shape);
     void reset(const Point2 &p);
-    void setContourEdge(int i, const EdgeSelector &edgeSelector);
+    void setContourEdgeSelection(int i, const EdgeSelector &edgeSelector);
     DistanceType distance() const;
 
 private:
@@ -34,7 +34,7 @@ public:
 
     explicit OverlappingContourCombiner(const Shape &shape);
     void reset(const Point2 &p);
-    void setContourEdge(int i, const EdgeSelector &edgeSelector);
+    void setContourEdgeSelection(int i, const EdgeSelector &edgeSelector);
     DistanceType distance() const;
 
 private:

@@ -90,13 +90,19 @@
     <ClInclude Include="core\rasterization.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="core\BitmapRef.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\Bitmap.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\pixel-conversion.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Standalone</Filter>
-    </ClCompile>
-    <ClCompile Include="core\Bitmap.cpp">
-      <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="core\Contour.cpp">
       <Filter>Core</Filter>
