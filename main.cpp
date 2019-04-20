@@ -28,6 +28,7 @@ enum Format {
     AUTO,
     PNG,
     BMP,
+    TIFF,
     TEXT,
     TEXT_FLOAT,
     BINARY,
@@ -203,6 +204,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
         if (format == AUTO) {
             if (cmpExtension(filename, ".png")) format = PNG;
             else if (cmpExtension(filename, ".bmp")) format = BMP;
+            else if (cmpExtension(filename, ".tif") || cmpExtension(filename, ".tiff")) format = TIFF;
             else if (cmpExtension(filename, ".txt")) format = TEXT;
             else if (cmpExtension(filename, ".bin")) format = BINARY;
             else
@@ -211,6 +213,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
         switch (format) {
             case PNG: return savePng(bitmap, filename) ? NULL : "Failed to write output PNG image.";
             case BMP: return saveBmp(bitmap, filename) ? NULL : "Failed to write output BMP image.";
+            case TIFF: return saveTiff(bitmap, filename) ? NULL : "Failed to write output BMP image.";
             case TEXT: case TEXT_FLOAT: {
                 FILE *file = fopen(filename, "w");
                 if (!file) return "Failed to write output text file.";
@@ -289,7 +292,7 @@ static const char *helpText =
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
     "  -fillrule <nonzero / evenodd / positive / negative>\n"
         "\tSets the fill rule for the scanline pass. Default is nonzero.\n"
-    "  -format <png / bmp / text / textfloat / bin / binfloat / binfloatbe>\n"
+    "  -format <png / bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
     "  -guessorder\n"
         "\tAttempts to detect if shape contours have the wrong winding and generates the SDF with the right one.\n"
@@ -477,6 +480,7 @@ int main(int argc, const char * const *argv) {
             if (!strcmp(argv[argPos+1], "auto")) format = AUTO;
             else if (!strcmp(argv[argPos+1], "png")) SET_FORMAT(PNG, "png");
             else if (!strcmp(argv[argPos+1], "bmp")) SET_FORMAT(BMP, "bmp");
+            else if (!strcmp(argv[argPos+1], "tiff")) SET_FORMAT(TIFF, "tif");
             else if (!strcmp(argv[argPos+1], "text") || !strcmp(argv[argPos+1], "txt")) SET_FORMAT(TEXT, "txt");
             else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
             else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SET_FORMAT(BINARY, "bin");

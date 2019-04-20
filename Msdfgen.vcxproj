@@ -305,6 +305,7 @@
     <ClInclude Include="core\rasterization.h" />
     <ClInclude Include="core\render-sdf.h" />
     <ClInclude Include="core\save-bmp.h" />
+    <ClInclude Include="core\save-tiff.h" />
     <ClInclude Include="core\Scanline.h" />
     <ClInclude Include="core\shape-description.h" />
     <ClInclude Include="core\Shape.h" />
@@ -328,6 +329,7 @@
     <ClCompile Include="core\rasterization.cpp" />
     <ClCompile Include="core\render-sdf.cpp" />
     <ClCompile Include="core\save-bmp.cpp" />
+    <ClCompile Include="core\save-tiff.cpp" />
     <ClCompile Include="core\Scanline.cpp" />
     <ClCompile Include="core\shape-description.cpp" />
     <ClCompile Include="core\Shape.cpp" />
