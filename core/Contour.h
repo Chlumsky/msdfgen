@@ -22,6 +22,8 @@ public:
     EdgeHolder & addEdge();
     /// Adjusts the bounding box to fit the contour.
     void bounds(double &l, double &b, double &r, double &t) const;
+    /// Adjusts the bounding box to fit the contour border's mitered corners.
+    void miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const;
     /// Computes the winding of the contour. Returns 1 if positive, -1 if negative.
     int winding() const;
 

@@ -21,12 +21,35 @@ void Contour::addEdge(EdgeHolder &&edge) {
 
 EdgeHolder & Contour::addEdge() {
     edges.resize(edges.size()+1);
-    return edges[edges.size()-1];
+    return edges.back();
+}
+
+static void pointBounds(Point2 p, double &l, double &b, double &r, double &t) {
+    if (p.x < l) l = p.x;
+    if (p.y < b) b = p.y;
+    if (p.x > r) r = p.x;
+    if (p.y > t) t = p.y;
 }
 
 void Contour::bounds(double &l, double &b, double &r, double &t) const {
     for (std::vector<EdgeHolder>::const_iterator edge = edges.begin(); edge != edges.end(); ++edge)
         (*edge)->bounds(l, b, r, t);
+}
+
+void Contour::miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const {
+    if (edges.empty())
+        return;
+    Vector2 prevDir = edges.back()->direction(1).normalize(true);
+    for (std::vector<EdgeHolder>::const_iterator edge = edges.begin(); edge != edges.end(); ++edge) {
+        Vector2 dir = -(*edge)->direction(0).normalize(true);
+        double miterLength = miterLimit;
+        double q = .5*(1-dotProduct(prevDir, dir));
+        if (q > 0)
+            miterLength = min(1/sqrt(q), miterLimit);
+        Point2 miter = (*edge)->point(0)+border*miterLength*(prevDir+dir).normalize(true);
+        pointBounds(miter, l, b, r, t);
+        prevDir = (*edge)->direction(1).normalize(true);
+    }
 }
 
 int Contour::winding() const {
@@ -45,7 +68,7 @@ int Contour::winding() const {
         total += shoelace(c, d);
         total += shoelace(d, a);
     } else {
-        Point2 prev = edges[edges.size()-1]->point(0);
+        Point2 prev = edges.back()->point(0);
         for (std::vector<EdgeHolder>::const_iterator edge = edges.begin(); edge != edges.end(); ++edge) {
             Point2 cur = (*edge)->point(0);
             total += shoelace(prev, cur);

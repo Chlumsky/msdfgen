@@ -2,18 +2,11 @@
 #pragma once
 
 #include "Vector2.h"
+#include "Scanline.h"
 #include "Shape.h"
 #include "BitmapRef.hpp"
 
 namespace msdfgen {
-
-/// Fill rule dictates how intersection total is interpreted during rasterization.
-enum FillRule {
-    FILL_NONZERO,
-    FILL_ODD, // "even-odd"
-    FILL_POSITIVE,
-    FILL_NEGATIVE
-};
 
 /// Rasterizes the shape into a monochrome bitmap.
 void rasterize(const BitmapRef<float, 1> &output, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule = FILL_NONZERO);

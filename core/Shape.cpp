@@ -17,7 +17,7 @@ void Shape::addContour(Contour &&contour) {
 
 Contour & Shape::addContour() {
     contours.resize(contours.size()+1);
-    return contours[contours.size()-1];
+    return contours.back();
 }
 
 bool Shape::validate() const {
@@ -51,6 +51,11 @@ void Shape::normalize() {
 void Shape::bounds(double &l, double &b, double &r, double &t) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->bounds(l, b, r, t);
+}
+
+void Shape::miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const {
+    for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
+        contour->miterBounds(l, b, r, t, border, miterLimit);
 }
 
 void Shape::scanline(Scanline &line, double y) const {

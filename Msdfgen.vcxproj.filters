@@ -102,6 +102,9 @@
     <ClInclude Include="core\save-tiff.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="core\estimate-sdf-error.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -171,6 +174,9 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="core\save-tiff.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\estimate-sdf-error.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>

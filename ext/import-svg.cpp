@@ -251,8 +251,8 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     NEXT_CONTOUR:
         // Fix contour if it isn't properly closed
         if (!contour.edges.empty() && prevNode != startPoint) {
-            if ((contour.edges[contour.edges.size()-1]->point(1)-contour.edges[0]->point(0)).length() < ENDPOINT_SNAP_RANGE_PROPORTION*size)
-                contour.edges[contour.edges.size()-1]->moveEndPoint(contour.edges[0]->point(0));
+            if ((contour.edges.back()->point(1)-contour.edges[0]->point(0)).length() < ENDPOINT_SNAP_RANGE_PROPORTION*size)
+                contour.edges.back()->moveEndPoint(contour.edges[0]->point(0));
             else
                 contour.addEdge(new LinearSegment(prevNode, startPoint));
         }

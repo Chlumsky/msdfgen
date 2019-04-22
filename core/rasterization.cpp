@@ -3,23 +3,8 @@
 
 #include <vector>
 #include "arithmetics.hpp"
-#include "Scanline.h"
 
 namespace msdfgen {
-
-static bool interpretFillRule(int intersections, FillRule fillRule) {
-    switch (fillRule) {
-        case FILL_NONZERO:
-            return intersections != 0;
-        case FILL_ODD:
-            return intersections&1;
-        case FILL_POSITIVE:
-            return intersections > 0;
-        case FILL_NEGATIVE:
-            return intersections < 0;
-    }
-    return false;
-}
 
 void rasterize(const BitmapRef<float, 1> &output, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
     Point2 p;
@@ -30,8 +15,7 @@ void rasterize(const BitmapRef<float, 1> &output, const Shape &shape, const Vect
         shape.scanline(scanline, p.y);
         for (int x = 0; x < output.width; ++x) {
             p.x = (x+.5)/scale.x-translate.x;
-            int intersections = scanline.sumIntersections(p.x);
-            bool fill = interpretFillRule(intersections, fillRule);
+            bool fill = scanline.filled(p.x, fillRule);
             *output(x, row) = (float) fill;
         }
     }
@@ -46,8 +30,7 @@ void distanceSignCorrection(const BitmapRef<float, 1> &sdf, const Shape &shape, 
         shape.scanline(scanline, p.y);
         for (int x = 0; x < sdf.width; ++x) {
             p.x = (x+.5)/scale.x-translate.x;
-            int intersections = scanline.sumIntersections(p.x);
-            bool fill = interpretFillRule(intersections, fillRule);
+            bool fill = scanline.filled(p.x, fillRule);
             float &sd = *sdf(x, row);
             if ((sd > .5f) != fill)
                 sd = 1.f-sd;
@@ -71,8 +54,7 @@ void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, 
         shape.scanline(scanline, p.y);
         for (int x = 0; x < w; ++x) {
             p.x = (x+.5)/scale.x-translate.x;
-            int intersections = scanline.sumIntersections(p.x);
-            bool fill = interpretFillRule(intersections, fillRule);
+            bool fill = scanline.filled(p.x, fillRule);
             float *msd = sdf(x, row);
             float sd = median(msd[0], msd[1], msd[2]);
             if (sd == .5f)

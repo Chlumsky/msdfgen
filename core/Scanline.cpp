@@ -10,6 +10,57 @@ static int compareIntersections(const void *a, const void *b) {
     return sign(reinterpret_cast<const Scanline::Intersection *>(a)->x-reinterpret_cast<const Scanline::Intersection *>(b)->x);
 }
 
+bool interpretFillRule(int intersections, FillRule fillRule) {
+    switch (fillRule) {
+        case FILL_NONZERO:
+            return intersections != 0;
+        case FILL_ODD:
+            return intersections&1;
+        case FILL_POSITIVE:
+            return intersections > 0;
+        case FILL_NEGATIVE:
+            return intersections < 0;
+    }
+    return false;
+}
+
+double Scanline::overlap(const Scanline &a, const Scanline &b, double xFrom, double xTo, FillRule fillRule) {
+    double total = 0;
+    bool aInside = false, bInside = false;
+    int ai = 0, bi = 0;
+    double ax = !a.intersections.empty() ? a.intersections[ai].x : xTo;
+    double bx = !b.intersections.empty() ? b.intersections[bi].x : xTo;
+    while (ax < xFrom || bx < xFrom) {
+        double xNext = min(ax, bx);
+        if (ax == xNext && ai < (int) a.intersections.size()) {
+            aInside = interpretFillRule(a.intersections[ai].direction, fillRule);
+            ax = ++ai < (int) a.intersections.size() ? a.intersections[ai].x : xTo;
+        }
+        if (bx == xNext && bi < (int) b.intersections.size()) {
+            bInside = interpretFillRule(b.intersections[bi].direction, fillRule);
+            bx = ++bi < (int) b.intersections.size() ? b.intersections[bi].x : xTo;
+        }
+    }
+    double x = xFrom;
+    while (ax < xTo || bx < xTo) {
+        double xNext = min(ax, bx);
+        if (aInside == bInside)
+            total += xNext-x;
+        if (ax == xNext && ai < (int) a.intersections.size()) {
+            aInside = interpretFillRule(a.intersections[ai].direction, fillRule);
+            ax = ++ai < (int) a.intersections.size() ? a.intersections[ai].x : xTo;
+        }
+        if (bx == xNext && bi < (int) b.intersections.size()) {
+            bInside = interpretFillRule(b.intersections[bi].direction, fillRule);
+            bx = ++bi < (int) b.intersections.size() ? b.intersections[bi].x : xTo;
+        }
+        x = xNext;
+    }
+    if (aInside == bInside)
+        total += xTo-x;
+    return total;
+}
+
 Scanline::Scanline() : lastIndex(0) { }
 
 void Scanline::preprocess() {
@@ -65,6 +116,10 @@ int Scanline::sumIntersections(double x) const {
     if (index >= 0)
         return intersections[index].direction;
     return 0;
+}
+
+bool Scanline::filled(double x, FillRule fillRule) const {
+    return interpretFillRule(sumIntersections(x), fillRule);
 }
 
 }

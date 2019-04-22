@@ -301,6 +301,7 @@
     <ClInclude Include="core\EdgeColor.h" />
     <ClInclude Include="core\EdgeHolder.h" />
     <ClInclude Include="core\equation-solver.h" />
+    <ClInclude Include="core\estimate-sdf-error.h" />
     <ClInclude Include="core\pixel-conversion.hpp" />
     <ClInclude Include="core\rasterization.h" />
     <ClInclude Include="core\render-sdf.h" />
@@ -326,6 +327,7 @@
     <ClCompile Include="core\edge-selectors.cpp" />
     <ClCompile Include="core\EdgeHolder.cpp" />
     <ClCompile Include="core\equation-solver.cpp" />
+    <ClCompile Include="core\estimate-sdf-error.cpp" />
     <ClCompile Include="core\rasterization.cpp" />
     <ClCompile Include="core\render-sdf.cpp" />
     <ClCompile Include="core\save-bmp.cpp" />

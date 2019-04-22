@@ -21,6 +21,7 @@
 #endif
 
 #define LARGE_VALUE 1e240
+#define SDF_ERROR_ESTIMATE_PRECISION 19
 
 using namespace msdfgen;
 
@@ -35,6 +36,10 @@ enum Format {
     BINARY_FLOAT,
     BINART_FLOAT_BE
 };
+
+static bool is8bitFormat(Format format) {
+    return format == PNG || format == BMP || format == TEXT || format == BINARY;
+}
 
 static char toupper(char c) {
     return c >= 'a' && c <= 'z' ? c-'a'+'A' : c;
@@ -213,7 +218,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
         switch (format) {
             case PNG: return savePng(bitmap, filename) ? NULL : "Failed to write output PNG image.";
             case BMP: return saveBmp(bitmap, filename) ? NULL : "Failed to write output BMP image.";
-            case TIFF: return saveTiff(bitmap, filename) ? NULL : "Failed to write output BMP image.";
+            case TIFF: return saveTiff(bitmap, filename) ? NULL : "Failed to write output TIFF image.";
             case TEXT: case TEXT_FLOAT: {
                 FILE *file = fopen(filename, "w");
                 if (!file) return "Failed to write output text file.";
@@ -288,6 +293,8 @@ static const char *helpText =
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
     "  -errorcorrection <threshold>\n"
         "\tChanges the threshold used to detect and correct potential artifacts. 0 disables error correction.\n"
+    "  -estimateerror\n"
+        "\tComputes and prints the distance field's estimated fill error to the standard output.\n"
     "  -exportshape <filename.txt>\n"
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
     "  -fillrule <nonzero / evenodd / positive / negative>\n"
@@ -383,6 +390,7 @@ int main(int argc, const char * const *argv) {
     const char *edgeAssignment = NULL;
     bool yFlip = false;
     bool printMetrics = false;
+    bool estimateError = false;
     bool skipColoring = false;
     enum {
         KEEP,
@@ -607,6 +615,11 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-printmetrics", 0) {
             printMetrics = true;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-estimateerror", 0) {
+            estimateError = true;
             argPos += 1;
             continue;
         }
@@ -857,8 +870,12 @@ int main(int argc, const char * const *argv) {
             error = writeOutput<1>(sdf, output, format);
             if (error)
                 ABORT(error);
-            if (testRenderMulti || testRender)
+            if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(sdf);
+            if (estimateError) {
+                double sdfError = estimateSDFError(sdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                printf("SDF error ~ %e\n", sdfError);
+            }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, sdf, avgScale*range);
@@ -876,8 +893,12 @@ int main(int argc, const char * const *argv) {
             error = writeOutput<3>(msdf, output, format);
             if (error)
                 ABORT(error);
-            if (testRenderMulti || testRender)
+            if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(msdf);
+            if (estimateError) {
+                double sdfError = estimateSDFError(msdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                printf("SDF error ~ %e\n", sdfError);
+            }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, msdf, avgScale*range);
