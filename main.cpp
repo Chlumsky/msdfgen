@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <map>
 
 #include "msdfgen.h"
 #include "msdfgen-ext.h"
@@ -305,6 +306,8 @@ static const char *helpText =
         "\tAttempts to detect if shape contours have the wrong winding and generates the SDF with the right one.\n"
     "  -help\n"
         "\tDisplays this help.\n"
+    "  -kerning <character code>\n"
+        "\tSpecify a character to check for kerning info.\n"
     "  -legacy\n"
         "\tUses the original (legacy) distance field algorithms.\n"
     "  -nooverlap\n"
@@ -398,6 +401,8 @@ int main(int argc, const char * const *argv) {
         GUESS
     } orientation = KEEP;
     unsigned long long coloringSeed = 0;
+
+    std::vector<int> kerningCodes;               // characters to test for kerning
 
     int argPos = 1;
     bool suggestHelp = false;
@@ -644,6 +649,14 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-kerning", 1) {
+            int ch;
+            if (!parseUnicode(ch, argv[argPos+1]))
+                ABORT("Invalid kerning character specified");
+            kerningCodes.push_back(ch);
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-help", 0)
             ABORT(helpText);
         printf("Unknown setting or insufficient parameters: %s\n", arg);
@@ -656,6 +669,7 @@ int main(int argc, const char * const *argv) {
     // Load input
     Vector2 svgDims;
     double glyphAdvance = 0;
+    std::map<int, double> kerningValues;
     if (!inputType || !input)
         ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
     Shape shape;
@@ -680,6 +694,15 @@ int main(int argc, const char * const *argv) {
                 deinitializeFreetype(ft);
                 ABORT("Failed to load glyph from font file.");
             }
+
+            for (auto &ch : kerningCodes)
+            {
+                double kerning;
+                if (getKerning(kerning, font, unicode, ch) && kerning != 0) {
+                    kerningValues[ch] = kerning;
+                }
+            }
+
             destroyFont(font);
             deinitializeFreetype(ft);
             break;
@@ -777,6 +800,11 @@ int main(int argc, const char * const *argv) {
             fprintf(out, "range = %.12g\n", range);
         if (mode == METRICS && outputSpecified)
             fclose(out);
+        if (!kerningValues.empty()) {
+            for (auto &kv : kerningValues) {
+                fprintf(out, "kerning %i = %.12g\n", kv.first, kv.second);
+            }
+        }
     }
 
     // Compute output
