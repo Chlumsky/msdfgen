@@ -4,13 +4,17 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+#define TOO_LARGE_RATIO 1e12
+
 namespace msdfgen {
 
 int solveQuadratic(double x[2], double a, double b, double c) {
-    if (fabs(a) < 1e-14) {
-        if (fabs(b) < 1e-14) {
+    // a = 0 -> linear equation
+    if (a == 0 || fabs(b)+fabs(c) > TOO_LARGE_RATIO*fabs(a)) {
+        // a, b = 0 -> no solution
+        if (b == 0 || fabs(c) > TOO_LARGE_RATIO*fabs(b)) {
             if (c == 0)
-                return -1;
+                return -1; // 0 = 0
             return 0;
         }
         x[0] = -c/b;
@@ -61,9 +65,13 @@ static int solveCubicNormed(double x[3], double a, double b, double c) {
 }
 
 int solveCubic(double x[3], double a, double b, double c, double d) {
-    if (fabs(a) < 1e-14)
-        return solveQuadratic(x, b, c, d);
-    return solveCubicNormed(x, b/a, c/a, d/a);
+    if (a != 0) {
+        double bn = b/a, cn = c/a, dn = d/a;
+        // Check that a isn't "almost zero"
+        if (fabs(bn) < TOO_LARGE_RATIO && fabs(cn) < TOO_LARGE_RATIO && fabs(dn) < TOO_LARGE_RATIO)
+            return solveCubicNormed(x, bn, cn, dn);
+    }
+    return solveQuadratic(x, b, c, d);
 }
 
 }
