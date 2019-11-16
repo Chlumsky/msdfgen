@@ -28,7 +28,7 @@ Those are exposed by the [msdfgen-ext.h](msdfgen-ext.h) header. This module uses
 [TinyXML2](http://www.grinninglizard.com/tinyxml2/),
 and [LodePNG](http://lodev.org/lodepng/).
 
-Additionaly, there is the [main.cpp](main.cpp), which wraps the functionality into
+Additionally, there is the [main.cpp](main.cpp), which wraps the functionality into
 a comprehensive standalone console program. To start using the program immediately,
 there is a Windows binary available for download in the ["Releases" section](https://github.com/Chlumsky/msdfgen/releases).
 To build the project, you may use the included [Visual Studio solution](Msdfgen.sln)
