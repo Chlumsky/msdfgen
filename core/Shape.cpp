@@ -49,11 +49,19 @@ void Shape::normalize() {
 }
 
 void Shape::bounds(double &l, double &b, double &r, double &t) const {
+    l = DBL_MAX;
+    b = DBL_MAX;
+    r = -DBL_MAX;
+    t = -DBL_MAX;
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->bounds(l, b, r, t);
 }
 
 void Shape::miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const {
+    l = DBL_MAX;
+    b = DBL_MAX;
+    r = -DBL_MAX;
+    t = -DBL_MAX;
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->miterBounds(l, b, r, t, border, miterLimit);
 }
