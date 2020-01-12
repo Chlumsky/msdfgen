@@ -65,7 +65,7 @@ static bool parseDouble(double &value, const char *arg) {
     return sscanf(arg, "%lf%c", &value, &c) == 1;
 }
 
-static bool parseUnicode(int &unicode, const char *arg) {
+static bool parseUnicode(unicode_t &unicode, const char *arg) {
     unsigned uuc;
     if (parseUnsigned(uuc, arg)) {
         unicode = uuc;
@@ -368,7 +368,7 @@ int main(int argc, const char * const *argv) {
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
-    int unicode = 0;
+    unicode_t unicode = 0;
     int svgPathIndex = 0;
 
     int width = 64, height = 64;

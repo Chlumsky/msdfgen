@@ -14,6 +14,7 @@
 namespace msdfgen {
 
 #define REQUIRE(cond) { if (!(cond)) return false; }
+#define F26DOT6_TO_DOUBLE(x) (1/64.*double(x))
 
 class FreetypeHandle {
     friend FreetypeHandle * initializeFreetype();
@@ -27,10 +28,10 @@ class FreetypeHandle {
 class FontHandle {
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
     friend void destroyFont(FontHandle *font);
-    friend bool getFontScale(double &output, FontHandle *font);
+    friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
-    friend bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance);
-    friend bool getKerning(double &output, FontHandle *font, int unicode1, int unicode2);
+    friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
+    friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
 
     FT_Face face;
 
@@ -43,20 +44,24 @@ struct FtContext {
 };
 
 static Point2 ftPoint2(const FT_Vector &vector) {
-    return Point2(vector.x/64., vector.y/64.);
+    return Point2(F26DOT6_TO_DOUBLE(vector.x), F26DOT6_TO_DOUBLE(vector.y));
 }
 
 static int ftMoveTo(const FT_Vector *to, void *user) {
     FtContext *context = reinterpret_cast<FtContext *>(user);
-    context->contour = &context->shape->addContour();
+    if (!(context->contour && context->contour->edges.empty()))
+        context->contour = &context->shape->addContour();
     context->position = ftPoint2(*to);
     return 0;
 }
 
 static int ftLineTo(const FT_Vector *to, void *user) {
     FtContext *context = reinterpret_cast<FtContext *>(user);
-    context->contour->addEdge(new LinearSegment(context->position, ftPoint2(*to)));
-    context->position = ftPoint2(*to);
+    Point2 endpoint = ftPoint2(*to);
+    if (endpoint != context->position) {
+        context->contour->addEdge(new LinearSegment(context->position, endpoint));
+        context->position = endpoint;
+    }
     return 0;
 }
 
@@ -106,8 +111,13 @@ void destroyFont(FontHandle *font) {
     delete font;
 }
 
-bool getFontScale(double &output, FontHandle *font) {
-    output = font->face->units_per_EM/64.;
+bool getFontMetrics(FontMetrics &metrics, FontHandle *font) {
+    metrics.emSize = F26DOT6_TO_DOUBLE(font->face->units_per_EM);
+    metrics.ascenderY = F26DOT6_TO_DOUBLE(font->face->ascender);
+    metrics.descenderY = F26DOT6_TO_DOUBLE(font->face->descender);
+    metrics.lineHeight = F26DOT6_TO_DOUBLE(font->face->height);
+    metrics.underlineY = F26DOT6_TO_DOUBLE(font->face->underline_position);
+    metrics.underlineThickness = F26DOT6_TO_DOUBLE(font->face->underline_thickness);
     return true;
 }
 
@@ -115,15 +125,15 @@ bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle
     FT_Error error = FT_Load_Char(font->face, ' ', FT_LOAD_NO_SCALE);
     if (error)
         return false;
-    spaceAdvance = font->face->glyph->advance.x/64.;
+    spaceAdvance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
     error = FT_Load_Char(font->face, '\t', FT_LOAD_NO_SCALE);
     if (error)
         return false;
-    tabAdvance = font->face->glyph->advance.x/64.;
+    tabAdvance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
     return true;
 }
 
-bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
     if (!font)
         return false;
     FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
@@ -132,7 +142,7 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     output.contours.clear();
     output.inverseYAxis = false;
     if (advance)
-        *advance = font->face->glyph->advance.x/64.;
+        *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
 
     FtContext context = { };
     context.shape = &output;
@@ -146,16 +156,18 @@ bool loadGlyph(Shape &output, FontHandle *font, int unicode, double *advance) {
     error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
     if (error)
         return false;
+    if (!output.contours.empty() && output.contours.back().edges.empty())
+        output.contours.pop_back();
     return true;
 }
 
-bool getKerning(double &output, FontHandle *font, int unicode1, int unicode2) {
+bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
     FT_Vector kerning;
     if (FT_Get_Kerning(font->face, FT_Get_Char_Index(font->face, unicode1), FT_Get_Char_Index(font->face, unicode2), FT_KERNING_UNSCALED, &kerning)) {
         output = 0;
         return false;
     }
-    output = kerning.x/64.;
+    output = F26DOT6_TO_DOUBLE(kerning.x);
     return true;
 }
 
