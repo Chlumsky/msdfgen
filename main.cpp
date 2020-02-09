@@ -281,6 +281,8 @@ static const char *helpText =
         "\tReads text shape description from the standard input.\n"
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
+    "  -nanosvg <filename.svg>\n"
+        "\tLoads the last vector path found in the specified SVG file.\n"
     "\n"
     "OPTIONS\n"
     "  -angle <angle>\n"
@@ -346,6 +348,7 @@ int main(int argc, const char * const *argv) {
     enum {
         NONE,
         SVG,
+        NANOSVG,
         FONT,
         DESCRIPTION_ARG,
         DESCRIPTION_STDIN,
@@ -414,6 +417,12 @@ int main(int argc, const char * const *argv) {
 
         ARG_CASE("-svg", 1) {
             inputType = SVG;
+            input = argv[argPos+1];
+            argPos += 2;
+            continue;
+        }
+        ARG_CASE("-nanosvg", 1) {
+            inputType = NANOSVG;
             input = argv[argPos+1];
             argPos += 2;
             continue;
@@ -657,11 +666,16 @@ int main(int argc, const char * const *argv) {
     Vector2 svgDims;
     double glyphAdvance = 0;
     if (!inputType || !input)
-        ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+        ABORT("No input specified! Use either -svg <file.svg>, -nanosvg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
     Shape shape;
     switch (inputType) {
         case SVG: {
             if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
+                ABORT("Failed to load shape from SVG file.");
+            break;
+        }
+        case NANOSVG: {
+            if (!loadNanoSvgShape(shape, input, svgPathIndex, &svgDims))
                 ABORT("Failed to load shape from SVG file.");
             break;
         }

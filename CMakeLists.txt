@@ -52,6 +52,7 @@ file(GLOB_RECURSE msdfgen_HEADERS
 	"core/*.h"
 	"core/*.hpp"
 	"lib/*.h"
+	"lib/nanosvg/*.h"
 	"ext/*.h"
 	"include/*.h"
 )
@@ -59,6 +60,7 @@ file(GLOB_RECURSE msdfgen_HEADERS
 file(GLOB_RECURSE msdfgen_SOURCES
 	"core/*.cpp"
 	"lib/*.cpp"
+	"lib/nanosvg/*.cc"
 	"ext/*.cpp"
 )
 
