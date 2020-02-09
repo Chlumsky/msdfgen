@@ -265,26 +265,16 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     return true;
 }
 
-bool loadNanoSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *dimensions) {
-    struct NSVGimage* image = nsvgParseFromFile(filename, "px", 96);
+bool loadNanoSvgShape(Shape &output, const NSVGshape *shape) {
     output.inverseYAxis = true;
-    int currentIndex = 0;
-    for (NSVGshape *shape = image->shapes; shape != NULL; shape = shape->next) {
-        for (NSVGpath *path = shape->paths; path != NULL; path = path->next) {      
-            Contour &contour = output.addContour();
-            for (int i = 0; i < path->npts-1; i += 3) {
-                float* p = &path->pts[i*2];
-                EdgeHolder edge = new CubicSegment(Point2(p[0], p[1]), Point2(p[2], p[3]), Point2(p[4],p[5]), Point2(p[6],p[7]), (EdgeColor) shape->fill.color);
-                if (currentIndex == pathIndex) {
-                    contour.addEdge(edge);
-                }
-            }
+    for (NSVGpath *path = shape->paths; path != NULL; path = path->next) {      
+        Contour &contour = output.addContour();
+        for (int i = 0; i < path->npts-1; i += 3) {
+            float* p = &path->pts[i*2];
+            EdgeHolder edge = new CubicSegment(Point2(p[0], p[1]), Point2(p[2], p[3]), Point2(p[4],p[5]), Point2(p[6],p[7]), (EdgeColor) shape->fill.color);
+            contour.addEdge(edge);
         }
-        currentIndex++;
-    }     
-    if (dimensions)
-        *dimensions = Vector2(image->width, image->height);
-	nsvgDelete(image);
+    }
     return true;
 }
 

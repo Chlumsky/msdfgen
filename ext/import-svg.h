@@ -4,9 +4,11 @@
 #include <cstdlib>
 #include "../core/Shape.h"
 
+#include "nanosvg.h"
+
 namespace msdfgen {
 
 /// Reads the first path found in the specified SVG file and stores it as a Shape in output.
 bool loadSvgShape(Shape &output, const char *filename, int pathIndex = 0, Vector2 *dimensions = NULL);
-bool loadNanoSvgShape(Shape &output, const char *filename, int pathIndex = 0, Vector2 *dimensions = NULL);
+bool loadNanoSvgShape(Shape &output, const NSVGshape* nsvgImage);
 }

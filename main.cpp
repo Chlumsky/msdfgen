@@ -16,6 +16,8 @@
 #include "msdfgen.h"
 #include "msdfgen-ext.h"
 
+#include "nanosvg.h"
+
 #ifdef _WIN32
     #pragma warning(disable:4996)
 #endif
@@ -667,6 +669,7 @@ int main(int argc, const char * const *argv) {
     double glyphAdvance = 0;
     if (!inputType || !input)
         ABORT("No input specified! Use either -svg <file.svg>, -nanosvg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+    
     Shape shape;
     switch (inputType) {
         case SVG: {
@@ -675,8 +678,18 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case NANOSVG: {
-            if (!loadNanoSvgShape(shape, input, svgPathIndex, &svgDims))
-                ABORT("Failed to load shape from SVG file.");
+            struct NSVGimage* image = nsvgParseFromFile(input, "px", 96);                
+            svgDims = Vector2(image->width, image->height);
+            for (NSVGshape *nsvgShape = image->shapes; nsvgShape != NULL; nsvgShape = nsvgShape->next) {
+                Shape current_shape;
+                if (!loadNanoSvgShape(current_shape, nsvgShape)) {
+                    nsvgDelete(image);
+                    ABORT("Failed to load shape from SVG file.");
+                }
+                shape = current_shape;
+                svgPathIndex++;
+            }
+            nsvgDelete(image);
             break;
         }
         case FONT: {
