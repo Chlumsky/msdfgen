@@ -328,7 +328,9 @@ static const char *helpText =
     "  -scale <scale>\n"
         "\tSets the scale used to convert shape units to pixels.\n"
     "  -seed <n>\n"
-        "\tSets the random seed for edge coloring heuristic.\n"
+        "\tSets the random seed for edge coloring heuristic.\n"    
+    "  -svgpath <index>\n"
+        "\tSet the index of svg path.\n"
     "  -size <width> <height>\n"
         "\tSets the dimensions of the output image.\n"
     "  -stdout\n"
@@ -518,6 +520,14 @@ int main(int argc, const char * const *argv) {
             argPos += 3;
             continue;
         }
+        ARG_CASE("-svgpath", 1) {
+            unsigned int i;
+            if (!parseUnsigned(i, argv[argPos+1]))
+                ABORT("Invalid range argument. Use -svgpath <index> with a integer number.");
+            svgPathIndex = i;
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-autoframe", 0) {
             autoFrame = true;
             argPos += 1;
@@ -680,14 +690,17 @@ int main(int argc, const char * const *argv) {
         case NANOSVG: {
             struct NSVGimage* image = nsvgParseFromFile(input, "px", 96);                
             svgDims = Vector2(image->width, image->height);
+            int count = 0;
             for (NSVGshape *nsvgShape = image->shapes; nsvgShape != NULL; nsvgShape = nsvgShape->next) {
-                Shape current_shape;
-                if (!loadNanoSvgShape(current_shape, nsvgShape)) {
-                    nsvgDelete(image);
-                    ABORT("Failed to load shape from SVG file.");
+                if (svgPathIndex == count) {
+                    Shape current_shape;
+                    if (!loadNanoSvgShape(current_shape, nsvgShape)) {
+                        nsvgDelete(image);
+                        ABORT("Failed to load shape from SVG file.");
+                    }
+                    shape = current_shape;
                 }
-                shape = current_shape;
-                svgPathIndex++;
+                count++;
             }
             nsvgDelete(image);
             break;
