@@ -76,6 +76,10 @@ double PseudoDistanceSelectorBase::computeDistance(const Point2 &p) const {
     return minDistance;
 }
 
+SignedDistance PseudoDistanceSelectorBase::trueDistance() const {
+    return minTrueDistance;
+}
+
 PseudoDistanceSelector::PseudoDistanceSelector(const Point2 &p) : p(p) { }
 
 void PseudoDistanceSelector::addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge) {
@@ -126,6 +130,27 @@ MultiDistanceSelector::DistanceType MultiDistanceSelector::distance() const {
     multiDistance.g = g.computeDistance(p);
     multiDistance.b = b.computeDistance(p);
     return multiDistance;
+}
+
+SignedDistance MultiDistanceSelector::trueDistance() const {
+    SignedDistance distance = r.trueDistance();
+    if (g.trueDistance() < distance)
+        distance = g.trueDistance();
+    if (b.trueDistance() < distance)
+        distance = b.trueDistance();
+    return distance;
+}
+
+MultiAndTrueDistanceSelector::MultiAndTrueDistanceSelector(const Point2 &p) : MultiDistanceSelector(p) { }
+
+MultiAndTrueDistanceSelector::DistanceType MultiAndTrueDistanceSelector::distance() const {
+    MultiDistance multiDistance = MultiDistanceSelector::distance();
+    MultiAndTrueDistance mtd;
+    mtd.r = multiDistance.r;
+    mtd.g = multiDistance.g;
+    mtd.b = multiDistance.b;
+    mtd.a = trueDistance().distance;
+    return mtd;
 }
 
 }

@@ -43,9 +43,10 @@ msdfgen.exe <mode> <input> <options>
 where only the input specification is required.
 
 Mode can be one of:
- - **sdf** &ndash; generates a conventional monochrome signed distance field.
+ - **sdf** &ndash; generates a conventional monochrome (true) signed distance field.
  - **psdf** &ndash; generates a monochrome signed pseudo-distance field.
  - **msdf** (default) &ndash; generates a multi-channel signed distance field using my new method.
+ - **mtsdf** &ndash; generates a combined multi-channel and true signed distance field in the alpha channel.
 
 The input can be specified as one of:
  - **-font \<filename.ttf\> \<character code\>** &ndash; to load a glyph from a font file.

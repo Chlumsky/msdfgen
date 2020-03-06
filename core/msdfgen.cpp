@@ -30,6 +30,18 @@ public:
     }
 };
 
+template <>
+class DistancePixelConversion<MultiAndTrueDistance> {
+public:
+    typedef BitmapRef<float, 4> BitmapRefType;
+    inline static void convert(float *pixels, const MultiAndTrueDistance &distance, double range) {
+        pixels[0] = float(distance.r/range+.5);
+        pixels[1] = float(distance.g/range+.5);
+        pixels[2] = float(distance.b/range+.5);
+        pixels[3] = float(distance.a/range+.5);
+    }
+};
+
 template <class ContourCombiner>
 void generateDistanceField(const typename DistancePixelConversion<typename ContourCombiner::DistanceType>::BitmapRefType &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
 #ifdef MSDFGEN_USE_OPENMP
@@ -96,6 +108,15 @@ void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double 
         msdfErrorCorrection(output, edgeThreshold/(scale*range));
 }
 
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold, bool overlapSupport) {
+    if (overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, range, scale, translate);
+    else
+        generateDistanceField<SimpleContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, range, scale, translate);
+    if (edgeThreshold > 0)
+        msdfErrorCorrection(output, edgeThreshold/(scale*range));
+}
+
 inline static bool detectClash(const float *a, const float *b, double threshold) {
     // Sort channels so that pairs (a0, b0), (a1, b1), (a2, b2) go from biggest to smallest absolute difference
     float a0 = a[0], a1 = a[1], a2 = a[2];
@@ -118,7 +139,8 @@ inline static bool detectClash(const float *a, const float *b, double threshold)
         fabsf(a2-.5f) >= fabsf(b2-.5f); // Out of the pair, only flag the pixel farther from a shape edge
 }
 
-void msdfErrorCorrection(const BitmapRef<float, 3> &output, const Vector2 &threshold) {
+template <int N>
+void msdfErrorCorrectionInner(const BitmapRef<float, N> &output, const Vector2 &threshold) {
     std::vector<std::pair<int, int> > clashes;
     int w = output.width, h = output.height;
     for (int y = 0; y < h; ++y)
@@ -154,6 +176,13 @@ void msdfErrorCorrection(const BitmapRef<float, 3> &output, const Vector2 &thres
         pixel[0] = med, pixel[1] = med, pixel[2] = med;
     }
 #endif
+}
+
+void msdfErrorCorrection(const BitmapRef<float, 3> &output, const Vector2 &threshold) {
+    msdfErrorCorrectionInner(output, threshold);
+}
+void msdfErrorCorrection(const BitmapRef<float, 4> &output, const Vector2 &threshold) {
+    msdfErrorCorrectionInner(output, threshold);
 }
 
 // Legacy version
@@ -254,6 +283,64 @@ void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, 
             output(x, row)[0] = float(r.minDistance.distance/range+.5);
             output(x, row)[1] = float(g.minDistance.distance/range+.5);
             output(x, row)[2] = float(b.minDistance.distance/range+.5);
+        }
+    }
+
+    if (edgeThreshold > 0)
+        msdfErrorCorrection(output, edgeThreshold/(scale*range));
+}
+
+void generateMTSDF_legacy(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
+#ifdef MSDFGEN_USE_OPENMP
+    #pragma omp parallel for
+#endif
+    for (int y = 0; y < output.height; ++y) {
+        int row = shape.inverseYAxis ? output.height-y-1 : y;
+        for (int x = 0; x < output.width; ++x) {
+            Point2 p = Vector2(x+.5, y+.5)/scale-translate;
+
+            SignedDistance minDistance;
+            struct {
+                SignedDistance minDistance;
+                const EdgeHolder *nearEdge;
+                double nearParam;
+            } r, g, b;
+            r.nearEdge = g.nearEdge = b.nearEdge = NULL;
+            r.nearParam = g.nearParam = b.nearParam = 0;
+
+            for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+                for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                    double param;
+                    SignedDistance distance = (*edge)->signedDistance(p, param);
+                    if (distance < minDistance)
+                        minDistance = distance;
+                    if ((*edge)->color&RED && distance < r.minDistance) {
+                        r.minDistance = distance;
+                        r.nearEdge = &*edge;
+                        r.nearParam = param;
+                    }
+                    if ((*edge)->color&GREEN && distance < g.minDistance) {
+                        g.minDistance = distance;
+                        g.nearEdge = &*edge;
+                        g.nearParam = param;
+                    }
+                    if ((*edge)->color&BLUE && distance < b.minDistance) {
+                        b.minDistance = distance;
+                        b.nearEdge = &*edge;
+                        b.nearParam = param;
+                    }
+                }
+
+            if (r.nearEdge)
+                (*r.nearEdge)->distanceToPseudoDistance(r.minDistance, p, r.nearParam);
+            if (g.nearEdge)
+                (*g.nearEdge)->distanceToPseudoDistance(g.minDistance, p, g.nearParam);
+            if (b.nearEdge)
+                (*b.nearEdge)->distanceToPseudoDistance(b.minDistance, p, b.nearParam);
+            output(x, row)[0] = float(r.minDistance.distance/range+.5);
+            output(x, row)[1] = float(g.minDistance.distance/range+.5);
+            output(x, row)[2] = float(b.minDistance.distance/range+.5);
+            output(x, row)[3] = float(minDistance.distance/range+.5);
         }
     }
 

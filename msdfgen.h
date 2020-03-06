@@ -31,6 +31,7 @@
 #include "core/shape-description.h"
 
 #define MSDFGEN_VERSION "1.6"
+#define MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD 1.001
 
 namespace msdfgen {
 
@@ -41,14 +42,19 @@ void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double r
 void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
 
 /// Generates a multi-channel signed distance field. Edge colors must be assigned first! (See edgeColoringSimple)
-void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.001, bool overlapSupport = true);
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD, bool overlapSupport = true);
+
+/// Generates a multi-channel signed distance field with true distance in the alpha channel. Edge colors must be assigned first.
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD, bool overlapSupport = true);
 
 /// Resolves multi-channel signed distance field values that may cause interpolation artifacts. (Already called by generateMSDF)
 void msdfErrorCorrection(const BitmapRef<float, 3> &output, const Vector2 &threshold);
+void msdfErrorCorrection(const BitmapRef<float, 4> &output, const Vector2 &threshold);
 
 // Original simpler versions of the previous functions, which work well under normal circumstances, but cannot deal with overlapping contours.
 void generateSDF_legacy(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
 void generatePseudoSDF_legacy(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);
-void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = 1.001);
+void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
+void generateMTSDF_legacy(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
 
 }

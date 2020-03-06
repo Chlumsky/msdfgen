@@ -265,9 +265,10 @@ static const char *helpText =
         " <mode> <input specification> <options>\n"
     "\n"
     "MODES\n"
-    "  sdf - Generate conventional monochrome signed distance field.\n"
+    "  sdf - Generate conventional monochrome (true) signed distance field.\n"
     "  psdf - Generate monochrome signed pseudo-distance field.\n"
     "  msdf - Generate multi-channel signed distance field. This is used by default if no mode is specified.\n"
+    "  mtsdf - Generate combined multi-channel and true signed distance field in the alpha channel.\n"
     "  metrics - Report shape metrics only.\n"
     "\n"
     "INPUT SPECIFICATION\n"
@@ -355,6 +356,7 @@ int main(int argc, const char * const *argv) {
         SINGLE,
         PSEUDO,
         MULTI,
+        MULTI_AND_TRUE,
         METRICS
     } mode = MULTI;
     bool legacyMode = false;
@@ -385,7 +387,7 @@ int main(int argc, const char * const *argv) {
     Vector2 scale = 1;
     bool scaleSpecified = false;
     double angleThreshold = 3;
-    double edgeThreshold = 1.001;
+    double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
     bool defEdgeAssignment = true;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -410,6 +412,7 @@ int main(int argc, const char * const *argv) {
         ARG_MODE("sdf", SINGLE)
         ARG_MODE("psdf", PSEUDO)
         ARG_MODE("msdf", MULTI)
+        ARG_MODE("mtsdf", MULTI_AND_TRUE)
         ARG_MODE("metrics", METRICS)
 
         ARG_CASE("-svg", 1) {
@@ -658,6 +661,8 @@ int main(int argc, const char * const *argv) {
     double glyphAdvance = 0;
     if (!inputType || !input)
         ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+    if (mode == MULTI_AND_TRUE && (format == BMP || format == AUTO && output && cmpExtension(output, ".bmp")))
+        ABORT("Incompatible image format. A BMP file cannot contain alpha channel, which is required in mtsdf mode.");
     Shape shape;
     switch (inputType) {
         case SVG: {
@@ -782,6 +787,7 @@ int main(int argc, const char * const *argv) {
     // Compute output
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
+    Bitmap<float, 4> mtsdf;
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float, 1>(width, height);
@@ -811,6 +817,18 @@ int main(int argc, const char * const *argv) {
                 generateMSDF(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold, overlapSupport);
             break;
         }
+        case MULTI_AND_TRUE: {
+            if (!skipColoring)
+                edgeColoringSimple(shape, angleThreshold, coloringSeed);
+            if (edgeAssignment)
+                parseColoring(shape, edgeAssignment);
+            mtsdf = Bitmap<float, 4>(width, height);
+            if (legacyMode)
+                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold);
+            else
+                generateMTSDF(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold, overlapSupport);
+            break;
+        }
         default:;
     }
 
@@ -836,6 +854,9 @@ int main(int argc, const char * const *argv) {
             case MULTI:
                 invertColor<3>(msdf);
                 break;
+            case MULTI_AND_TRUE:
+                invertColor<4>(mtsdf);
+                break;
             default:;
         }
     }
@@ -849,6 +870,11 @@ int main(int argc, const char * const *argv) {
                 distanceSignCorrection(msdf, shape, scale, translate, fillRule);
                 if (edgeThreshold > 0)
                     msdfErrorCorrection(msdf, edgeThreshold/(scale*range));
+                break;
+            case MULTI_AND_TRUE:
+                distanceSignCorrection(mtsdf, shape, scale, translate, fillRule);
+                if (edgeThreshold > 0)
+                    msdfErrorCorrection(mtsdf, edgeThreshold/(scale*range));
                 break;
             default:;
         }
@@ -908,6 +934,29 @@ int main(int argc, const char * const *argv) {
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, msdf, avgScale*range);
+                if (!savePng(render, testRender))
+                    ABORT("Failed to write test render file.");
+            }
+            break;
+        case MULTI_AND_TRUE:
+            error = writeOutput<4>(mtsdf, output, format);
+            if (error)
+                ABORT(error);
+            if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
+                simulate8bit(mtsdf);
+            if (estimateError) {
+                double sdfError = estimateSDFError(mtsdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                printf("SDF error ~ %e\n", sdfError);
+            }
+            if (testRenderMulti) {
+                Bitmap<float, 4> render(testWidthM, testHeightM);
+                renderSDF(render, mtsdf, avgScale*range);
+                if (!savePng(render, testRenderMulti))
+                    puts("Failed to write test render file.");
+            }
+            if (testRender) {
+                Bitmap<float, 1> render(testWidth, testHeight);
+                renderSDF(render, mtsdf, avgScale*range);
                 if (!savePng(render, testRender))
                     ABORT("Failed to write test render file.");
             }

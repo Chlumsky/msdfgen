@@ -108,6 +108,11 @@ bool saveBmp(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
+bool saveBmp(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
+    // RGBA not supported by the BMP format
+    return false;
+}
+
 bool saveBmp(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
@@ -154,6 +159,11 @@ bool saveBmp(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
     }
 
     return !fclose(file);
+}
+
+bool saveBmp(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
+    // RGBA not supported by the BMP format
+    return false;
 }
 
 }

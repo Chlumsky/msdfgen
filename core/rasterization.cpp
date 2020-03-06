@@ -38,7 +38,8 @@ void distanceSignCorrection(const BitmapRef<float, 1> &sdf, const Shape &shape, 
     }
 }
 
-void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
+template <int N>
+static void multiDistanceSignCorrection(const BitmapRef<float, N> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
     int w = sdf.width, h = sdf.height;
     if (!(w*h))
         return;
@@ -66,6 +67,8 @@ void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, 
                 *match = -1;
             } else
                 *match = 1;
+            if (N >= 4 && (msd[3] > .5f) != fill)
+                msd[3] = 1.f-msd[3];
             ++match;
         }
     }
@@ -92,6 +95,14 @@ void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, 
             }
         }
     }
+}
+
+void distanceSignCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
+    multiDistanceSignCorrection(sdf, shape, scale, translate, fillRule);
+}
+
+void distanceSignCorrection(const BitmapRef<float, 4> &sdf, const Shape &shape, const Vector2 &scale, const Vector2 &translate, FillRule fillRule) {
+    multiDistanceSignCorrection(sdf, shape, scale, translate, fillRule);
 }
 
 }

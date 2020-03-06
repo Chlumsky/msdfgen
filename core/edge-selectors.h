@@ -10,6 +10,9 @@ namespace msdfgen {
 struct MultiDistance {
     double r, g, b;
 };
+struct MultiAndTrueDistance : MultiDistance {
+    double a;
+};
 
 /// Selects the nearest edge by its true distance.
 class TrueDistanceSelector {
@@ -38,6 +41,7 @@ public:
     void addEdgePseudoDistance(const SignedDistance &distance);
     void merge(const PseudoDistanceSelectorBase &other);
     double computeDistance(const Point2 &p) const;
+    SignedDistance trueDistance() const;
 
 private:
     SignedDistance minTrueDistance;
@@ -73,10 +77,22 @@ public:
     void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     void merge(const MultiDistanceSelector &other);
     DistanceType distance() const;
+    SignedDistance trueDistance() const;
 
 private:
     Point2 p;
     PseudoDistanceSelectorBase r, g, b;
+
+};
+
+/// Selects the nearest edge for each of the three color channels by its pseudo-distance and by true distance for the alpha channel.
+class MultiAndTrueDistanceSelector : public MultiDistanceSelector {
+
+public:
+    typedef MultiAndTrueDistance DistanceType;
+
+    explicit MultiAndTrueDistanceSelector(const Point2 &p = Point2());
+    DistanceType distance() const;
 
 };
 

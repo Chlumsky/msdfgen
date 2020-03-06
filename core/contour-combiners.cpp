@@ -44,6 +44,7 @@ typename SimpleContourCombiner<EdgeSelector>::DistanceType SimpleContourCombiner
 template class SimpleContourCombiner<TrueDistanceSelector>;
 template class SimpleContourCombiner<PseudoDistanceSelector>;
 template class SimpleContourCombiner<MultiDistanceSelector>;
+template class SimpleContourCombiner<MultiAndTrueDistanceSelector>;
 
 template <class EdgeSelector>
 OverlappingContourCombiner<EdgeSelector>::OverlappingContourCombiner(const Shape &shape) {
@@ -118,5 +119,6 @@ typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingConto
 template class OverlappingContourCombiner<TrueDistanceSelector>;
 template class OverlappingContourCombiner<PseudoDistanceSelector>;
 template class OverlappingContourCombiner<MultiDistanceSelector>;
+template class OverlappingContourCombiner<MultiAndTrueDistanceSelector>;
 
 }
