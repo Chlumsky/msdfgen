@@ -11,6 +11,10 @@ namespace msdfgen {
 class Shape {
 
 public:
+    struct Bounds {
+        double l, b, r, t;
+    };
+
     /// The list of contours the shape consists of.
     std::vector<Contour> contours;
     /// Specifies whether the shape uses bottom-to-top (false) or top-to-bottom (true) Y coordinates.
@@ -29,9 +33,11 @@ public:
     /// Performs basic checks to determine if the object represents a valid shape.
     bool validate() const;
     /// Adjusts the bounding box to fit the shape.
-    void bounds(double &l, double &b, double &r, double &t) const;
+    void bound(double &l, double &b, double &r, double &t) const;
     /// Adjusts the bounding box to fit the shape border's mitered corners.
-    void miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const;
+    void boundMiters(double &l, double &b, double &r, double &t, double border, double miterLimit, int polarity) const;
+    /// Computes the minimum bounding box that fits the shape, optionally with a (mitered) border.
+    Bounds getBounds(double border = 0, double miterLimit = 0, int polarity = 0) const;
     /// Outputs the scanline that intersects the shape at y.
     void scanline(Scanline &line, double y) const;
 

@@ -32,7 +32,7 @@ public:
     /// Outputs a list of (at most three) intersections (their X coordinates) with an infinite horizontal scanline at y and returns how many there are.
     virtual int scanlineIntersections(double x[3], int dy[3], double y) const = 0;
     /// Adjusts the bounding box to fit the edge segment.
-    virtual void bounds(double &l, double &b, double &r, double &t) const = 0;
+    virtual void bound(double &l, double &b, double &r, double &t) const = 0;
 
     /// Moves the start point of the edge segment.
     virtual void moveStartPoint(Point2 to) = 0;
@@ -55,7 +55,7 @@ public:
     Vector2 direction(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bounds(double &l, double &b, double &r, double &t) const;
+    void bound(double &l, double &b, double &r, double &t) const;
 
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
@@ -75,7 +75,7 @@ public:
     Vector2 direction(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bounds(double &l, double &b, double &r, double &t) const;
+    void bound(double &l, double &b, double &r, double &t) const;
 
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
@@ -95,7 +95,7 @@ public:
     Vector2 direction(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bounds(double &l, double &b, double &r, double &t) const;
+    void bound(double &l, double &b, double &r, double &t) const;
 
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);

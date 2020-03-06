@@ -48,14 +48,27 @@ void Shape::normalize() {
         }
 }
 
-void Shape::bounds(double &l, double &b, double &r, double &t) const {
+void Shape::bound(double &l, double &b, double &r, double &t) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
-        contour->bounds(l, b, r, t);
+        contour->bound(l, b, r, t);
 }
 
-void Shape::miterBounds(double &l, double &b, double &r, double &t, double border, double miterLimit) const {
+void Shape::boundMiters(double &l, double &b, double &r, double &t, double border, double miterLimit, int polarity) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
-        contour->miterBounds(l, b, r, t, border, miterLimit);
+        contour->boundMiters(l, b, r, t, border, miterLimit, polarity);
+}
+
+Shape::Bounds Shape::getBounds(double border, double miterLimit, int polarity) const {
+    static const double LARGE_VALUE = 1e240;
+    Shape::Bounds bounds = { +LARGE_VALUE, +LARGE_VALUE, -LARGE_VALUE, -LARGE_VALUE };
+    bound(bounds.l, bounds.b, bounds.r, bounds.t);
+    if (border > 0) {
+        bounds.l -= border, bounds.b -= border;
+        bounds.r += border, bounds.t += border;
+        if (miterLimit > 0)
+            boundMiters(bounds.l, bounds.b, bounds.r, bounds.t, border, miterLimit, polarity);
+    }
+    return bounds;
 }
 
 void Shape::scanline(Scanline &line, double y) const {

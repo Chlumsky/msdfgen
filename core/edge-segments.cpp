@@ -325,12 +325,12 @@ static void pointBounds(Point2 p, double &l, double &b, double &r, double &t) {
     if (p.y > t) t = p.y;
 }
 
-void LinearSegment::bounds(double &l, double &b, double &r, double &t) const {
+void LinearSegment::bound(double &l, double &b, double &r, double &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[1], l, b, r, t);
 }
 
-void QuadraticSegment::bounds(double &l, double &b, double &r, double &t) const {
+void QuadraticSegment::bound(double &l, double &b, double &r, double &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[2], l, b, r, t);
     Vector2 bot = (p[1]-p[0])-(p[2]-p[1]);
@@ -346,7 +346,7 @@ void QuadraticSegment::bounds(double &l, double &b, double &r, double &t) const 
     }
 }
 
-void CubicSegment::bounds(double &l, double &b, double &r, double &t) const {
+void CubicSegment::bound(double &l, double &b, double &r, double &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[3], l, b, r, t);
     Vector2 a0 = p[1]-p[0];

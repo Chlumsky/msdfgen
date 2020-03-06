@@ -20,7 +20,6 @@
     #pragma warning(disable:4996)
 #endif
 
-#define LARGE_VALUE 1e240
 #define SDF_ERROR_ESTIMATE_PRECISION 19
 
 using namespace msdfgen;
@@ -730,13 +729,9 @@ int main(int argc, const char * const *argv) {
         shape.inverseYAxis = !shape.inverseYAxis;
 
     double avgScale = .5*(scale.x+scale.y);
-    struct {
-        double l, b, r, t;
-    } bounds = {
-        LARGE_VALUE, LARGE_VALUE, -LARGE_VALUE, -LARGE_VALUE
-    };
+    Shape::Bounds bounds = { };
     if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS)
-        shape.bounds(bounds.l, bounds.b, bounds.r, bounds.t);
+        bounds = shape.getBounds();
 
     // Auto-frame
     if (autoFrame) {
