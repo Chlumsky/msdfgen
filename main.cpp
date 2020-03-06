@@ -290,6 +290,8 @@ static const char *helpText =
         "\tSets the scale used to convert shape units to pixels asymmetrically.\n"
     "  -autoframe\n"
         "\tAutomatically scales (unless specified) and translates the shape to fit.\n"
+    "  -coloringstrategy <simple / inktrap>\n"
+        "\tSelects the strategy of the edge coloring heuristic.\n"
     "  -edgecolors <sequence>\n"
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
     "  -errorcorrection <threshold>\n"
@@ -400,6 +402,7 @@ int main(int argc, const char * const *argv) {
         GUESS
     } orientation = KEEP;
     unsigned long long coloringSeed = 0;
+    void (*edgeColoring)(Shape &, double, unsigned long long) = edgeColoringSimple;
 
     int argPos = 1;
     bool suggestHelp = false;
@@ -575,14 +578,22 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-coloringstrategy", 1) {
+            if (!strcmp(argv[argPos+1], "simple")) edgeColoring = edgeColoringSimple;
+            else if (!strcmp(argv[argPos+1], "inktrap")) edgeColoring = edgeColoringInkTrap;
+            else
+                puts("Unknown coloring strategy specified.");
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-edgecolors", 1) {
-            static const char *allowed = " ?,cmyCMY";
+            static const char *allowed = " ?,cmwyCMWY";
             for (int i = 0; argv[argPos+1][i]; ++i) {
                 for (int j = 0; allowed[j]; ++j)
                     if (argv[argPos+1][i] == allowed[j])
-                        goto ROLL_ARG;
-                ABORT("Invalid edge coloring sequence. Use -assign <color sequence> with only the colors C, M, and Y. Separate contours by commas and use ? to keep the default assigment for a contour.");
-            ROLL_ARG:;
+                        goto EDGE_COLOR_VERIFIED;
+                ABORT("Invalid edge coloring sequence. Use -edgecolors <color sequence> with only the colors C, M, Y, and W. Separate contours by commas and use ? to keep the default assigment for a contour.");
+            EDGE_COLOR_VERIFIED:;
             }
             edgeAssignment = argv[argPos+1];
             argPos += 2;
@@ -807,7 +818,7 @@ int main(int argc, const char * const *argv) {
         }
         case MULTI: {
             if (!skipColoring)
-                edgeColoringSimple(shape, angleThreshold, coloringSeed);
+                edgeColoring(shape, angleThreshold, coloringSeed);
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<float, 3>(width, height);
@@ -819,7 +830,7 @@ int main(int argc, const char * const *argv) {
         }
         case MULTI_AND_TRUE: {
             if (!skipColoring)
-                edgeColoringSimple(shape, angleThreshold, coloringSeed);
+                edgeColoring(shape, angleThreshold, coloringSeed);
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             mtsdf = Bitmap<float, 4>(width, height);
