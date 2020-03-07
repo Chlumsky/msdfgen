@@ -220,9 +220,18 @@ bool readShapeDescription(const char *input, Shape &output, bool *colorsSpecifie
     }
 }
 
+static bool isColored(const Shape &shape) {
+    for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+        for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge)
+            if ((*edge)->color != WHITE)
+                return true;
+    return false;
+}
+
 bool writeShapeDescription(FILE *output, const Shape &shape) {
     if (!shape.validate())
         return false;
+    bool writeColors = isColored(shape);
     if (shape.inverseYAxis)
         fprintf(output, "@invert-y\n");
     for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
@@ -230,12 +239,14 @@ bool writeShapeDescription(FILE *output, const Shape &shape) {
         if (!contour->edges.empty()) {
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                 char colorCode = '\0';
-                switch ((*edge)->color) {
-                    case YELLOW: colorCode = 'y'; break;
-                    case MAGENTA: colorCode = 'm'; break;
-                    case CYAN: colorCode = 'c'; break;
-                    case WHITE: colorCode = 'w'; break;
-                    default:;
+                if (writeColors) {
+                    switch ((*edge)->color) {
+                        case YELLOW: colorCode = 'y'; break;
+                        case MAGENTA: colorCode = 'm'; break;
+                        case CYAN: colorCode = 'c'; break;
+                        case WHITE: colorCode = 'w'; break;
+                        default:;
+                    }
                 }
                 {
                     const LinearSegment *e = dynamic_cast<const LinearSegment *>(&**edge);

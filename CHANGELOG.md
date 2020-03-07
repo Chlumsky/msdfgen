@@ -1,4 +1,15 @@
 
+## Version 1.7 (2020-03-07)
+
+- Added `mtsdf` mode - a combination of `msdf` with `sdf` in the alpha channel
+- Distance fields can now be stored as uncompressed TIFF image files with floating point precision
+- Bitmap class refactor - template argument split into data type and number of channels, bitmap reference classes introduced
+- Added a secondary "ink trap" edge coloring heuristic, can be selected using `-coloringstrategy inktrap`
+- Added computation of estimated rendering error for a given SDF
+- Added computation of bounding box that includes sharp mitered corners
+- The API for bounds computation of the `Shape` class changed for clarity
+- Fixed several edge case bugs
+
 ## Version 1.6 (2019-04-08)
 
 - Core algorithm rewritten to split up advanced edge selection logic into modular template arguments.

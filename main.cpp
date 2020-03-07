@@ -1,8 +1,8 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.6 (2019-04-08) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.7 (2020-03-07) - standalone console program
  * --------------------------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2019
+ * A utility by Viktor Chlumsky, (c) 2014 - 2020
  *
  */
 
@@ -33,7 +33,7 @@ enum Format {
     TEXT_FLOAT,
     BINARY,
     BINARY_FLOAT,
-    BINART_FLOAT_BE
+    BINARY_FLOAT_BE
 };
 
 static bool is8bitFormat(Format format) {
@@ -228,14 +228,14 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
                 fclose(file);
                 return NULL;
             }
-            case BINARY: case BINARY_FLOAT: case BINART_FLOAT_BE: {
+            case BINARY: case BINARY_FLOAT: case BINARY_FLOAT_BE: {
                 FILE *file = fopen(filename, "wb");
                 if (!file) return "Failed to write output binary file.";
                 if (format == BINARY)
                     writeBinBitmap(file, bitmap.pixels, N*bitmap.width*bitmap.height);
                 else if (format == BINARY_FLOAT)
                     writeBinBitmapFloat(file, bitmap.pixels, N*bitmap.width*bitmap.height);
-                else if (format == BINART_FLOAT_BE)
+                else if (format == BINARY_FLOAT_BE)
                     writeBinBitmapFloatBE(file, bitmap.pixels, N*bitmap.width*bitmap.height);
                 fclose(file);
                 return NULL;
@@ -498,7 +498,7 @@ int main(int argc, const char * const *argv) {
             else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
             else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SET_FORMAT(BINARY, "bin");
             else if (!strcmp(argv[argPos+1], "binfloat") || !strcmp(argv[argPos+1], "binfloatle")) SET_FORMAT(BINARY_FLOAT, "bin");
-            else if (!strcmp(argv[argPos+1], "binfloatbe")) SET_FORMAT(BINART_FLOAT_BE, "bin");
+            else if (!strcmp(argv[argPos+1], "binfloatbe")) SET_FORMAT(BINARY_FLOAT_BE, "bin");
             else
                 puts("Unknown format specified.");
             argPos += 2;
@@ -657,8 +657,10 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
-        ARG_CASE("-help", 0)
-            ABORT(helpText);
+        ARG_CASE("-help", 0) {
+            puts(helpText);
+            return 0;
+        }
         printf("Unknown setting or insufficient parameters: %s\n", arg);
         suggestHelp = true;
         ++argPos;

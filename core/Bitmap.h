@@ -29,8 +29,13 @@ public:
     int height() const;
     T * operator()(int x, int y);
     const T * operator()(int x, int y) const;
+#ifdef MSDFGEN_USE_CPP11
     explicit operator T *();
     explicit operator const T *() const;
+#else
+    operator T *();
+    operator const T *() const;
+#endif
     operator BitmapRef<T, N>();
     operator BitmapConstRef<T, N>() const;
 
