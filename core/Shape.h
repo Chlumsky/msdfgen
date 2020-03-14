@@ -40,6 +40,8 @@ public:
     Bounds getBounds(double border = 0, double miterLimit = 0, int polarity = 0) const;
     /// Outputs the scanline that intersects the shape at y.
     void scanline(Scanline &line, double y) const;
+    /// Returns the total number of edge segments
+    int edgeCount() const;
 
 };
 

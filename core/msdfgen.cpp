@@ -44,11 +44,14 @@ public:
 
 template <class ContourCombiner>
 void generateDistanceField(const typename DistancePixelConversion<typename ContourCombiner::DistanceType>::BitmapRefType &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+    int edgeCount = shape.edgeCount();
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel
 #endif
     {
         ContourCombiner contourCombiner(shape);
+        std::vector<typename ContourCombiner::EdgeSelectorType::EdgeCache> shapeEdgeCache(edgeCount);
+        bool rightToLeft = false;
         Point2 p;
 #ifdef MSDFGEN_USE_OPENMP
         #pragma omp for
@@ -56,31 +59,32 @@ void generateDistanceField(const typename DistancePixelConversion<typename Conto
         for (int y = 0; y < output.height; ++y) {
             int row = shape.inverseYAxis ? output.height-y-1 : y;
             p.y = (y+.5)/scale.y-translate.y;
-            for (int x = 0; x < output.width; ++x) {
+            for (int col = 0; col < output.width; ++col) {
+                int x = rightToLeft ? output.width-col-1 : col;
                 p.x = (x+.5)/scale.x-translate.x;
 
                 contourCombiner.reset(p);
+                typename ContourCombiner::EdgeSelectorType::EdgeCache *edgeCache = &shapeEdgeCache[0];
 
                 for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
                     if (!contour->edges.empty()) {
-                        typename ContourCombiner::EdgeSelectorType edgeSelector(p);
+                        typename ContourCombiner::EdgeSelectorType &edgeSelector = contourCombiner.edgeSelector(int(contour-shape.contours.begin()));
 
                         const EdgeSegment *prevEdge = contour->edges.size() >= 2 ? *(contour->edges.end()-2) : *contour->edges.begin();
                         const EdgeSegment *curEdge = contour->edges.back();
                         for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                             const EdgeSegment *nextEdge = *edge;
-                            edgeSelector.addEdge(prevEdge, curEdge, nextEdge);
+                            edgeSelector.addEdge(*edgeCache++, prevEdge, curEdge, nextEdge);
                             prevEdge = curEdge;
                             curEdge = nextEdge;
                         }
-
-                        contourCombiner.setContourEdgeSelection(int(contour-shape.contours.begin()), edgeSelector);
                     }
                 }
 
                 typename ContourCombiner::DistanceType distance = contourCombiner.distance();
                 DistancePixelConversion<typename ContourCombiner::DistanceType>::convert(output(x, row), distance, range);
             }
+            rightToLeft = !rightToLeft;
         }
     }
 }

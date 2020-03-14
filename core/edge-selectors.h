@@ -20,8 +20,15 @@ class TrueDistanceSelector {
 public:
     typedef double DistanceType;
 
-    explicit TrueDistanceSelector(const Point2 &p = Point2());
-    void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
+    struct EdgeCache {
+        Point2 point;
+        double absDistance;
+
+        EdgeCache();
+    };
+
+    void reset(const Point2 &p);
+    void addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     void merge(const TrueDistanceSelector &other);
     DistanceType distance() const;
 
@@ -34,9 +41,20 @@ private:
 class PseudoDistanceSelectorBase {
 
 public:
-    static bool pointFacingEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param);
+    struct EdgeCache {
+        Point2 point;
+        double absDistance;
+        double edgeDomainDistance;
+        double pseudoDistance;
+
+        EdgeCache();
+    };
+
+    static double edgeDomainDistance(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param);
 
     PseudoDistanceSelectorBase();
+    void reset(double delta);
+    bool isEdgeRelevant(const EdgeCache &cache, const EdgeSegment *edge, const Point2 &p) const;
     void addEdgeTrueDistance(const EdgeSegment *edge, const SignedDistance &distance, double param);
     void addEdgePseudoDistance(const SignedDistance &distance);
     void merge(const PseudoDistanceSelectorBase &other);
@@ -58,8 +76,8 @@ class PseudoDistanceSelector : public PseudoDistanceSelectorBase {
 public:
     typedef double DistanceType;
 
-    explicit PseudoDistanceSelector(const Point2 &p = Point2());
-    void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
+    void reset(const Point2 &p);
+    void addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     DistanceType distance() const;
 
 private:
@@ -72,9 +90,10 @@ class MultiDistanceSelector {
 
 public:
     typedef MultiDistance DistanceType;
+    typedef PseudoDistanceSelectorBase::EdgeCache EdgeCache;
 
-    explicit MultiDistanceSelector(const Point2 &p = Point2());
-    void addEdge(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
+    void reset(const Point2 &p);
+    void addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
     void merge(const MultiDistanceSelector &other);
     DistanceType distance() const;
     SignedDistance trueDistance() const;
@@ -91,7 +110,6 @@ class MultiAndTrueDistanceSelector : public MultiDistanceSelector {
 public:
     typedef MultiAndTrueDistance DistanceType;
 
-    explicit MultiAndTrueDistanceSelector(const Point2 &p = Point2());
     DistanceType distance() const;
 
 };
