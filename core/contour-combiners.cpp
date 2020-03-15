@@ -57,7 +57,7 @@ OverlappingContourCombiner<EdgeSelector>::OverlappingContourCombiner(const Shape
 template <class EdgeSelector>
 void OverlappingContourCombiner<EdgeSelector>::reset(const Point2 &p) {
     this->p = p;
-    for (std::vector<EdgeSelector>::iterator contourEdgeSelector = edgeSelectors.begin(); contourEdgeSelector != edgeSelectors.end(); ++contourEdgeSelector)
+    for (typename std::vector<EdgeSelector>::iterator contourEdgeSelector = edgeSelectors.begin(); contourEdgeSelector != edgeSelectors.end(); ++contourEdgeSelector)
         contourEdgeSelector->reset(p);
 }
 
