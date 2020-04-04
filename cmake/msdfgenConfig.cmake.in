@@ -1,0 +1,12 @@
+include(CMakeFindDependencyMacro)
+
+find_dependency(Freetype REQUIRED)
+
+set(MSDFGEN_USE_OPENMP "@MSDFGEN_USE_OPENMP@")
+if(MSDFGEN_USE_OPENMP)
+	find_dependency(OpenMP REQUIRED COMPONENTS CXX)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/msdfgenTargets.cmake")
+
+unset(MSDFGEN_USE_OPENMP)
