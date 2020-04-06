@@ -48,13 +48,13 @@ folderize_sources(msdfgen-ext_SOURCES ${CMAKE_SOURCE_DIR})
 # Target configuration
 #----------------------------------------------------------------
 
-add_library(msdfgen ${msdfgen_SOURCES})
+add_library(msdfgen ${msdfgen_SOURCES} ${msdfgen_HEADERS} "./msdfgen.h")
 add_library(msdfgen::msdfgen ALIAS msdfgen)
 set_target_properties(msdfgen PROPERTIES PUBLIC_HEADER "${msdfgen_HEADERS}")
 target_compile_features(msdfgen PUBLIC cxx_std_11)
 target_include_directories(msdfgen INTERFACE
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
 )
 
 if(MSDFGEN_USE_OPENMP)
@@ -63,7 +63,7 @@ if(MSDFGEN_USE_OPENMP)
 	target_link_libraries(msdfgen PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-add_library(msdfgen-ext ${msdfgen-ext_SOURCES})
+add_library(msdfgen-ext ${msdfgen-ext_SOURCES} ${msdfgen-ext_PUBLIC_HEADERS} ${msdfgen-ext_PRIVATE_HEADERS} "./msdfgen-ext.h")
 add_library(msdfgen::msdfgen-ext ALIAS msdfgen-ext)
 set_target_properties(msdfgen-ext PROPERTIES
 	PUBLIC_HEADER "${msdfgen-ext_PUBLIC_HEADERS}"
@@ -72,8 +72,7 @@ target_link_libraries(msdfgen-ext PUBLIC msdfgen::msdfgen Freetype::Freetype)
 target_include_directories(msdfgen-ext
 PUBLIC
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ext>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
 	
 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -81,7 +80,7 @@ PRIVATE
 
 # Build the executable if requested
 if(MSDFGEN_BUILD_CMD_TOOLS)
-	add_executable(msdfgentools main.cpp msdfgen.h msdfgen-ext.h)
+	add_executable(msdfgentools main.cpp  )
 	set_target_properties(msdfgentools PROPERTIES OUTPUT_NAME msdfgen)
 	target_compile_definitions(msdfgentools PRIVATE MSDFGEN_STANDALONE)
 	target_link_libraries(msdfgentools PRIVATE msdfgen::msdfgen msdfgen::msdfgen-ext)
@@ -120,15 +119,17 @@ install(TARGETS msdfgen EXPORT msdfgenTargets
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	FRAMEWORK DESTINATION lib
-	PUBLIC_HEADER DESTINATION include/msdfgen
+	PUBLIC_HEADER DESTINATION include/msdfgen/core
 )
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
 
 install(TARGETS msdfgen-ext EXPORT msdfgenTargets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	FRAMEWORK DESTINATION lib
-	PUBLIC_HEADER DESTINATION include/msdfgen-ext
+	PUBLIC_HEADER DESTINATION include/msdfgen/ext
 )
 
 install(
