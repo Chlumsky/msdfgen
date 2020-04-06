@@ -80,7 +80,7 @@ PRIVATE
 
 # Build the executable if requested
 if(MSDFGEN_BUILD_CMD_TOOLS)
-	add_executable(msdfgentools main.cpp  )
+	add_executable(msdfgentools main.cpp)
 	set_target_properties(msdfgentools PROPERTIES OUTPUT_NAME msdfgen)
 	target_compile_definitions(msdfgentools PRIVATE MSDFGEN_STANDALONE)
 	target_link_libraries(msdfgentools PRIVATE msdfgen::msdfgen msdfgen::msdfgen-ext)
@@ -131,6 +131,10 @@ install(TARGETS msdfgen-ext EXPORT msdfgenTargets
 	FRAMEWORK DESTINATION lib
 	PUBLIC_HEADER DESTINATION include/msdfgen/ext
 )
+
+if(MSDFGEN_BUILD_CMD_TOOLS)
+	install(TARGETS msdfgentools EXPORT msdfgenTargets RUNTIME DESTINATION bin)
+endif()
 
 install(
 	FILES
