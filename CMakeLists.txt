@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.9)
 project(msdfgen VERSION 1.7.1 LANGUAGES CXX)
 option(MSDFGEN_BUILD_CMD_TOOLS "Build command line tools for msdfgen" ON)
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
+option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -51,11 +52,15 @@ folderize_sources(msdfgen-ext_SOURCES ${CMAKE_SOURCE_DIR})
 add_library(msdfgen ${msdfgen_SOURCES} ${msdfgen_HEADERS} "./msdfgen.h")
 add_library(msdfgen::msdfgen ALIAS msdfgen)
 set_target_properties(msdfgen PROPERTIES PUBLIC_HEADER "${msdfgen_HEADERS}")
-target_compile_features(msdfgen PUBLIC cxx_std_11)
 target_include_directories(msdfgen INTERFACE
 	$<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
 )
+
+if(MSDFGEN_USE_CPP11)
+	target_compile_features(msdfgen PUBLIC cxx_std_11)
+	target_compile_definitions(msdfgen PUBLIC MSDFGEN_USE_CPP11)
+endif()
 
 if(MSDFGEN_USE_OPENMP)
 	# Note: Clang doesn't support OpenMP by default...
@@ -78,6 +83,11 @@ PUBLIC
 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+if(MSDFGEN_USE_CPP11)
+	target_compile_features(msdfgen-ext PUBLIC cxx_std_11)
+	target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_CPP11)
+endif()
 
 # Build the executable if requested
 if(MSDFGEN_BUILD_CMD_TOOLS)
