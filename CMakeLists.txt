@@ -61,6 +61,7 @@ if(MSDFGEN_USE_OPENMP)
 	# Note: Clang doesn't support OpenMP by default...
 	find_package(OpenMP REQUIRED COMPONENTS CXX)
 	target_link_libraries(msdfgen PRIVATE OpenMP::OpenMP_CXX)
+	target_compile_definitions(msdfgen PRIVATE MSDFGEN_USE_OPENMP)
 endif()
 
 add_library(msdfgen-ext ${msdfgen-ext_SOURCES} ${msdfgen-ext_PUBLIC_HEADERS} ${msdfgen-ext_PRIVATE_HEADERS} "./msdfgen-ext.h")
