@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.10)
 
 project(msdfgen VERSION 1.7.1 LANGUAGES CXX)
-option(MSDFGEN_BUILD_CMD_TOOLS "Build command line tools for msdfgen" ON)
+option(MSDFGEN_BUILD_MSDFGEN_STANDALONE "Build the msdfgen standalone executable" ON)
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 
@@ -90,11 +90,11 @@ if(MSDFGEN_USE_CPP11)
 endif()
 
 # Build the executable if requested
-if(MSDFGEN_BUILD_CMD_TOOLS)
-	add_executable(msdfgentools main.cpp)
-	set_target_properties(msdfgentools PROPERTIES OUTPUT_NAME msdfgen)
-	target_compile_definitions(msdfgentools PRIVATE MSDFGEN_STANDALONE)
-	target_link_libraries(msdfgentools PRIVATE msdfgen::msdfgen msdfgen::msdfgen-ext)
+if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
+	add_executable(msdfgen-standalone main.cpp)
+	set_target_properties(msdfgen-standalone PROPERTIES OUTPUT_NAME msdfgen)
+	target_compile_definitions(msdfgen-standalone PRIVATE MSDFGEN_STANDALONE)
+	target_link_libraries(msdfgen-standalone PRIVATE msdfgen::msdfgen msdfgen::msdfgen-ext)
 endif()
 
 #----------------------------------------------------------------
@@ -143,8 +143,8 @@ install(TARGETS msdfgen-ext EXPORT msdfgenTargets
 	PUBLIC_HEADER DESTINATION include/msdfgen/ext
 )
 
-if(MSDFGEN_BUILD_CMD_TOOLS)
-	install(TARGETS msdfgentools EXPORT msdfgenTargets RUNTIME DESTINATION bin)
+if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
+	install(TARGETS msdfgen-standalone EXPORT msdfgenTargets RUNTIME DESTINATION bin)
 endif()
 
 install(
