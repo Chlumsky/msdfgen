@@ -4,6 +4,8 @@ project(msdfgen VERSION 1.7.1 LANGUAGES CXX)
 option(MSDFGEN_BUILD_MSDFGEN_STANDALONE "Build the msdfgen standalone executable" ON)
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
+option(FREETYPE_WITH_PNG "Link libpng and zlib because FreeType is configured to require it" OFF)
+option(FREETYPE_WITH_HARFBUZZ "Link HarfBuzz because FreeType is configured to require it" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -92,9 +94,20 @@ endif()
 # Build the executable if requested
 if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
 	add_executable(msdfgen-standalone main.cpp)
-	set_target_properties(msdfgen-standalone PROPERTIES OUTPUT_NAME msdfgen)
+	set_target_properties(msdfgen-standalone PROPERTIES ARCHIVE_OUTPUT_DIRECTORY archive OUTPUT_NAME msdfgen)
 	target_compile_definitions(msdfgen-standalone PRIVATE MSDFGEN_STANDALONE)
 	target_link_libraries(msdfgen-standalone PRIVATE msdfgen::msdfgen msdfgen::msdfgen-ext)
+
+	if(FREETYPE_WITH_PNG)
+		find_package(ZLIB REQUIRED)
+		find_package(PNG REQUIRED)
+		target_link_libraries(msdfgen-standalone PRIVATE ZLIB::ZLIB PNG::PNG)
+	endif()
+	if(FREETYPE_WITH_HARFBUZZ)
+		# No FindHarfBuzz.cmake available so falling back to CMAKE_LIBRARY_PATH
+		find_library(FREETYPE_HARFBUZZ_LIB "harfbuzz")
+		target_link_libraries(msdfgen-standalone PRIVATE "${FREETYPE_HARFBUZZ_LIB}")
+	endif()
 endif()
 
 #----------------------------------------------------------------
