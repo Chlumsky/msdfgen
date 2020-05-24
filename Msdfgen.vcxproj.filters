@@ -105,6 +105,12 @@
     <ClInclude Include="core\estimate-sdf-error.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="core\interpolation-error-correction.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\bitmap-interpolation.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -177,6 +183,9 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="core\estimate-sdf-error.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\interpolation-error-correction.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>

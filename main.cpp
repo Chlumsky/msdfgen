@@ -668,6 +668,8 @@ int main(int argc, const char * const *argv) {
     if (suggestHelp)
         printf("Use -help for more information.\n");
 
+    edgeThreshold = 0;
+
     // Load input
     Vector2 svgDims;
     double glyphAdvance = 0;
@@ -878,11 +880,13 @@ int main(int argc, const char * const *argv) {
                 distanceSignCorrection(msdf, shape, scale, translate, fillRule);
                 if (edgeThreshold > 0)
                     msdfErrorCorrection(msdf, edgeThreshold/(scale*range));
+                msdfInterpolationErrorCorrection(msdf, shape, range, scale, translate, overlapSupport);
                 break;
             case MULTI_AND_TRUE:
                 distanceSignCorrection(mtsdf, shape, scale, translate, fillRule);
                 if (edgeThreshold > 0)
                     msdfErrorCorrection(mtsdf, edgeThreshold/(scale*range));
+                msdfInterpolationErrorCorrection(mtsdf, shape, range, scale, translate, overlapSupport);
                 break;
             default:;
         }
