@@ -10,9 +10,9 @@ to reproduce sharp corners almost perfectly by utilizing all three color channel
 
 The following comparison demonstrates the improvement in image quality.
 
-![demo-msdf16](https://cloud.githubusercontent.com/assets/18639794/14770355/14cda9f8-0a70-11e6-8346-2bd14b5b832f.png)
-![demo-sdf16](https://cloud.githubusercontent.com/assets/18639794/14770360/20c51156-0a70-11e6-8f03-ed7632d07997.png)
-![demo-sdf32](https://cloud.githubusercontent.com/assets/18639794/14770361/251a4406-0a70-11e6-95a7-e30e235ac729.png)
+![demo-msdf16](https://user-images.githubusercontent.com/18639794/86908136-5fdd4780-c116-11ea-96c5-4f58a42043a4.png)
+![demo-sdf16](https://user-images.githubusercontent.com/18639794/86908146-6370ce80-c116-11ea-87ee-95bfb699665c.png)
+![demo-sdf32](https://user-images.githubusercontent.com/18639794/86908155-65d32880-c116-11ea-9583-1b45f806bbd9.png)
 
 - To learn more about this method, you can read my [Master's thesis](https://github.com/Chlumsky/msdfgen/files/3050967/thesis.pdf).
 - Check what's new in the [changelog](CHANGELOG.md).
