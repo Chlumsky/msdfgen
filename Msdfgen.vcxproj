@@ -296,6 +296,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="core\arithmetics.hpp" />
+    <ClInclude Include="core\bitmap-interpolation.hpp" />
     <ClInclude Include="core\Bitmap.h" />
     <ClInclude Include="core\Bitmap.hpp" />
     <ClInclude Include="core\BitmapRef.hpp" />
@@ -307,7 +308,9 @@
     <ClInclude Include="core\EdgeColor.h" />
     <ClInclude Include="core\EdgeHolder.h" />
     <ClInclude Include="core\equation-solver.h" />
-    <ClInclude Include="core\estimate-sdf-error.h" />
+    <ClInclude Include="core\msdf-error-correction.h" />
+    <ClInclude Include="core\sdf-error-estimation.h" />
+    <ClInclude Include="core\msdf-edge-artifact-patcher.h" />
     <ClInclude Include="core\pixel-conversion.hpp" />
     <ClInclude Include="core\rasterization.h" />
     <ClInclude Include="core\render-sdf.h" />
@@ -316,6 +319,8 @@
     <ClInclude Include="core\Scanline.h" />
     <ClInclude Include="core\shape-description.h" />
     <ClInclude Include="core\Shape.h" />
+    <ClInclude Include="core\ShapeDistanceFinder.h" />
+    <ClInclude Include="core\ShapeDistanceFinder.hpp" />
     <ClInclude Include="core\SignedDistance.h" />
     <ClInclude Include="core\Vector2.h" />
     <ClInclude Include="ext\import-font.h" />
@@ -333,7 +338,9 @@
     <ClCompile Include="core\edge-selectors.cpp" />
     <ClCompile Include="core\EdgeHolder.cpp" />
     <ClCompile Include="core\equation-solver.cpp" />
-    <ClCompile Include="core\estimate-sdf-error.cpp" />
+    <ClCompile Include="core\msdf-error-correction.cpp" />
+    <ClCompile Include="core\sdf-error-estimation.cpp" />
+    <ClCompile Include="core\msdf-edge-artifact-patcher.cpp" />
     <ClCompile Include="core\rasterization.cpp" />
     <ClCompile Include="core\render-sdf.cpp" />
     <ClCompile Include="core\save-bmp.cpp" />

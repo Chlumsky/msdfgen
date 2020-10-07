@@ -1,5 +1,5 @@
 
-#include "estimate-sdf-error.h"
+#include "sdf-error-estimation.h"
 
 #include <cmath>
 #include "arithmetics.hpp"

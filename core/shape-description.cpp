@@ -1,11 +1,8 @@
 
+#define _CRT_SECURE_NO_WARNINGS
 #include "shape-description.h"
 
 namespace msdfgen {
-
-#ifdef _WIN32
-    #pragma warning(disable:4996)
-#endif
 
 int readCharF(FILE *input) {
     int c = '\0';

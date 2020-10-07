@@ -65,8 +65,8 @@ Scanline::Scanline() : lastIndex(0) { }
 
 void Scanline::preprocess() {
     lastIndex = 0;
-    if (!this->intersections.empty()) {
-        qsort(&this->intersections[0], this->intersections.size(), sizeof(Intersection), compareIntersections);
+    if (!intersections.empty()) {
+        qsort(&intersections[0], intersections.size(), sizeof(Intersection), compareIntersections);
         int totalDirection = 0;
         for (std::vector<Intersection>::iterator intersection = intersections.begin(); intersection != intersections.end(); ++intersection) {
             totalDirection += intersection->direction;

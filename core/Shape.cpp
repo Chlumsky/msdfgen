@@ -94,7 +94,7 @@ void Shape::scanline(Scanline &line, double y) const {
 int Shape::edgeCount() const {
     int total = 0;
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
-        total += contour->edges.size();
+        total += (int) contour->edges.size();
     return total;
 }
 

@@ -102,7 +102,22 @@
     <ClInclude Include="core\save-tiff.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="core\estimate-sdf-error.h">
+    <ClInclude Include="core\bitmap-interpolation.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ShapeDistanceFinder.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ShapeDistanceFinder.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\sdf-error-estimation.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\msdf-error-correction.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\msdf-edge-artifact-patcher.h">
       <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -176,7 +191,13 @@
     <ClCompile Include="core\save-tiff.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="core\estimate-sdf-error.cpp">
+    <ClCompile Include="core\sdf-error-estimation.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\msdf-error-correction.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\msdf-edge-artifact-patcher.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>

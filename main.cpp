@@ -9,6 +9,7 @@
 #ifdef MSDFGEN_STANDALONE
 
 #define _USE_MATH_DEFINES
+#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 #include <cmath>
 #include <cstring>
@@ -16,11 +17,10 @@
 #include "msdfgen.h"
 #include "msdfgen-ext.h"
 
-#ifdef _WIN32
-    #pragma warning(disable:4996)
-#endif
+#include "core/ShapeDistanceFinder.h"
 
 #define SDF_ERROR_ESTIMATE_PRECISION 19
+#define DEFAULT_ANGLE_THRESHOLD 3.
 
 using namespace msdfgen;
 
@@ -387,8 +387,8 @@ int main(int argc, const char * const *argv) {
     Vector2 translate;
     Vector2 scale = 1;
     bool scaleSpecified = false;
-    double angleThreshold = 3;
-    double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
+    double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
+    double errorCorrectionThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
     bool defEdgeAssignment = true;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -570,10 +570,10 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-errorcorrection", 1) {
-            double et;
-            if (!parseDouble(et, argv[argPos+1]) || et < 0)
-                ABORT("Invalid error correction threshold. Use -errorcorrection <threshold> with a real number larger or equal to 1.");
-            edgeThreshold = et;
+            double ect;
+            if (!parseDouble(ect, argv[argPos+1]) && (ect >= 1 || ect == 0))
+                ABORT("Invalid error correction threshold. Use -errorcorrection <threshold> with a real number greater than or equal to 1 or 0 to disable.");
+            errorCorrectionThreshold = ect;
             argPos += 2;
             continue;
         }
@@ -820,9 +820,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<float, 3>(width, height);
             if (legacyMode)
-                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold);
+                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
             else
-                generateMSDF(msdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold, overlapSupport);
+                generateMSDF(msdf, shape, range, scale, translate, errorCorrectionThreshold, overlapSupport);
             break;
         }
         case MULTI_AND_TRUE: {
@@ -832,9 +832,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             mtsdf = Bitmap<float, 4>(width, height);
             if (legacyMode)
-                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold);
+                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
             else
-                generateMTSDF(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : edgeThreshold, overlapSupport);
+                generateMTSDF(mtsdf, shape, range, scale, translate, errorCorrectionThreshold, overlapSupport);
             break;
         }
         default:;
@@ -843,15 +843,8 @@ int main(int argc, const char * const *argv) {
     if (orientation == GUESS) {
         // Get sign of signed distance outside bounds
         Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
-        double dummy;
-        SignedDistance minDistance;
-        for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
-            for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                SignedDistance distance = (*edge)->signedDistance(p, dummy);
-                if (distance < minDistance)
-                    minDistance = distance;
-            }
-        orientation = minDistance.distance <= 0 ? KEEP : REVERSE;
+        double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
+        orientation = distance <= 0 ? KEEP : REVERSE;
     }
     if (orientation == REVERSE) {
         switch (mode) {
@@ -876,13 +869,13 @@ int main(int argc, const char * const *argv) {
                 break;
             case MULTI:
                 distanceSignCorrection(msdf, shape, scale, translate, fillRule);
-                if (edgeThreshold > 0)
-                    msdfErrorCorrection(msdf, edgeThreshold/(scale*range));
+                if (errorCorrectionThreshold > 0)
+                    msdfErrorCorrection(msdf, errorCorrectionThreshold/(scale*range));
                 break;
             case MULTI_AND_TRUE:
                 distanceSignCorrection(mtsdf, shape, scale, translate, fillRule);
-                if (edgeThreshold > 0)
-                    msdfErrorCorrection(mtsdf, edgeThreshold/(scale*range));
+                if (errorCorrectionThreshold > 0)
+                    msdfErrorCorrection(mtsdf, errorCorrectionThreshold/(scale*range));
                 break;
             default:;
         }

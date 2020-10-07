@@ -1,14 +1,11 @@
 
 #define _USE_MATH_DEFINES
+#define _CRT_SECURE_NO_WARNINGS
 #include "import-svg.h"
 
 #include <cstdio>
 #include <tinyxml2.h>
 #include "../core/arithmetics.hpp"
-
-#ifdef _WIN32
-    #pragma warning(disable:4996)
-#endif
 
 #define ARC_SEGMENTS_PER_PI 2
 #define ENDPOINT_SNAP_RANGE_PROPORTION (1/16384.)
