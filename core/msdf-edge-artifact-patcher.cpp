@@ -1,6 +1,7 @@
 
 #include "msdf-edge-artifact-patcher.h"
 
+#include <cstring>
 #include <vector>
 #include <utility>
 #include "arithmetics.hpp"
@@ -131,7 +132,7 @@ static void msdfPatchEdgeArtifactsInner(const BitmapRef<float, N> &sdf, const Sh
         // Store hotspot's closest texel's current color
         float *subject = sdf((int) hotspot->x, (int) hotspot->y);
         float texel[N];
-        memcpy(texel, subject, N*sizeof(float));
+        std::memcpy(texel, subject, N*sizeof(float));
         // Sample signed distance at hotspot
         float msd[N];
         interpolate(msd, BitmapConstRef<float, N>(sdf), *hotspot);
@@ -143,7 +144,7 @@ static void msdfPatchEdgeArtifactsInner(const BitmapRef<float, N> &sdf, const Sh
         interpolate(msd, BitmapConstRef<float, N>(sdf), *hotspot);
         float newSsd = median(msd[0], msd[1], msd[2]);
         // Revert modified texel
-        memcpy(subject, texel, N*sizeof(float));
+        std::memcpy(subject, texel, N*sizeof(float));
 
         // Consider hotspot an artifact if flattening improved the sample
         if (fabsf(newSsd-sd) < fabsf(oldSsd-sd))
