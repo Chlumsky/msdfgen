@@ -389,7 +389,6 @@ int main(int argc, const char * const *argv) {
     bool scaleSpecified = false;
     double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
     double errorCorrectionThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
-    bool defEdgeAssignment = true;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
     bool printMetrics = false;
@@ -673,7 +672,7 @@ int main(int argc, const char * const *argv) {
     double glyphAdvance = 0;
     if (!inputType || !input)
         ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
-    if (mode == MULTI_AND_TRUE && (format == BMP || format == AUTO && output && cmpExtension(output, ".bmp")))
+    if (mode == MULTI_AND_TRUE && (format == BMP || (format == AUTO && output && cmpExtension(output, ".bmp"))))
         ABORT("Incompatible image format. A BMP file cannot contain alpha channel, which is required in mtsdf mode.");
     Shape shape;
     switch (inputType) {

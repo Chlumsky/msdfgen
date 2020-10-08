@@ -1,6 +1,7 @@
 
 #include "msdf-edge-artifact-patcher.h"
 
+#include <cstring>
 #include <vector>
 #include <utility>
 #include "arithmetics.hpp"
