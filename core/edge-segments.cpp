@@ -136,7 +136,7 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     for (int i = 0; i < solutions; ++i) {
         if (t[i] > 0 && t[i] < 1) {
             Point2 qe = p[0]+2*t[i]*ab+t[i]*t[i]*br-origin;
-            double distance = nonZeroSign(crossProduct(p[2]-p[0], qe))*qe.length();
+            double distance = nonZeroSign(crossProduct(direction(t[i]), qe))*qe.length();
             if (fabs(distance) <= fabs(minDistance)) {
                 minDistance = distance;
                 param = t[i];
