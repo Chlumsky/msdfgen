@@ -157,7 +157,7 @@ static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows)
 static bool writeTextBitmapFloat(FILE *file, const float *values, int cols, int rows) {
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < cols; ++col) {
-            fprintf(file, col ? " %g" : "%g", *values++);
+            fprintf(file, col ? " %.9g" : "%.9g", *values++);
         }
         fprintf(file, "\n");
     }
@@ -203,7 +203,7 @@ static bool cmpExtension(const char *path, const char *ext) {
 }
 
 template <int N>
-static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format format) {
+static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
     if (filename) {
         if (format == AUTO) {
             if (cmpExtension(filename, ".png")) format = PNG;
@@ -291,6 +291,8 @@ static const char *helpText =
         "\tAutomatically scales (unless specified) and translates the shape to fit.\n"
     "  -coloringstrategy <simple / inktrap>\n"
         "\tSelects the strategy of the edge coloring heuristic.\n"
+    "  -distanceshift <shift>\n"
+        "\tShifts all normalized distances in the output distance field by this value.\n"
     "  -edgecolors <sequence>\n"
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
     "  -errorcorrection <threshold>\n"
@@ -389,6 +391,7 @@ int main(int argc, const char * const *argv) {
     bool scaleSpecified = false;
     double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
     double errorCorrectionThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
+    float outputDistanceShift = 0.f;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
     bool printMetrics = false;
@@ -597,6 +600,14 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-distanceshift", 1) {
+            double ds;
+            if (!parseDouble(ds, argv[argPos+1]))
+                ABORT("Invalid distance shift. Use -distanceshift <shift> with a real value.");
+            outputDistanceShift = (float) ds;
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-exportshape", 1) {
             shapeExport = argv[argPos+1];
             argPos += 2;
@@ -738,10 +749,13 @@ int main(int argc, const char * const *argv) {
     if (autoFrame) {
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         Vector2 frame(width, height);
-        if (rangeMode == RANGE_UNIT)
-            l -= .5*range, b -= .5*range, r += .5*range, t += .5*range;
-        else if (!scaleSpecified)
-            frame -= pxRange;
+        double m = .5+(double) outputDistanceShift;
+        if (!scaleSpecified) {
+            if (rangeMode == RANGE_UNIT)
+                l -= m*range, b -= m*range, r += m*range, t += m*range;
+            else
+                frame -= 2*m*pxRange;
+        }
         if (l >= r || b >= t)
             l = 0, b = 0, r = 1, t = 1;
         if (frame.x <= 0 || frame.y <= 0)
@@ -759,7 +773,7 @@ int main(int argc, const char * const *argv) {
             }
         }
         if (rangeMode == RANGE_PX && !scaleSpecified)
-            translate += .5*pxRange/scale;
+            translate += m*pxRange/scale;
     }
 
     if (rangeMode == RANGE_PX)
@@ -879,6 +893,27 @@ int main(int argc, const char * const *argv) {
             default:;
         }
     }
+    if (outputDistanceShift) {
+        float *pixel = NULL, *pixelsEnd = NULL;
+        switch (mode) {
+            case SINGLE:
+            case PSEUDO:
+                pixel = (float *) sdf;
+                pixelsEnd = pixel+1*sdf.width()*sdf.height();
+                break;
+            case MULTI:
+                pixel = (float *) msdf;
+                pixelsEnd = pixel+3*msdf.width()*msdf.height();
+                break;
+            case MULTI_AND_TRUE:
+                pixel = (float *) mtsdf;
+                pixelsEnd = pixel+4*mtsdf.width()*mtsdf.height();
+                break;
+            default:;
+        }
+        while (pixel < pixelsEnd)
+            *pixel++ += outputDistanceShift;
+    }
 
     // Save output
     if (shapeExport) {
@@ -904,13 +939,13 @@ int main(int argc, const char * const *argv) {
             }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
-                renderSDF(render, sdf, avgScale*range);
+                renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRenderMulti))
                     puts("Failed to write test render file.");
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, sdf, avgScale*range);
+                renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRender))
                     puts("Failed to write test render file.");
             }
@@ -927,13 +962,13 @@ int main(int argc, const char * const *argv) {
             }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
-                renderSDF(render, msdf, avgScale*range);
+                renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRenderMulti))
                     puts("Failed to write test render file.");
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, msdf, avgScale*range);
+                renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRender))
                     ABORT("Failed to write test render file.");
             }
@@ -950,13 +985,13 @@ int main(int argc, const char * const *argv) {
             }
             if (testRenderMulti) {
                 Bitmap<float, 4> render(testWidthM, testHeightM);
-                renderSDF(render, mtsdf, avgScale*range);
+                renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRenderMulti))
                     puts("Failed to write test render file.");
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, mtsdf, avgScale*range);
+                renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
                 if (!savePng(render, testRender))
                     ABORT("Failed to write test render file.");
             }
