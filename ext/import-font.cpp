@@ -26,14 +26,19 @@ class FreetypeHandle {
 };
 
 class FontHandle {
+    friend FontHandle * adoptFreetypeFont(FT_Face ftFace);
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
     friend void destroyFont(FontHandle *font);
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
+    friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
+    friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance);
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
+    friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
 
     FT_Face face;
+    bool ownership;
 
 };
 
@@ -79,6 +84,16 @@ static int ftCubicTo(const FT_Vector *control1, const FT_Vector *control2, const
     return 0;
 }
 
+GlyphIndex::GlyphIndex(unsigned index) : index(index) { }
+
+unsigned GlyphIndex::getIndex() const {
+    return index;
+}
+
+bool GlyphIndex::operator!() const {
+    return index == 0;
+}
+
 FreetypeHandle * initializeFreetype() {
     FreetypeHandle *handle = new FreetypeHandle;
     FT_Error error = FT_Init_FreeType(&handle->library);
@@ -94,6 +109,13 @@ void deinitializeFreetype(FreetypeHandle *library) {
     delete library;
 }
 
+FontHandle * adoptFreetypeFont(FT_Face ftFace) {
+    FontHandle *handle = new FontHandle;
+    handle->face = ftFace;
+    handle->ownership = false;
+    return handle;
+}
+
 FontHandle * loadFont(FreetypeHandle *library, const char *filename) {
     if (!library)
         return NULL;
@@ -103,11 +125,13 @@ FontHandle * loadFont(FreetypeHandle *library, const char *filename) {
         delete handle;
         return NULL;
     }
+    handle->ownership = true;
     return handle;
 }
 
 void destroyFont(FontHandle *font) {
-    FT_Done_Face(font->face);
+    if (font->ownership)
+        FT_Done_Face(font->face);
     delete font;
 }
 
@@ -133,10 +157,15 @@ bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle
     return true;
 }
 
-bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
+bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) {
+    glyphIndex = GlyphIndex(FT_Get_Char_Index(font->face, unicode));
+    return glyphIndex.getIndex() != 0;
+}
+
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance) {
     if (!font)
         return false;
-    FT_Error error = FT_Load_Char(font->face, unicode, FT_LOAD_NO_SCALE);
+    FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), FT_LOAD_NO_SCALE);
     if (error)
         return false;
     output.contours.clear();
@@ -161,14 +190,22 @@ bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advan
     return true;
 }
 
-bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
+    return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), advance);
+}
+
+bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2) {
     FT_Vector kerning;
-    if (FT_Get_Kerning(font->face, FT_Get_Char_Index(font->face, unicode1), FT_Get_Char_Index(font->face, unicode2), FT_KERNING_UNSCALED, &kerning)) {
+    if (FT_Get_Kerning(font->face, glyphIndex1.getIndex(), glyphIndex2.getIndex(), FT_KERNING_UNSCALED, &kerning)) {
         output = 0;
         return false;
     }
     output = F26DOT6_TO_DOUBLE(kerning.x);
     return true;
+}
+
+bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
+    return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode1)), GlyphIndex(FT_Get_Char_Index(font->face, unicode2)));
 }
 
 }

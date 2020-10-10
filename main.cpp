@@ -45,37 +45,36 @@ static char toupper(char c) {
 }
 
 static bool parseUnsigned(unsigned &value, const char *arg) {
-    static char c;
+    char c;
     return sscanf(arg, "%u%c", &value, &c) == 1;
 }
 
+static bool parseUnsignedDecOrHex(unsigned &value, const char *arg) {
+    if (arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) {
+        char c;
+        return sscanf(arg+2, "%x%c", &value, &c) == 1;
+    }
+    return parseUnsigned(value, arg);
+}
+
 static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
-    static char c;
+    char c;
     return sscanf(arg, "%llu%c", &value, &c) == 1;
 }
 
-static bool parseUnsignedHex(unsigned &value, const char *arg) {
-    static char c;
-    return sscanf(arg, "%x%c", &value, &c) == 1;
-}
-
 static bool parseDouble(double &value, const char *arg) {
-    static char c;
+    char c;
     return sscanf(arg, "%lf%c", &value, &c) == 1;
 }
 
 static bool parseUnicode(unicode_t &unicode, const char *arg) {
     unsigned uuc;
-    if (parseUnsigned(uuc, arg)) {
-        unicode = uuc;
-        return true;
-    }
-    if (arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X') && parseUnsignedHex(uuc, arg+2)) {
+    if (parseUnsignedDecOrHex(uuc, arg)) {
         unicode = uuc;
         return true;
     }
     if (arg[0] == '\'' && arg[1] && arg[2] == '\'' && !arg[3]) {
-        unicode = arg[1];
+        unicode = (unicode_t) (unsigned char) arg[1];
         return true;
     }
     return false;
@@ -178,7 +177,7 @@ static bool writeBinBitmapFloatBE(FILE *file, const float *values, int count)
 static bool writeBinBitmapFloat(FILE *file, const float *values, int count)
 #endif
 {
-    return fwrite(values, sizeof(float), count, file) == count;
+    return (int) fwrite(values, sizeof(float), count, file) == count;
 }
 
 #ifdef __BIG_ENDIAN__
@@ -274,7 +273,7 @@ static const char *helpText =
     "  -defineshape <definition>\n"
         "\tDefines input shape using the ad-hoc text definition.\n"
     "  -font <filename.ttf> <character code>\n"
-        "\tLoads a single glyph from the specified font file. Format of character code is '?', 63 or 0x3F.\n"
+        "\tLoads a single glyph from the specified font file. Format of character code is '?', 63, 0x3F (Unicode value), or g34 (glyph index).\n"
     "  -shapedesc <filename.txt>\n"
         "\tLoads text shape description from a file.\n"
     "  -stdin\n"
@@ -373,6 +372,7 @@ int main(int argc, const char * const *argv) {
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
+    GlyphIndex glyphIndex;
     unicode_t unicode = 0;
     int svgPathIndex = 0;
 
@@ -428,7 +428,18 @@ int main(int argc, const char * const *argv) {
         ARG_CASE("-font", 2) {
             inputType = FONT;
             input = argv[argPos+1];
-            parseUnicode(unicode, argv[argPos+2]);
+            const char *charArg = argv[argPos+2];
+            unsigned gi;
+            switch (charArg[0]) {
+                case 'G': case 'g':
+                    if (parseUnsignedDecOrHex(gi, charArg+1))
+                        glyphIndex = GlyphIndex(gi);
+                    break;
+                case 'U': case 'u':
+                    ++charArg;
+                default:
+                    parseUnicode(unicode, charArg);
+            }
             argPos += 3;
             continue;
         }
@@ -693,8 +704,8 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case FONT: {
-            if (!unicode)
-                ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a number (65, 0x41), or a character in apostrophes ('A').");
+            if (!glyphIndex && !unicode)
+                ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a Unicode index (65, 0x41), a character in apostrophes ('A'), or a glyph index prefixed by g (g36, g0x24).");
             FreetypeHandle *ft = initializeFreetype();
             if (!ft) return -1;
             FontHandle *font = loadFont(ft, input);
@@ -702,7 +713,9 @@ int main(int argc, const char * const *argv) {
                 deinitializeFreetype(ft);
                 ABORT("Failed to load font file.");
             }
-            if (!loadGlyph(shape, font, unicode, &glyphAdvance)) {
+            if (unicode)
+                getGlyphIndex(glyphIndex, font, unicode);
+            if (!loadGlyph(shape, font, glyphIndex, &glyphAdvance)) {
                 destroyFont(font);
                 deinitializeFreetype(ft);
                 ABORT("Failed to load glyph from font file.");

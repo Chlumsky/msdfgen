@@ -200,7 +200,7 @@ bool readShapeDescription(const char *input, Shape &output, bool *colorsSpecifie
     else {
         int c = readCharS(&input);
         if (c == '@') {
-            for (int i = 0; i < sizeof("invert-y")-1; ++i)
+            for (int i = 0; i < (int) sizeof("invert-y")-1; ++i)
                 if (input[i] != "invert-y"[i])
                     return false;
             output.inverseYAxis = true;

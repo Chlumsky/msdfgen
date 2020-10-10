@@ -34,7 +34,7 @@ static bool writeValue(FILE *file, T value) {
 }
 
 static bool writeBmpHeader(FILE *file, int width, int height, int &paddedWidth) {
-    paddedWidth = 3*width+3&~3;
+    paddedWidth = (3*width+3)&~3;
     const uint32_t bitmapStart = 54;
     const uint32_t bitmapSize = paddedWidth*height;
     const uint32_t fileSize = bitmapStart+bitmapSize;
