@@ -1,6 +1,8 @@
 
 #include "Shape.h"
 
+#include "arithmetics.hpp"
+
 namespace msdfgen {
 
 Shape::Shape() : inverseYAxis(false) { }
@@ -37,7 +39,7 @@ bool Shape::validate() const {
 }
 
 void Shape::normalize() {
-    for (std::vector<Contour>::iterator contour = contours.begin(); contour != contours.end(); ++contour)
+    for (std::vector<Contour>::iterator contour = contours.begin(); contour != contours.end(); ++contour) {
         if (contour->edges.size() == 1) {
             EdgeSegment *parts[3] = { };
             contour->edges[0]->splitInThirds(parts[0], parts[1], parts[2]);
@@ -45,7 +47,24 @@ void Shape::normalize() {
             contour->edges.push_back(EdgeHolder(parts[0]));
             contour->edges.push_back(EdgeHolder(parts[1]));
             contour->edges.push_back(EdgeHolder(parts[2]));
+        } else {
+            EdgeHolder *prevEdge = &contour->edges.back();
+            for (std::vector<EdgeHolder>::iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
+                Vector2 prevDir = (*prevEdge)->direction(1).normalize();
+                Vector2 curDir = (*edge)->direction(0).normalize();
+                if (dotProduct(prevDir, curDir) < MSDFGEN_CORNER_DOT_EPSILON-1) {
+                    Vector2 prevTendency = (*prevEdge)->directionTendency(1, 1);
+                    Vector2 curTendency = (*edge)->directionTendency(0, -1);
+                    int winding = nonZeroSign(crossProduct(prevTendency, curTendency));
+                    EdgeSegment *newEdge = (*prevEdge)->makeDivergent(0, winding);
+                    if (newEdge) *prevEdge = newEdge;
+                    newEdge = (*edge)->makeDivergent(winding, 0);
+                    if (newEdge) *edge = newEdge;
+                }
+                prevEdge = &*edge;
+            }
         }
+    }
 }
 
 void Shape::bound(double &l, double &b, double &r, double &t) const {

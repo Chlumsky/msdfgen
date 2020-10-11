@@ -6,6 +6,13 @@
 
 namespace msdfgen {
 
+Vector2 EdgeSegment::directionTendency(double param, int polarity) const {
+    Vector2 dir = direction(param);
+    Vector2 normal = dir.getOrthonormal();
+    double h = dotProduct(directionChange(param)-dir, normal);
+    return dir+polarity*sign(h)*sqrt(fabs(h))*normal;
+}
+
 void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const {
     if (param < 0) {
         Vector2 dir = direction(0).normalize();
@@ -95,6 +102,18 @@ Vector2 CubicSegment::direction(double param) const {
         if (param == 1) return p[3]-p[1];
     }
     return tangent;
+}
+
+Vector2 LinearSegment::directionChange(double param) const {
+    return Vector2();
+}
+
+Vector2 QuadraticSegment::directionChange(double param) const {
+    return (p[2]-p[1])-(p[1]-p[0]);
+}
+
+Vector2 CubicSegment::directionChange(double param) const {
+    return mix((p[2]-p[1])-(p[1]-p[0]), (p[3]-p[2])-(p[2]-p[1]), param);
 }
 
 SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const {
@@ -425,5 +444,81 @@ void CubicSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeS
         point(2/3.), color);
     part3 = new CubicSegment(point(2/3.), mix(mix(p[1], p[2], 2/3.), mix(p[2], p[3], 2/3.), 2/3.), p[2] == p[3] ? p[3] : mix(p[2], p[3], 2/3.), p[3], color);
 }
+
+EdgeSegment * LinearSegment::makeDivergent(int dStart, int dEnd) {
+    return new DivergentEdgeSegment<LinearSegment>(*this, dStart, dEnd);
+}
+
+EdgeSegment * QuadraticSegment::makeDivergent(int dStart, int dEnd) {
+    return new DivergentEdgeSegment<QuadraticSegment>(*this, dStart, dEnd);
+}
+
+EdgeSegment * CubicSegment::makeDivergent(int dStart, int dEnd) {
+    return new DivergentEdgeSegment<CubicSegment>(*this, dStart, dEnd);
+}
+
+template <class BaseSegment>
+DivergentEdgeSegment<BaseSegment>::DivergentEdgeSegment(const BaseSegment &base, int dStart, int dEnd) : BaseSegment(base), dStart(dStart), dEnd(dEnd) { }
+
+template <class BaseSegment>
+SignedDistance DivergentEdgeSegment<BaseSegment>::signedDistance(Point2 origin, double &param) const {
+    SignedDistance d = BaseSegment::signedDistance(origin, param);
+    if (
+        (dStart && param < 0 && dStart*crossProduct(origin-BaseSegment::point(0), BaseSegment::direction(0)) > 0) ||
+        (dEnd && param > 1 && dEnd*crossProduct(origin-BaseSegment::point(1), BaseSegment::direction(1)) > 0)
+    )
+        d.dot = sqrt(d.dot);
+    return d;
+}
+
+template <class BaseSegment>
+void DivergentEdgeSegment<BaseSegment>::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const {
+    #define P_LEN (sizeof(BaseSegment::p)/sizeof(*BaseSegment::p))
+    Vector2 qa, ab, ac, br;
+    if (P_LEN >= 3 && dStart && param < 0) {
+        ab = BaseSegment::p[2]-BaseSegment::p[1];
+        ac = BaseSegment::p[2]-BaseSegment::p[0];
+        br = BaseSegment::p[1]-BaseSegment::p[0]-ab;
+        qa = BaseSegment::p[0]-ac-origin;
+    } else if (P_LEN >= 3 && dEnd && param > 1) {
+        qa = BaseSegment::p[P_LEN-1]-origin;
+        ab = BaseSegment::p[P_LEN-1]-BaseSegment::p[P_LEN-2];
+        ac = BaseSegment::p[P_LEN-1]-BaseSegment::p[P_LEN-3];
+        br = ac-2*ab;
+    }
+    #undef P_LEN
+    if (ac) {
+        double a = dotProduct(br, br);
+        double b = 3*dotProduct(ab, br);
+        double c = 2*dotProduct(ab, ab)+dotProduct(qa, br);
+        double d = dotProduct(qa, ab);
+        double t[3];
+        int solutions = solveCubic(t, a, b, c, d);
+        for (int i = 0; i < solutions; ++i) {
+            if ((param < 0 && t[i] < 1) || (param > 1 && t[i] > 0)) {
+                Point2 qe = qa+2*t[i]*ab+t[i]*t[i]*br;
+                double pseudoDistance = nonZeroSign(crossProduct(ac, qe))*qe.length();
+                if (fabs(pseudoDistance) <= fabs(distance.distance)) {
+                    distance.distance = pseudoDistance;
+                    distance.dot = 0;
+                }
+            }
+        }
+    } else
+        BaseSegment::distanceToPseudoDistance(distance, origin, param);
+}
+
+template <class BaseSegment>
+EdgeSegment * DivergentEdgeSegment<BaseSegment>::makeDivergent(int dStart, int dEnd) {
+    if (dStart)
+        this->dStart = dStart;
+    if (dEnd)
+        this->dEnd = dEnd;
+    return NULL;
+}
+
+template class DivergentEdgeSegment<LinearSegment>;
+template class DivergentEdgeSegment<QuadraticSegment>;
+template class DivergentEdgeSegment<CubicSegment>;
 
 }

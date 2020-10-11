@@ -11,6 +11,9 @@ namespace msdfgen {
 #define MSDFGEN_CUBIC_SEARCH_STARTS 4
 #define MSDFGEN_CUBIC_SEARCH_STEPS 4
 
+// Threshold of the dot product of adjacent edge directions to be considered convergent.
+#define MSDFGEN_CORNER_DOT_EPSILON 0.000001
+
 /// An abstract edge segment.
 class EdgeSegment {
 
@@ -25,6 +28,10 @@ public:
     virtual Point2 point(double param) const = 0;
     /// Returns the direction the edge has at the point specified by the parameter.
     virtual Vector2 direction(double param) const = 0;
+    /// Returns the change of direction (second derivative) at the point specified by the parameter.
+    virtual Vector2 directionChange(double param) const = 0;
+    /// Returns the direction tendency vector that can resolve cases where directions converge at a corner.
+    virtual Vector2 directionTendency(double param, int polarity) const;
     /// Returns the minimum signed distance between origin and the edge.
     virtual SignedDistance signedDistance(Point2 origin, double &param) const = 0;
     /// Converts a previously retrieved signed distance from origin to pseudo-distance.
@@ -40,6 +47,8 @@ public:
     virtual void moveEndPoint(Point2 to) = 0;
     /// Splits the edge segments into thirds which together represent the original edge.
     virtual void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const = 0;
+    /// Converts convergent segment to a divergent segment. If NULL is returned, the object is already divergent and has been updated.
+    virtual EdgeSegment * makeDivergent(int dStart, int dEnd) = 0;
 
 };
 
@@ -53,6 +62,7 @@ public:
     LinearSegment * clone() const;
     Point2 point(double param) const;
     Vector2 direction(double param) const;
+    Vector2 directionChange(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
@@ -60,6 +70,7 @@ public:
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    EdgeSegment * makeDivergent(int dStart, int dEnd);
 
 };
 
@@ -73,6 +84,7 @@ public:
     QuadraticSegment * clone() const;
     Point2 point(double param) const;
     Vector2 direction(double param) const;
+    Vector2 directionChange(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
@@ -80,6 +92,7 @@ public:
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    EdgeSegment * makeDivergent(int dStart, int dEnd);
 
 };
 
@@ -93,6 +106,7 @@ public:
     CubicSegment * clone() const;
     Point2 point(double param) const;
     Vector2 direction(double param) const;
+    Vector2 directionChange(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
@@ -100,6 +114,20 @@ public:
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    EdgeSegment * makeDivergent(int dStart, int dEnd);
+
+};
+
+template <class BaseSegment>
+class DivergentEdgeSegment : public BaseSegment {
+
+public:
+    int dStart, dEnd;
+
+    explicit DivergentEdgeSegment(const BaseSegment &base, int dStart, int dEnd);
+    SignedDistance signedDistance(Point2 origin, double &param) const;
+    void distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const;
+    EdgeSegment * makeDivergent(int dStart, int dEnd);
 
 };
 

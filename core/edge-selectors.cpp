@@ -38,19 +38,22 @@ TrueDistanceSelector::DistanceType TrueDistanceSelector::distance() const {
 
 PseudoDistanceSelectorBase::EdgeCache::EdgeCache() : absDistance(0), edgeDomainDistance(0), pseudoDistance(0) { }
 
+static double cornerEdgeDomainDistance(const EdgeSegment *a, const EdgeSegment *b, const Point2 &p, int polarity) {
+    Vector2 aDir = a->direction(1).normalize(true);
+    Vector2 bDir = b->direction(0).normalize(true);
+    if (dotProduct(aDir, bDir) < MSDFGEN_CORNER_DOT_EPSILON-1) {
+        Vector2 aTen = a->directionTendency(1, 1);
+        Vector2 bTen = b->directionTendency(0, -1);
+        return nonZeroSign(crossProduct(aTen, bTen))*fabs(SignedDistance::INFINITE.distance);
+    }
+    return polarity*dotProduct(p-b->point(0), (aDir+bDir).normalize(true));
+}
+
 double PseudoDistanceSelectorBase::edgeDomainDistance(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param) {
-    if (param < 0) {
-        Vector2 prevEdgeDir = -prevEdge->direction(1).normalize(true);
-        Vector2 edgeDir = edge->direction(0).normalize(true);
-        Vector2 pointDir = p-edge->point(0);
-        return dotProduct(pointDir, (prevEdgeDir-edgeDir).normalize(true));
-    }
-    if (param > 1) {
-        Vector2 edgeDir = -edge->direction(1).normalize(true);
-        Vector2 nextEdgeDir = nextEdge->direction(0).normalize(true);
-        Vector2 pointDir = p-edge->point(1);
-        return dotProduct(pointDir, (nextEdgeDir-edgeDir).normalize(true));
-    }
+    if (param < 0)
+        return cornerEdgeDomainDistance(prevEdge, edge, p, -1);
+    else if (param > 1)
+        return cornerEdgeDomainDistance(edge, nextEdge, p, 1);
     return 0;
 }
 
