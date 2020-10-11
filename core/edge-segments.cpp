@@ -172,21 +172,20 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     // Iterative minimum distance search
     for (int i = 0; i <= MSDFGEN_CUBIC_SEARCH_STARTS; ++i) {
         double t = (double) i/MSDFGEN_CUBIC_SEARCH_STARTS;
-        for (int step = 0;; ++step) {
-            Vector2 qe = p[0]+3*t*ab+3*t*t*br+t*t*t*as-origin; // do not simplify with qa !!!
+        Vector2 qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
+        for (int step = 0; step < MSDFGEN_CUBIC_SEARCH_STEPS; ++step) {
+            // Improve t
+            Vector2 d1 = 3*as*t*t+6*br*t+3*ab;
+            Vector2 d2 = 6*as*t+6*br;
+            t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
+            if (t <= 0 || t >= 1)
+                break;
+            qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
             double distance = nonZeroSign(crossProduct(direction(t), qe))*qe.length();
             if (fabs(distance) < fabs(minDistance)) {
                 minDistance = distance;
                 param = t;
             }
-            if (step == MSDFGEN_CUBIC_SEARCH_STEPS)
-                break;
-            // Improve t
-            Vector2 d1 = 3*as*t*t+6*br*t+3*ab;
-            Vector2 d2 = 6*as*t+6*br;
-            t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
-            if (t < 0 || t > 1)
-                break;
         }
     }
 
