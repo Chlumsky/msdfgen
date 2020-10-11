@@ -11,8 +11,12 @@ Global
 		Debug Library|x86 = Debug Library|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release Library OpenMP|x64 = Release Library OpenMP|x64
+		Release Library OpenMP|x86 = Release Library OpenMP|x86
 		Release Library|x64 = Release Library|x64
 		Release Library|x86 = Release Library|x86
+		Release OpenMP|x64 = Release OpenMP|x64
+		Release OpenMP|x86 = Release OpenMP|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
@@ -25,10 +29,18 @@ Global
 		{84BE2D91-F071-4151-BE12-61460464C494}.Debug|x64.Build.0 = Debug|x64
 		{84BE2D91-F071-4151-BE12-61460464C494}.Debug|x86.ActiveCfg = Debug|Win32
 		{84BE2D91-F071-4151-BE12-61460464C494}.Debug|x86.Build.0 = Debug|Win32
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library OpenMP|x64.ActiveCfg = Release Library OpenMP|x64
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library OpenMP|x64.Build.0 = Release Library OpenMP|x64
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library OpenMP|x86.ActiveCfg = Release Library OpenMP|Win32
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library OpenMP|x86.Build.0 = Release Library OpenMP|Win32
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library|x64.ActiveCfg = Release Library|x64
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library|x64.Build.0 = Release Library|x64
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library|x86.ActiveCfg = Release Library|Win32
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release Library|x86.Build.0 = Release Library|Win32
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release OpenMP|x64.ActiveCfg = Release OpenMP|x64
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release OpenMP|x64.Build.0 = Release OpenMP|x64
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release OpenMP|x86.ActiveCfg = Release OpenMP|Win32
+		{84BE2D91-F071-4151-BE12-61460464C494}.Release OpenMP|x86.Build.0 = Release OpenMP|Win32
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release|x64.ActiveCfg = Release|x64
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release|x64.Build.0 = Release|x64
 		{84BE2D91-F071-4151-BE12-61460464C494}.Release|x86.ActiveCfg = Release|Win32

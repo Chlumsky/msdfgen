@@ -1,11 +1,14 @@
 Debug/
 Release/
+Release OpenMP/
 Debug Library/
 Release Library/
+Release Library OpenMP/
 x86/
 x64/
 .vs/
 *.exe
+*.zip
 *.user
 *.sdf
 *.pdb
