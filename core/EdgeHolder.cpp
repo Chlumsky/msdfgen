@@ -26,16 +26,20 @@ EdgeHolder::~EdgeHolder() {
 }
 
 EdgeHolder & EdgeHolder::operator=(const EdgeHolder &orig) {
-    delete edgeSegment;
-    edgeSegment = orig.edgeSegment ? orig.edgeSegment->clone() : NULL;
+    if (this != &orig) {
+        delete edgeSegment;
+        edgeSegment = orig.edgeSegment ? orig.edgeSegment->clone() : NULL;
+    }
     return *this;
 }
 
 #ifdef MSDFGEN_USE_CPP11
 EdgeHolder & EdgeHolder::operator=(EdgeHolder &&orig) {
-    delete edgeSegment;
-    edgeSegment = orig.edgeSegment;
-    orig.edgeSegment = NULL;
+    if (this != &orig) {
+        delete edgeSegment;
+        edgeSegment = orig.edgeSegment;
+        orig.edgeSegment = NULL;
+    }
     return *this;
 }
 #endif
