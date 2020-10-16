@@ -3,6 +3,12 @@
 
 namespace msdfgen {
 
+void EdgeHolder::swap(EdgeHolder &a, EdgeHolder &b) {
+    EdgeSegment *tmp = a.edgeSegment;
+    a.edgeSegment = b.edgeSegment;
+    b.edgeSegment = tmp;
+}
+
 EdgeHolder::EdgeHolder() : edgeSegment(NULL) { }
 
 EdgeHolder::EdgeHolder(EdgeSegment *segment) : edgeSegment(segment) { }

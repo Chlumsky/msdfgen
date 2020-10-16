@@ -9,6 +9,9 @@ namespace msdfgen {
 class EdgeHolder {
 
 public:
+    /// Swaps the edges held by a and b.
+    static void swap(EdgeHolder &a, EdgeHolder &b);
+
     EdgeHolder();
     EdgeHolder(EdgeSegment *segment);
     EdgeHolder(Point2 p0, Point2 p1, EdgeColor edgeColor = WHITE);

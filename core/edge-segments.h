@@ -36,6 +36,8 @@ public:
     /// Adjusts the bounding box to fit the edge segment.
     virtual void bound(double &l, double &b, double &r, double &t) const = 0;
 
+    /// Reverses the edge (swaps its start point and end point).
+    virtual void reverse() = 0;
     /// Moves the start point of the edge segment.
     virtual void moveStartPoint(Point2 to) = 0;
     /// Moves the end point of the edge segment.
@@ -60,6 +62,7 @@ public:
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
+    void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
@@ -81,6 +84,7 @@ public:
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
+    void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
@@ -104,6 +108,7 @@ public:
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
+    void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;

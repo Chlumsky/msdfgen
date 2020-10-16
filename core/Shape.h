@@ -47,6 +47,8 @@ public:
     void scanline(Scanline &line, double y) const;
     /// Returns the total number of edge segments
     int edgeCount() const;
+    /// Assumes its contours are unoriented (even-odd fill rule). Attempts to orient them to conform to the non-zero winding rule.
+    void orientContours();
 
 };
 

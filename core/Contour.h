@@ -26,6 +26,8 @@ public:
     void boundMiters(double &l, double &b, double &r, double &t, double border, double miterLimit, int polarity) const;
     /// Computes the winding of the contour. Returns 1 if positive, -1 if negative.
     int winding() const;
+    /// Reverses the sequence of edges on the contour.
+    void reverse();
 
 };
 

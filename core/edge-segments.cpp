@@ -46,6 +46,10 @@ QuadraticSegment::QuadraticSegment(Point2 p0, Point2 p1, Point2 p2, EdgeColor ed
 }
 
 CubicSegment::CubicSegment(Point2 p0, Point2 p1, Point2 p2, Point2 p3, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
+    if ((p1 == p0 || p1 == p3) && (p2 == p0 || p2 == p3)) {
+        p1 = mix(p0, p3, 1/3.);
+        p2 = mix(p0, p3, 2/3.);
+    }
     p[0] = p0;
     p[1] = p1;
     p[2] = p2;
@@ -139,18 +143,18 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
         epDir = direction(1);
-        double distance = nonZeroSign(crossProduct(epDir, p[2]-origin))*(p[2]-origin).length(); // distance from B
-        if (fabs(distance) < fabs(minDistance)) {
-            minDistance = distance;
+        double distance = (p[2]-origin).length(); // distance from B
+        if (distance < fabs(minDistance)) {
+            minDistance = nonZeroSign(crossProduct(epDir, p[2]-origin))*distance;
             param = dotProduct(origin-p[1], epDir)/dotProduct(epDir, epDir);
         }
     }
     for (int i = 0; i < solutions; ++i) {
         if (t[i] > 0 && t[i] < 1) {
             Point2 qe = p[0]+2*t[i]*ab+t[i]*t[i]*br-origin;
-            double distance = nonZeroSign(crossProduct(direction(t[i]), qe))*qe.length();
-            if (fabs(distance) <= fabs(minDistance)) {
-                minDistance = distance;
+            double distance = qe.length();
+            if (distance <= fabs(minDistance)) {
+                minDistance = nonZeroSign(crossProduct(direction(t[i]), qe))*distance;
                 param = t[i];
             }
         }
@@ -175,9 +179,9 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
         epDir = direction(1);
-        double distance = nonZeroSign(crossProduct(epDir, p[3]-origin))*(p[3]-origin).length(); // distance from B
-        if (fabs(distance) < fabs(minDistance)) {
-            minDistance = distance;
+        double distance = (p[3]-origin).length(); // distance from B
+        if (distance < fabs(minDistance)) {
+            minDistance = nonZeroSign(crossProduct(epDir, p[3]-origin))*distance;
             param = dotProduct(epDir-(p[3]-origin), epDir)/dotProduct(epDir, epDir);
         }
     }
@@ -193,9 +197,9 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
             if (t <= 0 || t >= 1)
                 break;
             qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
-            double distance = nonZeroSign(crossProduct(direction(t), qe))*qe.length();
-            if (fabs(distance) < fabs(minDistance)) {
-                minDistance = distance;
+            double distance = qe.length();
+            if (distance < fabs(minDistance)) {
+                minDistance = nonZeroSign(crossProduct(direction(t), qe))*distance;
                 param = t;
             }
         }
@@ -379,6 +383,27 @@ void CubicSegment::bound(double &l, double &b, double &r, double &t) const {
     for (int i = 0; i < solutions; ++i)
         if (params[i] > 0 && params[i] < 1)
             pointBounds(point(params[i]), l, b, r, t);
+}
+
+void LinearSegment::reverse() {
+    Point2 tmp = p[0];
+    p[0] = p[1];
+    p[1] = tmp;
+}
+
+void QuadraticSegment::reverse() {
+    Point2 tmp = p[0];
+    p[0] = p[2];
+    p[2] = tmp;
+}
+
+void CubicSegment::reverse() {
+    Point2 tmp = p[0];
+    p[0] = p[3];
+    p[3] = tmp;
+    tmp = p[1];
+    p[1] = p[2];
+    p[2] = tmp;
 }
 
 void LinearSegment::moveStartPoint(Point2 to) {
