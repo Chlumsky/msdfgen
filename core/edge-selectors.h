@@ -44,27 +44,27 @@ public:
     struct EdgeCache {
         Point2 point;
         double absDistance;
-        double edgeDomainDistance;
-        double pseudoDistance;
+        double aDomainDistance, bDomainDistance;
+        double aPseudoDistance, bPseudoDistance;
 
         EdgeCache();
     };
 
-    static double edgeDomainDistance(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param);
+    static bool getPseudoDistance(double &distance, const Vector2 &ep, const Vector2 &edgeDir);
 
     PseudoDistanceSelectorBase();
     void reset(double delta);
     bool isEdgeRelevant(const EdgeCache &cache, const EdgeSegment *edge, const Point2 &p) const;
     void addEdgeTrueDistance(const EdgeSegment *edge, const SignedDistance &distance, double param);
-    void addEdgePseudoDistance(const SignedDistance &distance);
+    void addEdgePseudoDistance(double distance);
     void merge(const PseudoDistanceSelectorBase &other);
     double computeDistance(const Point2 &p) const;
     SignedDistance trueDistance() const;
 
 private:
     SignedDistance minTrueDistance;
-    SignedDistance minNegativePseudoDistance;
-    SignedDistance minPositivePseudoDistance;
+    double minNegativePseudoDistance;
+    double minPositivePseudoDistance;
     const EdgeSegment *nearEdge;
     double nearEdgeParam;
 

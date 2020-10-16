@@ -36,28 +36,26 @@ TrueDistanceSelector::DistanceType TrueDistanceSelector::distance() const {
     return minDistance.distance;
 }
 
-PseudoDistanceSelectorBase::EdgeCache::EdgeCache() : absDistance(0), edgeDomainDistance(0), pseudoDistance(0) { }
+PseudoDistanceSelectorBase::EdgeCache::EdgeCache() : absDistance(0), aDomainDistance(0), bDomainDistance(0), aPseudoDistance(0), bPseudoDistance(0) { }
 
-static double cornerEdgeDomainDistance(const EdgeSegment *a, const EdgeSegment *b, const Point2 &p) {
-    Vector2 aDir = a->direction(1).normalize(true);
-    Vector2 bDir = b->direction(0).normalize(true);
-    return dotProduct(p-b->point(0), (aDir+bDir).normalize(true));
+bool PseudoDistanceSelectorBase::getPseudoDistance(double &distance, const Vector2 &ep, const Vector2 &edgeDir) {
+    double ts = dotProduct(ep, edgeDir);
+    if (ts > 0) {
+        double pseudoDistance = crossProduct(ep, edgeDir);
+        if (fabs(pseudoDistance) < fabs(distance)) {
+            distance = pseudoDistance;
+            return true;
+        }
+    }
+    return false;
 }
 
-double PseudoDistanceSelectorBase::edgeDomainDistance(const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge, const Point2 &p, double param) {
-    if (param < 0)
-        return -cornerEdgeDomainDistance(prevEdge, edge, p);
-    else if (param > 1)
-        return cornerEdgeDomainDistance(edge, nextEdge, p);
-    return 0;
-}
-
-PseudoDistanceSelectorBase::PseudoDistanceSelectorBase() : nearEdge(NULL), nearEdgeParam(0) { }
+PseudoDistanceSelectorBase::PseudoDistanceSelectorBase() : minNegativePseudoDistance(-fabs(minTrueDistance.distance)), minPositivePseudoDistance(fabs(minTrueDistance.distance)), nearEdge(NULL), nearEdgeParam(0) { }
 
 void PseudoDistanceSelectorBase::reset(double delta) {
     minTrueDistance.distance += nonZeroSign(minTrueDistance.distance)*delta;
-    minNegativePseudoDistance.distance = -fabs(minTrueDistance.distance);
-    minPositivePseudoDistance.distance = fabs(minTrueDistance.distance);
+    minNegativePseudoDistance = -fabs(minTrueDistance.distance);
+    minPositivePseudoDistance = fabs(minTrueDistance.distance);
     nearEdge = NULL;
     nearEdgeParam = 0;
 }
@@ -66,13 +64,16 @@ bool PseudoDistanceSelectorBase::isEdgeRelevant(const EdgeCache &cache, const Ed
     double delta = DISTANCE_DELTA_FACTOR*(p-cache.point).length();
     return (
         cache.absDistance-delta <= fabs(minTrueDistance.distance) ||
-        (cache.edgeDomainDistance > 0 ?
-            cache.edgeDomainDistance-delta <= 0 :
-            (cache.pseudoDistance < 0 ?
-                cache.pseudoDistance+delta >= minNegativePseudoDistance.distance :
-                cache.pseudoDistance-delta <= minPositivePseudoDistance.distance
-            )
-        )
+        fabs(cache.aDomainDistance) < delta ||
+        fabs(cache.bDomainDistance) < delta ||
+        (cache.aDomainDistance > 0 && (cache.aPseudoDistance < 0 ?
+            cache.aPseudoDistance+delta >= minNegativePseudoDistance :
+            cache.aPseudoDistance-delta <= minPositivePseudoDistance
+        )) ||
+        (cache.bDomainDistance > 0 && (cache.bPseudoDistance < 0 ?
+            cache.bPseudoDistance+delta >= minNegativePseudoDistance :
+            cache.bPseudoDistance-delta <= minPositivePseudoDistance
+        ))
     );
 }
 
@@ -84,10 +85,11 @@ void PseudoDistanceSelectorBase::addEdgeTrueDistance(const EdgeSegment *edge, co
     }
 }
 
-void PseudoDistanceSelectorBase::addEdgePseudoDistance(const SignedDistance &distance) {
-    SignedDistance &minPseudoDistance = distance.distance < 0 ? minNegativePseudoDistance : minPositivePseudoDistance;
-    if (distance < minPseudoDistance)
-        minPseudoDistance = distance;
+void PseudoDistanceSelectorBase::addEdgePseudoDistance(double distance) {
+    if (distance <= 0 && distance > minNegativePseudoDistance)
+        minNegativePseudoDistance = distance;
+    if (distance >= 0 && distance < minPositivePseudoDistance)
+        minPositivePseudoDistance = distance;
 }
 
 void PseudoDistanceSelectorBase::merge(const PseudoDistanceSelectorBase &other) {
@@ -96,14 +98,14 @@ void PseudoDistanceSelectorBase::merge(const PseudoDistanceSelectorBase &other) 
         nearEdge = other.nearEdge;
         nearEdgeParam = other.nearEdgeParam;
     }
-    if (other.minNegativePseudoDistance < minNegativePseudoDistance)
+    if (other.minNegativePseudoDistance > minNegativePseudoDistance)
         minNegativePseudoDistance = other.minNegativePseudoDistance;
     if (other.minPositivePseudoDistance < minPositivePseudoDistance)
         minPositivePseudoDistance = other.minPositivePseudoDistance;
 }
 
 double PseudoDistanceSelectorBase::computeDistance(const Point2 &p) const {
-    double minDistance = minTrueDistance.distance < 0 ? minNegativePseudoDistance.distance : minPositivePseudoDistance.distance;
+    double minDistance = minTrueDistance.distance < 0 ? minNegativePseudoDistance : minPositivePseudoDistance;
     if (nearEdge) {
         SignedDistance distance = minTrueDistance;
         nearEdge->distanceToPseudoDistance(distance, p, nearEdgeParam);
@@ -127,16 +129,32 @@ void PseudoDistanceSelector::addEdge(EdgeCache &cache, const EdgeSegment *prevEd
     if (isEdgeRelevant(cache, edge, p)) {
         double param;
         SignedDistance distance = edge->signedDistance(p, param);
-        double edd = edgeDomainDistance(prevEdge, edge, nextEdge, p, param);
         addEdgeTrueDistance(edge, distance, param);
         cache.point = p;
         cache.absDistance = fabs(distance.distance);
-        cache.edgeDomainDistance = edd;
-        if (edd <= 0) {
-            edge->distanceToPseudoDistance(distance, p, param);
-            addEdgePseudoDistance(distance);
-            cache.pseudoDistance = distance.distance;
+
+        Vector2 ap = p-edge->point(0);
+        Vector2 bp = p-edge->point(1);
+        Vector2 aDir = edge->direction(0).normalize(true);
+        Vector2 bDir = edge->direction(1).normalize(true);
+        Vector2 prevDir = prevEdge->direction(1).normalize(true);
+        Vector2 nextDir = nextEdge->direction(0).normalize(true);
+        double add = dotProduct(ap, (prevDir+aDir).normalize(true));
+        double bdd = -dotProduct(bp, (bDir+nextDir).normalize(true));
+        if (add > 0) {
+            double pd = distance.distance;
+            if (getPseudoDistance(pd, ap, -aDir))
+                addEdgePseudoDistance(pd = -pd);
+            cache.aPseudoDistance = pd;
         }
+        if (bdd > 0) {
+            double pd = distance.distance;
+            if (getPseudoDistance(pd, bp, bDir))
+                addEdgePseudoDistance(pd);
+            cache.bPseudoDistance = pd;
+        }
+        cache.aDomainDistance = add;
+        cache.bDomainDistance = bdd;
     }
 }
 
@@ -160,7 +178,6 @@ void MultiDistanceSelector::addEdge(EdgeCache &cache, const EdgeSegment *prevEdg
     ) {
         double param;
         SignedDistance distance = edge->signedDistance(p, param);
-        double edd = PseudoDistanceSelectorBase::edgeDomainDistance(prevEdge, edge, nextEdge, p, param);
         if (edge->color&RED)
             r.addEdgeTrueDistance(edge, distance, param);
         if (edge->color&GREEN)
@@ -169,17 +186,42 @@ void MultiDistanceSelector::addEdge(EdgeCache &cache, const EdgeSegment *prevEdg
             b.addEdgeTrueDistance(edge, distance, param);
         cache.point = p;
         cache.absDistance = fabs(distance.distance);
-        cache.edgeDomainDistance = edd;
-        if (edd <= 0) {
-            edge->distanceToPseudoDistance(distance, p, param);
-            if (edge->color&RED)
-                r.addEdgePseudoDistance(distance);
-            if (edge->color&GREEN)
-                g.addEdgePseudoDistance(distance);
-            if (edge->color&BLUE)
-                b.addEdgePseudoDistance(distance);
-            cache.pseudoDistance = distance.distance;
+
+        Vector2 ap = p-edge->point(0);
+        Vector2 bp = p-edge->point(1);
+        Vector2 aDir = edge->direction(0).normalize(true);
+        Vector2 bDir = edge->direction(1).normalize(true);
+        Vector2 prevDir = prevEdge->direction(1).normalize(true);
+        Vector2 nextDir = nextEdge->direction(0).normalize(true);
+        double add = dotProduct(ap, (prevDir+aDir).normalize(true));
+        double bdd = -dotProduct(bp, (bDir+nextDir).normalize(true));
+        if (add > 0) {
+            double pd = distance.distance;
+            if (PseudoDistanceSelectorBase::getPseudoDistance(pd, ap, -aDir)) {
+                pd = -pd;
+                if (edge->color&RED)
+                    r.addEdgePseudoDistance(pd);
+                if (edge->color&GREEN)
+                    g.addEdgePseudoDistance(pd);
+                if (edge->color&BLUE)
+                    b.addEdgePseudoDistance(pd);
+            }
+            cache.aPseudoDistance = pd;
         }
+        if (bdd > 0) {
+            double pd = distance.distance;
+            if (PseudoDistanceSelectorBase::getPseudoDistance(pd, bp, bDir)) {
+                if (edge->color&RED)
+                    r.addEdgePseudoDistance(pd);
+                if (edge->color&GREEN)
+                    g.addEdgePseudoDistance(pd);
+                if (edge->color&BLUE)
+                    b.addEdgePseudoDistance(pd);
+            }
+            cache.bPseudoDistance = pd;
+        }
+        cache.aDomainDistance = add;
+        cache.bDomainDistance = bdd;
     }
 }
 
