@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(msdfgen VERSION 1.7.1 LANGUAGES CXX)
+project(msdfgen VERSION 1.8 LANGUAGES CXX)
 option(MSDFGEN_BUILD_MSDFGEN_STANDALONE "Build the msdfgen standalone executable" ON)
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
+option(MSDFGEN_USE_SKIA "Build with the Skia library" OFF)
 option(FREETYPE_WITH_PNG "Link libpng and zlib because FreeType is configured to require it" OFF)
 option(FREETYPE_WITH_HARFBUZZ "Link HarfBuzz because FreeType is configured to require it" OFF)
 
@@ -69,6 +70,12 @@ if(MSDFGEN_USE_OPENMP)
 	find_package(OpenMP REQUIRED COMPONENTS CXX)
 	target_link_libraries(msdfgen PRIVATE OpenMP::OpenMP_CXX)
 	target_compile_definitions(msdfgen PRIVATE MSDFGEN_USE_OPENMP)
+endif()
+
+if(MSDFGEN_USE_SKIA)
+	find_package(Skia REQUIRED)
+	target_link_libraries(msdfgen-ext PRIVATE Skia::Skia)
+	target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_SKIA)
 endif()
 
 add_library(msdfgen-ext ${msdfgen-ext_SOURCES} ${msdfgen-ext_PUBLIC_HEADERS} ${msdfgen-ext_PRIVATE_HEADERS} "./msdfgen-ext.h")

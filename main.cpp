@@ -1,6 +1,6 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.7 (2020-03-07) - standalone console program
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.8 (2020-10-17) - standalone console program
  * --------------------------------------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2020
  *
@@ -252,10 +252,24 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     return NULL;
 }
 
+#if defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
+    #define TITLE_SUFFIX    " with Skia & OpenMP"
+    #define EXTRA_UNDERLINE "-------------------"
+#elif defined(MSDFGEN_USE_SKIA)
+    #define TITLE_SUFFIX    " with Skia"
+    #define EXTRA_UNDERLINE "----------"
+#elif defined(MSDFGEN_USE_OPENMP)
+    #define TITLE_SUFFIX    " with OpenMP"
+    #define EXTRA_UNDERLINE "------------"
+#else
+    #define TITLE_SUFFIX
+    #define EXTRA_UNDERLINE
+#endif
+
 static const char *helpText =
     "\n"
-    "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION "\n"
-    "---------------------------------------------------------------------\n"
+    "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION TITLE_SUFFIX "\n"
+    "---------------------------------------------------------------------" EXTRA_UNDERLINE "\n"
     "  Usage: msdfgen"
     #ifdef _WIN32
         ".exe"
@@ -273,7 +287,8 @@ static const char *helpText =
     "  -defineshape <definition>\n"
         "\tDefines input shape using the ad-hoc text definition.\n"
     "  -font <filename.ttf> <character code>\n"
-        "\tLoads a single glyph from the specified font file. Format of character code is '?', 63, 0x3F (Unicode value), or g34 (glyph index).\n"
+        "\tLoads a single glyph from the specified font file.\n"
+        "\tFormat of character code is '?', 63, 0x3F (Unicode value), or g34 (glyph index).\n"
     "  -shapedesc <filename.txt>\n"
         "\tLoads text shape description from a file.\n"
     "  -stdin\n"
@@ -281,6 +296,7 @@ static const char *helpText =
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
     "\n"
+    // Keep alphabetical order!
     "OPTIONS\n"
     "  -angle <angle>\n"
         "\tSpecifies the minimum angle between adjacent edges to be considered a corner. Append D for degrees.\n"
@@ -310,12 +326,21 @@ static const char *helpText =
         "\tDisplays this help.\n"
     "  -legacy\n"
         "\tUses the original (legacy) distance field algorithms.\n"
+#ifdef MSDFGEN_USE_SKIA
+    "  -nopreprocess\n"
+        "\tDisables path preprocessing which resolves self-intersections and overlapping contours.\n"
+#else
     "  -nooverlap\n"
         "\tDisables resolution of overlapping contours.\n"
     "  -noscanline\n"
         "\tDisables the scanline pass, which corrects the distance field's signs according to the selected fill rule.\n"
+#endif
     "  -o <filename>\n"
         "\tSets the output file name. The default value is \"output.png\".\n"
+#ifdef MSDFGEN_USE_SKIA
+    "  -overlap\n"
+        "\tSwitches to distance field generator with support for overlapping contours.\n"
+#endif
     "  -printmetrics\n"
         "\tPrints relevant metrics of the shape to the standard output.\n"
     "  -pxrange <range>\n"
@@ -323,9 +348,13 @@ static const char *helpText =
     "  -range <range>\n"
         "\tSets the width of the range between the lowest and highest signed distance in shape units.\n"
     "  -reverseorder\n"
-        "\tGenerates the distance field as if shape vertices were in reverse order.\n"
+        "\tGenerates the distance field as if the shape's vertices were in reverse order.\n"
     "  -scale <scale>\n"
         "\tSets the scale used to convert shape units to pixels.\n"
+#ifdef MSDFGEN_USE_SKIA
+    "  -scanline\n"
+        "\tPerforms an additional scanline pass to fix the signs of the distances.\n"
+#endif
     "  -seed <n>\n"
         "\tSets the random seed for edge coloring heuristic.\n"
     "  -size <width> <height>\n"
@@ -362,8 +391,15 @@ int main(int argc, const char * const *argv) {
         METRICS
     } mode = MULTI;
     bool legacyMode = false;
-    bool overlapSupport = true;
-    bool scanlinePass = true;
+    bool geometryPreproc = (
+        #ifdef MSDFGEN_USE_SKIA
+            true
+        #else
+            false
+        #endif
+    );
+    bool overlapSupport = !geometryPreproc;
+    bool scanlinePass = !geometryPreproc;
     FillRule fillRule = FILL_NONZERO;
     Format format = AUTO;
     const char *input = NULL;
@@ -477,8 +513,23 @@ int main(int argc, const char * const *argv) {
             argPos += 1;
             continue;
         }
+        ARG_CASE("-nopreprocess", 0) {
+            geometryPreproc = false;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-preprocess", 0) {
+            geometryPreproc = true;
+            argPos += 1;
+            continue;
+        }
         ARG_CASE("-nooverlap", 0) {
             overlapSupport = false;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-overlap", 0) {
+            overlapSupport = true;
             argPos += 1;
             continue;
         }
@@ -493,6 +544,7 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-fillrule", 1) {
+            scanlinePass = true;
             if (!strcmp(argv[argPos+1], "nonzero")) fillRule = FILL_NONZERO;
             else if (!strcmp(argv[argPos+1], "evenodd") || !strcmp(argv[argPos+1], "odd")) fillRule = FILL_ODD;
             else if (!strcmp(argv[argPos+1], "positive")) fillRule = FILL_POSITIVE;
@@ -749,6 +801,14 @@ int main(int argc, const char * const *argv) {
     // Validate and normalize shape
     if (!shape.validate())
         ABORT("The geometry of the loaded shape is invalid.");
+    if (geometryPreproc) {
+        #ifdef MSDFGEN_USE_SKIA
+            if (!resolveShapeGeometry(shape))
+                puts("Shape geometry preprocessing failed, skipping.");
+        #else
+            ABORT("Shape geometry preprocessing (-preprocess) is not available in this version because the Skia library is not present.");
+        #endif
+    }
     shape.normalize();
     if (yFlip)
         shape.inverseYAxis = !shape.inverseYAxis;

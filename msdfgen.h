@@ -2,7 +2,7 @@
 #pragma once
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.7 (2020-03-07)
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.8 (2020-10-17)
  * ---------------------------------------------------------------
  * A utility by Viktor Chlumsky, (c) 2014 - 2020
  *
@@ -32,7 +32,7 @@
 #include "core/save-tiff.h"
 #include "core/shape-description.h"
 
-#define MSDFGEN_VERSION "1.7"
+#define MSDFGEN_VERSION "1.8"
 
 namespace msdfgen {
 

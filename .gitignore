@@ -1,11 +1,11 @@
-Debug/
-Release/
-Release OpenMP/
-Debug Library/
-Release Library/
-Release Library OpenMP/
-x86/
-x64/
+/Debug/
+/Release/
+/Release OpenMP/
+/Debug Library/
+/Release Library/
+/Release Library OpenMP/
+/x86/
+/x64/
 .vs/
 *.exe
 *.zip
@@ -17,9 +17,11 @@ x64/
 *.suo
 *.VC.opendb
 *.VC.db
-bin/*.lib
+/bin/*.lib
 output.png
 render.png
 out/
 build/
 build_xcode/
+skia/win32/
+skia/win64/

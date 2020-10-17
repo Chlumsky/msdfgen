@@ -1,4 +1,23 @@
 
+## Version 1.8 (2020-10-17)
+
+- Integrated the Skia library into the project, which is used to preprocess the shape geometry and eliminate any self-intersections and other irregularities previously unsupported by the software
+    - The scanline pass and overlapping contour mode is made obsolete by this step and has been disabled by default. The preprocess step can be disabled by the new `-nopreprocess` switch and the former enabled by `-scanline` and `-overlap` respectively.
+    - The project can be built without the Skia library, forgoing the geometry preprocessing feature. This is controlled by the macro definition `MSDFGEN_USE_SKIA`
+- Significantly improved performance of the core algorithm by reusing results from previously computed pixels
+- Introduced an additional error correction routine which eliminates MSDF artifacts by analytically predicting results of bilinear interpolation
+- Added the possibility to load font glyphs by their index rather than a Unicode value (use the prefix `g` before the character code in `-font` argument)
+- Added `-distanceshift` argument that can be used to adjust the center of the distance range in the output distance field
+- Fixed several errors in the evaluation of curve distances
+- Fixed an issue with paths containing convergent corners (those whose inner angle is zero)
+- The algorithm for pseudo-distance computation slightly changed, fixing certain rare edge cases and improving consistency
+- Added the ability to supply own `FT_Face` handle to the msdfgen library
+- Minor refactor of the core algorithm
+
+### Version 1.7.1 (2020-03-09)
+
+- Fixed an edge case bug in scanline rasterization
+
 ## Version 1.7 (2020-03-07)
 
 - Added `mtsdf` mode - a combination of `msdf` with `sdf` in the alpha channel

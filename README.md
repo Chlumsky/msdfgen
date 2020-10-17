@@ -26,7 +26,8 @@ Extensions contain utilities for loading fonts and SVG files, as well as saving 
 Those are exposed by the [msdfgen-ext.h](msdfgen-ext.h) header. This module uses
 [FreeType](http://www.freetype.org/),
 [TinyXML2](http://www.grinninglizard.com/tinyxml2/),
-and [LodePNG](http://lodev.org/lodepng/).
+[LodePNG](http://lodev.org/lodepng/),
+and (optionally) [Skia](https://skia.org/).
 
 Additionally, there is the [main.cpp](main.cpp), which wraps the functionality into
 a comprehensive standalone console program. To start using the program immediately,

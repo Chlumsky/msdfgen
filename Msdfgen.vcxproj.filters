@@ -120,6 +120,9 @@
     <ClInclude Include="core\msdf-edge-artifact-patcher.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="ext\resolve-shape-geometry.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -199,6 +202,9 @@
     </ClCompile>
     <ClCompile Include="core\msdf-edge-artifact-patcher.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\resolve-shape-geometry.cpp">
+      <Filter>Extensions</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
