@@ -113,6 +113,26 @@ Vector2 CubicSegment::directionChange(double param) const {
     return mix((p[2]-p[1])-(p[1]-p[0]), (p[3]-p[2])-(p[2]-p[1]), param);
 }
 
+double LinearSegment::length() const {
+    return (p[1]-p[0]).length();
+}
+
+double QuadraticSegment::length() const {
+    Vector2 ab = p[1]-p[0];
+    Vector2 br = p[2]-p[1]-ab;
+    float abab = dotProduct(ab, ab);
+    float abbr = dotProduct(ab, br);
+    float brbr = dotProduct(br, br);
+    float abLen = sqrt(abab);
+    float brLen = sqrt(brbr);
+    float crs = crossProduct(ab, br);
+    float h = sqrt(abab+abbr+abbr+brbr);
+    return (
+        brLen*((abbr+brbr)*h-abbr*abLen)+
+        crs*crs*log((brLen*h+abbr+brbr)/(brLen*abLen+abbr))
+    )/(brbr*brLen);
+}
+
 SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const {
     Vector2 aq = origin-p[0];
     Vector2 ab = p[1]-p[0];

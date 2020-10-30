@@ -58,6 +58,7 @@ public:
     Point2 point(double param) const;
     Vector2 direction(double param) const;
     Vector2 directionChange(double param) const;
+    double length() const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
@@ -80,6 +81,7 @@ public:
     Point2 point(double param) const;
     Vector2 direction(double param) const;
     Vector2 directionChange(double param) const;
+    double length() const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
     void bound(double &l, double &b, double &r, double &t) const;
