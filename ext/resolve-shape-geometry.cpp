@@ -9,7 +9,7 @@
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(MSDFGEN_CMAKE_BUILD)
     #pragma comment(lib, "skia.lib")
 #endif
 
