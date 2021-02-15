@@ -93,6 +93,8 @@ PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_CMAKE_BUILD)
+
 if(MSDFGEN_USE_CPP11)
 	target_compile_features(msdfgen-ext PUBLIC cxx_std_11)
 	target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_CPP11)
