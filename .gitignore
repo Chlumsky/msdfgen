@@ -18,6 +18,7 @@
 *.VC.opendb
 *.VC.db
 /bin/*.lib
+/bin/**/*
 output.png
 render.png
 out/

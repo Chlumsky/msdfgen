@@ -8,6 +8,10 @@ option(MSDFGEN_USE_SKIA "Build with the Skia library" OFF)
 option(FREETYPE_WITH_PNG "Link libpng and zlib because FreeType is configured to require it" OFF)
 option(FREETYPE_WITH_HARFBUZZ "Link HarfBuzz because FreeType is configured to require it" OFF)
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/tools/vcpkg/scripts/buildsystems/vcpkg.cmake")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/scripts/tools/vcpkg/scripts/buildsystems/vcpkg.cmake")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(Freetype REQUIRED)
@@ -59,6 +63,10 @@ target_include_directories(msdfgen INTERFACE
 	$<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
 )
+# Optimize size of binaries
+if (NOT WIN32 AND NOT APPLE)
+  set_target_properties(msdfgen PROPERTIES LINK_FLAGS_RELEASE "${LINK_FLAGS_RELEASE} -s")
+endif()
 
 if(MSDFGEN_USE_CPP11)
 	target_compile_features(msdfgen PUBLIC cxx_std_11)

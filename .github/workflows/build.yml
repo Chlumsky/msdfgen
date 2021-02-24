@@ -1,0 +1,69 @@
+name: msdfgen Build
+
+on:
+  workflow_dispatch:
+    inputs:
+  push:
+    branches:
+      - master
+      - feature/gh-actions
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    outputs:
+      RELEASE_TAG_VERSION: ${{ steps.release_prep.outputs.RELEASE_TAG_VERSION }}
+      IS_RELEASE_TAG: ${{ steps.release_prep.outputs.IS_RELEASE_TAG }}
+    strategy:
+      fail-fast: false
+      matrix: 
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+      # Install necessary dependencies for build
+    - name: Install dependencies
+      run: |
+        ./dependencies.sh
+      shell: bash
+      working-directory: scripts
+      # Actual building
+    - name: Build
+      run: |
+        ./build.sh
+      working-directory: ./scripts
+      shell: bash
+      # Upload build artifacts
+    - uses: actions/upload-artifact@v2
+      with:
+        name: artifacts
+        path: |
+          bin/complete/*.tar.gz
+          bin/complete/*.zip
+      # Check whether release job needs to run, and with which release tag
+    - name: Prepare for Release
+      id: release_prep
+      # Only release when the current commit is tagged
+      run: |
+        git describe --exact-match --tags HEAD 2> /dev/null &&  IS_RELEASE_TAG=True
+        RELEASE_TAG_VERSION=$(git describe --tag)
+        
+        echo "::set-output name=RELEASE_TAG_VERSION::$RELEASE_TAG_VERSION"
+        echo "::set-output name=IS_RELEASE_TAG::$IS_RELEASE_TAG"
+        
+      shell: bash
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: artifacts
+        path: artifacts
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      if: needs.build.outputs.IS_RELEASE_TAG=='True'
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        automatic_release_tag: "${{ needs.build.outputs.RELEASE_TAG_VERSION }}"
+        files: |
+          artifacts/*
