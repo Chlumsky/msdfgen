@@ -10,11 +10,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    outputs:
-      RELEASE_TAG_VERSION: ${{ steps.release_prep.outputs.RELEASE_TAG_VERSION }}
-      IS_RELEASE_TAG: ${{ steps.release_prep.outputs.IS_RELEASE_TAG }}
     strategy:
-      fail-fast: false
       matrix: 
         os: [ubuntu-latest, windows-latest, macos-latest]
 
@@ -39,31 +35,51 @@ jobs:
         path: |
           bin/complete/*.tar.gz
           bin/complete/*.zip
-      # Check whether release job needs to run, and with which release tag
-    - name: Prepare for Release
-      id: release_prep
-      # Only release when the current commit is tagged
-      run: |
-        git describe --exact-match --tags HEAD 2> /dev/null &&  IS_RELEASE_TAG=True
-        RELEASE_TAG_VERSION=$(git describe --tag)
-        
-        echo "::set-output name=RELEASE_TAG_VERSION::$RELEASE_TAG_VERSION"
-        echo "::set-output name=IS_RELEASE_TAG::$IS_RELEASE_TAG"
-        
-      shell: bash
   release:
     runs-on: ubuntu-latest
     needs: build
     steps:
+    - uses: actions/checkout@v1
+    - name: Prepare repository name
+      run: |
+        echo "REPOSITORY_OWNER=${GITHUB_REPOSITORY%%/*}" >> $GITHUB_ENV
+        echo "REPOSITORY_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+    - name: Get Latest Release Info
+      id: latest_version
+      uses: abatilo/release-info-action@v1.3.0
+      with:
+        owner: ${{ env.REPOSITORY_OWNER }}
+        repo: ${{ env.REPOSITORY_NAME }}
+      # Check whether release job needs to run, and with which release tag
+    - name: Prepare for Release
+      id: release_prep
+      env:
+        PREVIOUS_RELEASE_TAG: ${{ steps.latest_version.outputs.latest_tag }}
+      # Only release when the current commit is tagged
+      run: |
+        ./scripts/release_info.sh
+      shell: bash
     - uses: actions/download-artifact@v2
+      if: steps.release_prep.outputs.IS_RELEASE=='True'
       with:
         name: artifacts
         path: artifacts
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      if: needs.build.outputs.IS_RELEASE_TAG=='True'
+    - name: Create Release
+      id: create_release
+      if: steps.release_prep.outputs.IS_RELEASE=='True'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        tag_name: v${{ steps.release_prep.outputs.RELEASE_VERSION }}
+        release_name: Version ${{ steps.release_prep.outputs.RELEASE_VERSION }}
+        body: ${{ steps.release_prep.outputs.RELEASE_CHANGELOG }}
+        draft: false
         prerelease: false
-        automatic_release_tag: "${{ needs.build.outputs.RELEASE_TAG_VERSION }}"
-        files: |
-          artifacts/*
+    - name: Upload Assets to Release
+      if: steps.release_prep.outputs.IS_RELEASE=='True'
+      uses: csexton/release-asset-action@v2
+      with:
+        pattern: "artifacts/*"
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        release-url: ${{ steps.create_release.outputs.upload_url }}
