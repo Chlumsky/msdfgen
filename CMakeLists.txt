@@ -5,12 +5,15 @@ option(MSDFGEN_BUILD_MSDFGEN_STANDALONE "Build the msdfgen standalone executable
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 option(MSDFGEN_USE_SKIA "Build with the Skia library" OFF)
+option(MSDFGEN_INSTALL "Generate installation target" ON)
 option(FREETYPE_WITH_PNG "Link libpng and zlib because FreeType is configured to require it" OFF)
 option(FREETYPE_WITH_HARFBUZZ "Link HarfBuzz because FreeType is configured to require it" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Freetype REQUIRED)
+if(NOT TARGET Freetype::Freetype)
+    find_package(Freetype REQUIRED)
+endif()
 
 #----------------------------------------------------------------
 # Gathering File
@@ -123,67 +126,69 @@ endif()
 # Installation and exportation of the libraries
 #----------------------------------------------------------------
 
-include(CMakePackageConfigHelpers)
-set(MSDFGEN_CONFIG_PATH "lib/cmake/msdfgen")
+if(MSDFGEN_INSTALL)
+    include(CMakePackageConfigHelpers)
+    set(MSDFGEN_CONFIG_PATH "lib/cmake/msdfgen")
 
-# install tree package config
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY SameMajorVersion
-)
+    # install tree package config
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
 
-configure_package_config_file(
-	cmake/msdfgenConfig.cmake.in
-	${MSDFGEN_CONFIG_PATH}/msdfgenConfig.cmake
-	INSTALL_DESTINATION ${MSDFGEN_CONFIG_PATH}
-	NO_CHECK_REQUIRED_COMPONENTS_MACRO
-)
+    configure_package_config_file(
+        cmake/msdfgenConfig.cmake.in
+        ${MSDFGEN_CONFIG_PATH}/msdfgenConfig.cmake
+        INSTALL_DESTINATION ${MSDFGEN_CONFIG_PATH}
+        NO_CHECK_REQUIRED_COMPONENTS_MACRO
+    )
 
-# build tree package config
-configure_file(
-	cmake/msdfgenConfig.cmake.in
-	msdfgenConfig.cmake
-	@ONLY
-)
+    # build tree package config
+    configure_file(
+        cmake/msdfgenConfig.cmake.in
+        msdfgenConfig.cmake
+        @ONLY
+    )
 
-install(TARGETS msdfgen EXPORT msdfgenTargets
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	FRAMEWORK DESTINATION lib
-	PUBLIC_HEADER DESTINATION include/msdfgen/core
-)
+    install(TARGETS msdfgen EXPORT msdfgenTargets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        FRAMEWORK DESTINATION lib
+        PUBLIC_HEADER DESTINATION include/msdfgen/core
+    )
 
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
 
-install(TARGETS msdfgen-ext EXPORT msdfgenTargets
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	FRAMEWORK DESTINATION lib
-	PUBLIC_HEADER DESTINATION include/msdfgen/ext
-)
+    install(TARGETS msdfgen-ext EXPORT msdfgenTargets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        FRAMEWORK DESTINATION lib
+        PUBLIC_HEADER DESTINATION include/msdfgen/ext
+    )
 
-if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
-	install(TARGETS msdfgen-standalone EXPORT msdfgenTargets RUNTIME DESTINATION bin)
+    if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
+        install(TARGETS msdfgen-standalone EXPORT msdfgenTargets RUNTIME DESTINATION bin)
+    endif()
+
+    install(
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/${MSDFGEN_CONFIG_PATH}/msdfgenConfig.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
+        DESTINATION ${MSDFGEN_CONFIG_PATH}
+    )
+
+    export(
+        EXPORT msdfgenTargets
+        NAMESPACE msdfgen::
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/msdfgenTargets.cmake"
+    )
+
+    install(
+        EXPORT msdfgenTargets FILE msdfgenTargets.cmake
+        NAMESPACE msdfgen::
+        DESTINATION ${MSDFGEN_CONFIG_PATH}
+    )
 endif()
-
-install(
-	FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/${MSDFGEN_CONFIG_PATH}/msdfgenConfig.cmake"
-		"${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
-	DESTINATION ${MSDFGEN_CONFIG_PATH}
-)
-
-export(
-	EXPORT msdfgenTargets
-	NAMESPACE msdfgen::
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/msdfgenTargets.cmake"
-)
-
-install(
-	EXPORT msdfgenTargets FILE msdfgenTargets.cmake
-	NAMESPACE msdfgen::
-	DESTINATION ${MSDFGEN_CONFIG_PATH}
-)
