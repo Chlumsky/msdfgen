@@ -120,13 +120,13 @@ double LinearSegment::length() const {
 double QuadraticSegment::length() const {
     Vector2 ab = p[1]-p[0];
     Vector2 br = p[2]-p[1]-ab;
-    float abab = dotProduct(ab, ab);
-    float abbr = dotProduct(ab, br);
-    float brbr = dotProduct(br, br);
-    float abLen = sqrt(abab);
-    float brLen = sqrt(brbr);
-    float crs = crossProduct(ab, br);
-    float h = sqrt(abab+abbr+abbr+brbr);
+    double abab = dotProduct(ab, ab);
+    double abbr = dotProduct(ab, br);
+    double brbr = dotProduct(br, br);
+    double abLen = sqrt(abab);
+    double brLen = sqrt(brbr);
+    double crs = crossProduct(ab, br);
+    double h = sqrt(abab+abbr+abbr+brbr);
     return (
         brLen*((abbr+brbr)*h-abbr*abLen)+
         crs*crs*log((brLen*h+abbr+brbr)/(brLen*abLen+abbr))
@@ -171,10 +171,10 @@ SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) co
     }
     for (int i = 0; i < solutions; ++i) {
         if (t[i] > 0 && t[i] < 1) {
-            Point2 qe = p[0]+2*t[i]*ab+t[i]*t[i]*br-origin;
+            Point2 qe = qa+2*t[i]*ab+t[i]*t[i]*br;
             double distance = qe.length();
             if (distance <= fabs(minDistance)) {
-                minDistance = nonZeroSign(crossProduct(direction(t[i]), qe))*distance;
+                minDistance = nonZeroSign(crossProduct(ab+t[i]*br, qe))*distance;
                 param = t[i];
             }
         }
@@ -211,15 +211,15 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
         Vector2 qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
         for (int step = 0; step < MSDFGEN_CUBIC_SEARCH_STEPS; ++step) {
             // Improve t
-            Vector2 d1 = 3*as*t*t+6*br*t+3*ab;
-            Vector2 d2 = 6*as*t+6*br;
+            Vector2 d1 = 3*ab+6*t*br+3*t*t*as;
+            Vector2 d2 = 6*br+6*t*as;
             t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
             if (t <= 0 || t >= 1)
                 break;
             qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
             double distance = qe.length();
             if (distance < fabs(minDistance)) {
-                minDistance = nonZeroSign(crossProduct(direction(t), qe))*distance;
+                minDistance = nonZeroSign(crossProduct(d1, qe))*distance;
                 param = t;
             }
         }
