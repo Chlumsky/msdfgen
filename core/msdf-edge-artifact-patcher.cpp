@@ -42,13 +42,13 @@ static int findDiagonalChannelHotspots(double t[2], const float *a, const float 
     for (int i = 0; i < solutions; ++i)
         if (x[i] > 0 && x[i] < 1) {
             float am = median(a[0], a[1], a[2]);
-            float bm = median(b[0], b[1], b[2]);
+            float dm = median(d[0], d[1], d[2]);
             float xm = median(
                 mix(mix(a[0], b[0], x[i]), mix(c[0], d[0], x[i]), x[i]),
                 mix(mix(a[1], b[1], x[i]), mix(c[1], d[1], x[i]), x[i]),
                 mix(mix(a[2], b[2], x[i]), mix(c[2], d[2], x[i]), x[i])
             );
-            if (isHotspot(am, bm, xm))
+            if (isHotspot(am, dm, xm))
                 t[found++] = x[i];
         }
     return found;
