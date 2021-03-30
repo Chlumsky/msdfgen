@@ -1,5 +1,5 @@
 
-#include "msdf-edge-artifact-patcher.h"
+#include "msdf-artifact-patcher.h"
 
 #include <cstring>
 #include <vector>
@@ -118,14 +118,14 @@ void findHotspots(std::vector<Point2> &hotspots, const BitmapConstRef<float, N> 
 }
 
 template <template <typename> class ContourCombiner, int N>
-static void msdfPatchEdgeArtifactsInner(const BitmapRef<float, N> &sdf, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+static void msdfPatchArtifactsInner(const BitmapRef<float, N> &sdf, const Shape &shape, const Projection &projection, double range) {
     ShapeDistanceFinder<ContourCombiner<PseudoDistanceSelector> > distanceFinder(shape);
     std::vector<Point2> hotspots;
     findHotspots(hotspots, BitmapConstRef<float, N>(sdf));
     std::vector<std::pair<int, int> > artifacts;
     artifacts.reserve(hotspots.size());
     for (std::vector<Point2>::const_iterator hotspot = hotspots.begin(); hotspot != hotspots.end(); ++hotspot) {
-        Point2 pos = *hotspot/scale-translate;
+        Point2 pos = projection.unproject(*hotspot);
         double actualDistance = distanceFinder.distance(pos);
         float sd = float(actualDistance/range+.5);
 
@@ -157,18 +157,18 @@ static void msdfPatchEdgeArtifactsInner(const BitmapRef<float, N> &sdf, const Sh
     }
 }
 
-void msdfPatchEdgeArtifacts(const BitmapRef<float, 3> &sdf, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
-    if (overlapSupport)
-        msdfPatchEdgeArtifactsInner<OverlappingContourCombiner>(sdf, shape, range, scale, translate);
+void msdfPatchArtifacts(const BitmapRef<float, 3> &sdf, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &generatorConfig, const ArtifactPatcherConfig &config) {
+    if (generatorConfig.overlapSupport)
+        msdfPatchArtifactsInner<OverlappingContourCombiner>(sdf, shape, projection, range);
     else
-        msdfPatchEdgeArtifactsInner<SimpleContourCombiner>(sdf, shape, range, scale, translate);
+        msdfPatchArtifactsInner<SimpleContourCombiner>(sdf, shape, projection, range);
 }
 
-void msdfPatchEdgeArtifacts(const BitmapRef<float, 4> &sdf, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
-    if (overlapSupport)
-        msdfPatchEdgeArtifactsInner<OverlappingContourCombiner>(sdf, shape, range, scale, translate);
+void msdfPatchArtifacts(const BitmapRef<float, 4> &sdf, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &generatorConfig, const ArtifactPatcherConfig &config) {
+    if (generatorConfig.overlapSupport)
+        msdfPatchArtifactsInner<OverlappingContourCombiner>(sdf, shape, projection, range);
     else
-        msdfPatchEdgeArtifactsInner<SimpleContourCombiner>(sdf, shape, range, scale, translate);
+        msdfPatchArtifactsInner<SimpleContourCombiner>(sdf, shape, projection, range);
 }
 
 }

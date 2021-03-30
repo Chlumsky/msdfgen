@@ -5,7 +5,7 @@
 #include "edge-selectors.h"
 #include "contour-combiners.h"
 #include "ShapeDistanceFinder.h"
-#include "msdf-edge-artifact-patcher.h"
+#include "msdf-artifact-patcher.h"
 
 namespace msdfgen {
 
@@ -45,23 +45,21 @@ public:
 };
 
 template <class ContourCombiner>
-void generateDistanceField(const typename DistancePixelConversion<typename ContourCombiner::DistanceType>::BitmapRefType &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate) {
+void generateDistanceField(const typename DistancePixelConversion<typename ContourCombiner::DistanceType>::BitmapRefType &output, const Shape &shape, const Projection &projection, double range) {
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel
 #endif
     {
         ShapeDistanceFinder<ContourCombiner> distanceFinder(shape);
         bool rightToLeft = false;
-        Point2 p;
 #ifdef MSDFGEN_USE_OPENMP
         #pragma omp for
 #endif
         for (int y = 0; y < output.height; ++y) {
             int row = shape.inverseYAxis ? output.height-y-1 : y;
-            p.y = (y+.5)/scale.y-translate.y;
             for (int col = 0; col < output.width; ++col) {
                 int x = rightToLeft ? output.width-col-1 : col;
-                p.x = (x+.5)/scale.x-translate.x;
+                Point2 p = projection.unproject(Point2(x+.5, y+.5));
                 typename ContourCombiner::DistanceType distance = distanceFinder.distance(p);
                 DistancePixelConversion<typename ContourCombiner::DistanceType>::convert(output(x, row), distance, range);
             }
@@ -70,38 +68,56 @@ void generateDistanceField(const typename DistancePixelConversion<typename Conto
     }
 }
 
-void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
-    if (overlapSupport)
-        generateDistanceField<OverlappingContourCombiner<TrueDistanceSelector> >(output, shape, range, scale, translate);
+void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config) {
+    if (config.overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<TrueDistanceSelector> >(output, shape, projection, range);
     else
-        generateDistanceField<SimpleContourCombiner<TrueDistanceSelector> >(output, shape, range, scale, translate);
+        generateDistanceField<SimpleContourCombiner<TrueDistanceSelector> >(output, shape, projection, range);
+}
+
+void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config) {
+    if (config.overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<PseudoDistanceSelector> >(output, shape, projection, range);
+    else
+        generateDistanceField<SimpleContourCombiner<PseudoDistanceSelector> >(output, shape, projection, range);
+}
+
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config, const ArtifactPatcherConfig &artifactPatcherConfig) {
+    if (config.overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<MultiDistanceSelector> >(output, shape, projection, range);
+    else
+        generateDistanceField<SimpleContourCombiner<MultiDistanceSelector> >(output, shape, projection, range);
+    if (artifactPatcherConfig.minImproveRatio > 0) // TEMPORARILY SERVES AS ERROR CORRECTION THRESHOLD
+        msdfErrorCorrection(output, artifactPatcherConfig.minImproveRatio, projection, range);
+    msdfPatchArtifacts(output, shape, projection, range, config, artifactPatcherConfig);
+}
+
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config, const ArtifactPatcherConfig &artifactPatcherConfig) {
+    if (config.overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, projection, range);
+    else
+        generateDistanceField<SimpleContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, projection, range);
+    if (artifactPatcherConfig.minImproveRatio > 0) // TEMPORARILY SERVES AS ERROR CORRECTION THRESHOLD
+        msdfErrorCorrection(output, artifactPatcherConfig.minImproveRatio, projection, range);
+    msdfPatchArtifacts(output, shape, projection, range, config, artifactPatcherConfig);
+}
+
+// Legacy API
+
+void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
+    generateSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport));
 }
 
 void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport) {
-    if (overlapSupport)
-        generateDistanceField<OverlappingContourCombiner<PseudoDistanceSelector> >(output, shape, range, scale, translate);
-    else
-        generateDistanceField<SimpleContourCombiner<PseudoDistanceSelector> >(output, shape, range, scale, translate);
+    generatePseudoSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport));
 }
 
-void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold, bool overlapSupport) {
-    if (overlapSupport)
-        generateDistanceField<OverlappingContourCombiner<MultiDistanceSelector> >(output, shape, range, scale, translate);
-    else
-        generateDistanceField<SimpleContourCombiner<MultiDistanceSelector> >(output, shape, range, scale, translate);
-    if (edgeThreshold > 0)
-        msdfErrorCorrection(output, edgeThreshold/(scale*range));
-    msdfPatchEdgeArtifacts(output, shape, range, scale, translate, overlapSupport);
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorMinImproveRatio, bool overlapSupport) {
+    generateMSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport), ArtifactPatcherConfig(ArtifactPatcherConfig::EDGE_PRIORITY, errorMinImproveRatio));
 }
 
-void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold, bool overlapSupport) {
-    if (overlapSupport)
-        generateDistanceField<OverlappingContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, range, scale, translate);
-    else
-        generateDistanceField<SimpleContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, range, scale, translate);
-    if (edgeThreshold > 0)
-        msdfErrorCorrection(output, edgeThreshold/(scale*range));
-    msdfPatchEdgeArtifacts(output, shape, range, scale, translate, overlapSupport);
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorMinImproveRatio, bool overlapSupport) {
+    generateMTSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport), ArtifactPatcherConfig(ArtifactPatcherConfig::EDGE_PRIORITY, errorMinImproveRatio));
 }
 
 // Legacy version

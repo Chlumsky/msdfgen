@@ -117,11 +117,17 @@
     <ClInclude Include="core\msdf-error-correction.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="core\msdf-edge-artifact-patcher.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="ext\resolve-shape-geometry.h">
       <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="core\Projection.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\msdf-artifact-patcher.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\generator-config.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -200,11 +206,14 @@
     <ClCompile Include="core\msdf-error-correction.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="core\msdf-edge-artifact-patcher.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="ext\resolve-shape-geometry.cpp">
       <Filter>Extensions</Filter>
+    </ClCompile>
+    <ClCompile Include="core\msdf-artifact-patcher.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\Projection.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

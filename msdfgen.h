@@ -17,6 +17,7 @@
 
 #include "core/arithmetics.hpp"
 #include "core/Vector2.h"
+#include "core/Projection.h"
 #include "core/Scanline.h"
 #include "core/Shape.h"
 #include "core/BitmapRef.hpp"
@@ -24,6 +25,7 @@
 #include "core/bitmap-interpolation.hpp"
 #include "core/pixel-conversion.hpp"
 #include "core/edge-coloring.h"
+#include "core/generator-config.h"
 #include "core/msdf-error-correction.h"
 #include "core/render-sdf.h"
 #include "core/rasterization.h"
@@ -37,16 +39,22 @@
 namespace msdfgen {
 
 /// Generates a conventional single-channel signed distance field.
-void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
+void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config = GeneratorConfig());
 
 /// Generates a single-channel signed pseudo-distance field.
-void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
+void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config = GeneratorConfig());
 
 /// Generates a multi-channel signed distance field. Edge colors must be assigned first! (See edgeColoringSimple)
-void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD, bool overlapSupport = true);
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config = GeneratorConfig(), const ArtifactPatcherConfig &artifactPatcherConfig = ArtifactPatcherConfig());
 
 /// Generates a multi-channel signed distance field with true distance in the alpha channel. Edge colors must be assigned first.
-void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD, bool overlapSupport = true);
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config = GeneratorConfig(), const ArtifactPatcherConfig &artifactPatcherConfig = ArtifactPatcherConfig());
+
+// Old version of the function API's kept for backwards compatibility
+void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
+void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorMinImproveRatio = MSDFGEN_DEFAULT_ARTIFACT_PATCHER_MIN_IMPROVE_RATIO, bool overlapSupport = true);
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorMinImproveRatio = MSDFGEN_DEFAULT_ARTIFACT_PATCHER_MIN_IMPROVE_RATIO, bool overlapSupport = true);
 
 // Original simpler versions of the previous functions, which work well under normal circumstances, but cannot deal with overlapping contours.
 void generateSDF_legacy(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate);

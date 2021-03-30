@@ -74,4 +74,11 @@ void msdfErrorCorrection(const BitmapRef<float, 4> &output, const Vector2 &thres
     msdfErrorCorrectionInner(output, threshold);
 }
 
+void msdfErrorCorrection(const BitmapRef<float, 3> &output, double threshold, const Projection &projection, double range) {
+    msdfErrorCorrectionInner(output, projection.unprojectVector(Vector2(threshold/range)));
+}
+void msdfErrorCorrection(const BitmapRef<float, 4> &output, double threshold, const Projection &projection, double range) {
+    msdfErrorCorrectionInner(output, projection.unprojectVector(Vector2(threshold/range)));
+}
+
 }

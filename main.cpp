@@ -398,7 +398,8 @@ int main(int argc, const char * const *argv) {
             false
         #endif
     );
-    bool overlapSupport = !geometryPreproc;
+    GeneratorConfig generatorConfig;
+    generatorConfig.overlapSupport = !geometryPreproc;
     bool scanlinePass = !geometryPreproc;
     FillRule fillRule = FILL_NONZERO;
     Format format = AUTO;
@@ -427,6 +428,7 @@ int main(int argc, const char * const *argv) {
     bool scaleSpecified = false;
     double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
     double errorCorrectionThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
+    ArtifactPatcherConfig artifactPatcherConfig;
     float outputDistanceShift = 0.f;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -524,12 +526,12 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-nooverlap", 0) {
-            overlapSupport = false;
+            generatorConfig.overlapSupport = false;
             argPos += 1;
             continue;
         }
         ARG_CASE("-overlap", 0) {
-            overlapSupport = true;
+            generatorConfig.overlapSupport = true;
             argPos += 1;
             continue;
         }
@@ -879,16 +881,18 @@ int main(int argc, const char * const *argv) {
     }
 
     // Compute output
+    Projection projection(scale, translate);
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
+    artifactPatcherConfig.minImproveRatio = errorCorrectionThreshold; // TEMPORARILY SERVES AS ERROR CORRECTION THRESHOLD
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float, 1>(width, height);
             if (legacyMode)
                 generateSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generateSDF(sdf, shape, range, scale, translate, overlapSupport);
+                generateSDF(sdf, shape, projection, range, generatorConfig);
             break;
         }
         case PSEUDO: {
@@ -896,7 +900,7 @@ int main(int argc, const char * const *argv) {
             if (legacyMode)
                 generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generatePseudoSDF(sdf, shape, range, scale, translate, overlapSupport);
+                generatePseudoSDF(sdf, shape, projection, range, generatorConfig);
             break;
         }
         case MULTI: {
@@ -908,7 +912,7 @@ int main(int argc, const char * const *argv) {
             if (legacyMode)
                 generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
             else
-                generateMSDF(msdf, shape, range, scale, translate, errorCorrectionThreshold, overlapSupport);
+                generateMSDF(msdf, shape, projection, range, generatorConfig, artifactPatcherConfig);
             break;
         }
         case MULTI_AND_TRUE: {
@@ -920,7 +924,7 @@ int main(int argc, const char * const *argv) {
             if (legacyMode)
                 generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
             else
-                generateMTSDF(mtsdf, shape, range, scale, translate, errorCorrectionThreshold, overlapSupport);
+                generateMTSDF(mtsdf, shape, projection, range, generatorConfig, artifactPatcherConfig);
             break;
         }
         default:;
@@ -951,15 +955,15 @@ int main(int argc, const char * const *argv) {
         switch (mode) {
             case SINGLE:
             case PSEUDO:
-                distanceSignCorrection(sdf, shape, scale, translate, fillRule);
+                distanceSignCorrection(sdf, shape, projection, fillRule);
                 break;
             case MULTI:
-                distanceSignCorrection(msdf, shape, scale, translate, fillRule);
+                distanceSignCorrection(msdf, shape, projection, fillRule);
                 if (errorCorrectionThreshold > 0)
                     msdfErrorCorrection(msdf, errorCorrectionThreshold/(scale*range));
                 break;
             case MULTI_AND_TRUE:
-                distanceSignCorrection(mtsdf, shape, scale, translate, fillRule);
+                distanceSignCorrection(mtsdf, shape, projection, fillRule);
                 if (errorCorrectionThreshold > 0)
                     msdfErrorCorrection(mtsdf, errorCorrectionThreshold/(scale*range));
                 break;
@@ -1007,7 +1011,7 @@ int main(int argc, const char * const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(sdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(sdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(sdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
@@ -1030,7 +1034,7 @@ int main(int argc, const char * const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(msdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(msdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(msdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
@@ -1053,7 +1057,7 @@ int main(int argc, const char * const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(mtsdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(mtsdf, shape, scale, translate, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(mtsdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
