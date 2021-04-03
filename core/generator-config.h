@@ -17,9 +17,13 @@ struct GeneratorConfig {
 struct ArtifactPatcherConfig {
     /// The mode of operation.
     enum Mode {
+        /// Skips artifact patcher pass.
         DISABLED,
+        /// Patches all discontinuities of the distance field regardless if edges are adversely affected.
         INDISCRIMINATE,
+        /// Patches artifacts at edges and other discontinuous distances only if it does not affect edges or corners.
         EDGE_PRIORITY,
+        /// Only patches artifacts at edges, may be significantly faster than the other modes.
         EDGE_ONLY
     } mode;
     /// The minimum ratio of improvement required to patch a pixel. Must be greater than or equal to 1.

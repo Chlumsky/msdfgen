@@ -341,6 +341,8 @@ static const char *helpText =
     "  -overlap\n"
         "\tSwitches to distance field generator with support for overlapping contours.\n"
 #endif
+    "  -patchartifacts <balanced / edge / distance / none>\n"
+        "\tSelects the strategy used to patch the MSDF to prevent interpolation artifacts.\n"
     "  -printmetrics\n"
         "\tPrints relevant metrics of the shape to the standard output.\n"
     "  -pxrange <range>\n"
@@ -636,6 +638,16 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-patchartifacts", 1) {
+            if (!strcmp(argv[argPos+1], "none") || !strcmp(argv[argPos+1], "disabled")) artifactPatcherConfig.mode = ArtifactPatcherConfig::DISABLED;
+            else if (!strcmp(argv[argPos+1], "distance") || !strcmp(argv[argPos+1], "indiscriminate") || !strcmp(argv[argPos+1], "all")) artifactPatcherConfig.mode = ArtifactPatcherConfig::INDISCRIMINATE;
+            else if (!strcmp(argv[argPos+1], "balanced") || !strcmp(argv[argPos+1], "edgepriority") || !strcmp(argv[argPos+1], "auto")) artifactPatcherConfig.mode = ArtifactPatcherConfig::EDGE_PRIORITY;
+            else if (!strcmp(argv[argPos+1], "edge") || !strcmp(argv[argPos+1], "edgeonly") || !strcmp(argv[argPos+1], "fast")) artifactPatcherConfig.mode = ArtifactPatcherConfig::EDGE_ONLY;
+            else
+                puts("Unknown artifact patcher strategy specified.");
+            argPos += 2;
+            continue;
+        }
         ARG_CASE("-errorcorrection", 1) {
             double ect;
             if (!parseDouble(ect, argv[argPos+1]) && (ect >= 1 || ect == 0))
@@ -885,7 +897,7 @@ int main(int argc, const char * const *argv) {
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
-    artifactPatcherConfig.minImproveRatio = errorCorrectionThreshold; // TEMPORARILY SERVES AS ERROR CORRECTION THRESHOLD
+    artifactPatcherConfig.minImproveRatio = errorCorrectionThreshold; // TEMPORARY
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float, 1>(width, height);
