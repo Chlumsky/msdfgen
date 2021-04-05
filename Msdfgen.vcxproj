@@ -466,9 +466,9 @@
     <ClInclude Include="core\equation-solver.h" />
     <ClInclude Include="core\generator-config.h" />
     <ClInclude Include="core\msdf-error-correction.h" />
+    <ClInclude Include="core\MSDFErrorCorrection.h" />
     <ClInclude Include="core\Projection.h" />
     <ClInclude Include="core\sdf-error-estimation.h" />
-    <ClInclude Include="core\msdf-artifact-patcher.h" />
     <ClInclude Include="core\pixel-conversion.hpp" />
     <ClInclude Include="core\rasterization.h" />
     <ClInclude Include="core\render-sdf.h" />
@@ -498,9 +498,9 @@
     <ClCompile Include="core\EdgeHolder.cpp" />
     <ClCompile Include="core\equation-solver.cpp" />
     <ClCompile Include="core\msdf-error-correction.cpp" />
+    <ClCompile Include="core\MSDFErrorCorrection.cpp" />
     <ClCompile Include="core\Projection.cpp" />
     <ClCompile Include="core\sdf-error-estimation.cpp" />
-    <ClCompile Include="core\msdf-artifact-patcher.cpp" />
     <ClCompile Include="core\rasterization.cpp" />
     <ClCompile Include="core\render-sdf.cpp" />
     <ClCompile Include="core\save-bmp.cpp" />

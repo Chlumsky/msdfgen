@@ -427,8 +427,7 @@ int main(int argc, const char * const *argv) {
     Vector2 scale = 1;
     bool scaleSpecified = false;
     double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
-    double errorCorrectionThreshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD;
-    ArtifactPatcherConfig artifactPatcherConfig;
+    ErrorCorrectionConfig errorCorrectionConfig;
     float outputDistanceShift = 0.f;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -640,7 +639,10 @@ int main(int argc, const char * const *argv) {
             double ect;
             if (!parseDouble(ect, argv[argPos+1]) && (ect >= 1 || ect == 0))
                 ABORT("Invalid error correction threshold. Use -errorcorrection <threshold> with a real number greater than or equal to 1 or 0 to disable.");
-            errorCorrectionThreshold = ect;
+            if (ect <= 0)
+                errorCorrectionConfig.mode = ErrorCorrectionConfig::DISABLED;
+            else
+                errorCorrectionConfig.threshold = ect;
             argPos += 2;
             continue;
         }
@@ -885,7 +887,9 @@ int main(int argc, const char * const *argv) {
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
-    artifactPatcherConfig.minImproveRatio = errorCorrectionThreshold; // TEMPORARILY SERVES AS ERROR CORRECTION THRESHOLD
+    ErrorCorrectionConfig initialErrorCorrectionConfig(errorCorrectionConfig);
+    if (scanlinePass)
+        initialErrorCorrectionConfig.mode = ErrorCorrectionConfig::DISABLED;
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float, 1>(width, height);
@@ -910,9 +914,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<float, 3>(width, height);
             if (legacyMode)
-                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
+                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass || errorCorrectionConfig.mode == ErrorCorrectionConfig::DISABLED ? 0 : errorCorrectionConfig.threshold);
             else
-                generateMSDF(msdf, shape, projection, range, generatorConfig, artifactPatcherConfig);
+                generateMSDF(msdf, shape, projection, range, generatorConfig, initialErrorCorrectionConfig);
             break;
         }
         case MULTI_AND_TRUE: {
@@ -922,9 +926,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             mtsdf = Bitmap<float, 4>(width, height);
             if (legacyMode)
-                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass ? 0 : errorCorrectionThreshold);
+                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass || errorCorrectionConfig.mode == ErrorCorrectionConfig::DISABLED ? 0 : errorCorrectionConfig.threshold);
             else
-                generateMTSDF(mtsdf, shape, projection, range, generatorConfig, artifactPatcherConfig);
+                generateMTSDF(mtsdf, shape, projection, range, generatorConfig, initialErrorCorrectionConfig);
             break;
         }
         default:;
@@ -959,13 +963,11 @@ int main(int argc, const char * const *argv) {
                 break;
             case MULTI:
                 distanceSignCorrection(msdf, shape, projection, fillRule);
-                if (errorCorrectionThreshold > 0)
-                    msdfErrorCorrection(msdf, errorCorrectionThreshold/(scale*range));
+                msdfErrorCorrection(msdf, shape, projection, range, errorCorrectionConfig);
                 break;
             case MULTI_AND_TRUE:
                 distanceSignCorrection(mtsdf, shape, projection, fillRule);
-                if (errorCorrectionThreshold > 0)
-                    msdfErrorCorrection(mtsdf, errorCorrectionThreshold/(scale*range));
+                msdfErrorCorrection(msdf, shape, projection, range, errorCorrectionConfig);
                 break;
             default:;
         }

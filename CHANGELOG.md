@@ -57,13 +57,13 @@
 ## Version 1.3 (2016-12-07)
 
 - Fixed `-reverseorder` switch.
-- Fixed glyph loading to use the proper method of acquiring the outlines from FreeType.
+- Fixed glyph loading to use the proper method of acquiring outlines from FreeType.
 
 ## Version 1.2 (2016-07-20)
 
 - Added option to specify that shape vertices are listed in reverse order (`-reverseorder`).
 - Added option to set a seed for the edge coloring heuristic (-seed \<n\>), which can be used to adjust the output.
-- Fixed parsing of glyph contours starting that start with a curve control point.
+- Fixed parsing of glyph contours that start with a curve control point.
 
 ## Version 1.1 (2016-05-08)
 

@@ -1,7 +1,9 @@
 
 #pragma once
 
-#define MSDFGEN_DEFAULT_ARTIFACT_PATCHER_MIN_IMPROVE_RATIO 1.001
+#include <cstdlib>
+
+#define MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD 1.001
 
 namespace msdfgen {
 
@@ -13,19 +15,25 @@ struct GeneratorConfig {
     inline explicit GeneratorConfig(bool overlapSupport = true) : overlapSupport(overlapSupport) { }
 };
 
-/// The configuration of the artifact patcher that processes the generated MSDF and fixes potential interpolation errors.
-struct ArtifactPatcherConfig {
-    /// The mode of operation.
+/// The configuration of the MSDF error correction pass.
+struct ErrorCorrectionConfig {
+    /// Mode of operation.
     enum Mode {
+        /// Skips error correction pass.
         DISABLED,
+        /// Corrects all discontinuities of the distance field regardless if edges are adversely affected.
         INDISCRIMINATE,
+        /// Corrects artifacts at edges and other discontinuous distances only if it does not affect edges or corners.
         EDGE_PRIORITY,
+        /// Only corrects artifacts at edges.
         EDGE_ONLY
     } mode;
-    /// The minimum ratio of improvement required to patch a pixel. Must be greater than or equal to 1.
-    double minImproveRatio;
+    /// The minimum ratio between the actual and maximum expected distance delta to be considered an error.
+    double threshold;
+    /// An optional buffer to avoid dynamic allocation. Must have at least as many bytes as the MSDF has pixels.
+    byte *buffer;
 
-    inline explicit ArtifactPatcherConfig(Mode mode = EDGE_PRIORITY, double minImproveRatio = MSDFGEN_DEFAULT_ARTIFACT_PATCHER_MIN_IMPROVE_RATIO) : mode(mode), minImproveRatio(minImproveRatio) { }
+    inline explicit ErrorCorrectionConfig(Mode mode = EDGE_PRIORITY, double threshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD, byte *buffer = NULL) : mode(mode), threshold(threshold), buffer(buffer) { }
 };
 
 }

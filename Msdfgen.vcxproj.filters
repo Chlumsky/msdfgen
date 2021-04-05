@@ -123,10 +123,10 @@
     <ClInclude Include="core\Projection.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="core\msdf-artifact-patcher.h">
+    <ClInclude Include="core\generator-config.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="core\generator-config.h">
+    <ClInclude Include="core\MSDFErrorCorrection.h">
       <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -209,10 +209,10 @@
     <ClCompile Include="ext\resolve-shape-geometry.cpp">
       <Filter>Extensions</Filter>
     </ClCompile>
-    <ClCompile Include="core\msdf-artifact-patcher.cpp">
+    <ClCompile Include="core\Projection.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="core\Projection.cpp">
+    <ClCompile Include="core\MSDFErrorCorrection.cpp">
       <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>

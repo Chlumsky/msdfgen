@@ -3,18 +3,26 @@
 
 #include "Vector2.h"
 #include "Projection.h"
+#include "Shape.h"
 #include "BitmapRef.hpp"
-
-#define MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD 1.001
+#include "generator-config.h"
 
 namespace msdfgen {
 
-/// Attempts to patch multi-channel signed distance field values that may cause interpolation artifacts. (Already called by generateMSDF)
-void msdfErrorCorrection(const BitmapRef<float, 3> &output, const Vector2 &threshold);
-void msdfErrorCorrection(const BitmapRef<float, 4> &output, const Vector2 &threshold);
+/// Predicts potential artifacts caused by the interpolation of the MSDF and corrects them by converting nearby texels to single-channel.
+void msdfErrorCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Projection &projection, double range, const ErrorCorrectionConfig &config = ErrorCorrectionConfig());
+void msdfErrorCorrection(const BitmapRef<float, 4> &sdf, const Shape &shape, const Projection &projection, double range, const ErrorCorrectionConfig &config = ErrorCorrectionConfig());
 
-// Alternate API - threshold specified in pixels
-void msdfErrorCorrection(const BitmapRef<float, 3> &output, double threshold, const Projection &projection, double range);
-void msdfErrorCorrection(const BitmapRef<float, 4> &output, double threshold, const Projection &projection, double range);
+/// Applies the error correction to all discontiunous distances (INDISCRIMINATE mode). Does not need shape or translation.
+void msdfDistanceErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, double range, double threshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
+void msdfDistanceErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, double range, double threshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
+
+/// Applies the error correction to edges only (EDGE_ONLY mode). Does not need shape or translation.
+void msdfEdgeErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, double range, double threshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
+void msdfEdgeErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, double range, double threshold = MSDFGEN_DEFAULT_ERROR_CORRECTION_THRESHOLD);
+
+/// The original version of the error correction algorithm.
+void msdfErrorCorrection_legacy(const BitmapRef<float, 3> &output, const Vector2 &threshold);
+void msdfErrorCorrection_legacy(const BitmapRef<float, 4> &output, const Vector2 &threshold);
 
 }
