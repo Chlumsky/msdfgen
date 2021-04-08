@@ -6,6 +6,7 @@
 
 namespace msdfgen {
 
+typedef unsigned char byte;
 typedef unsigned unicode_t;
 
 class FreetypeHandle;
@@ -46,6 +47,8 @@ FontHandle * adoptFreetypeFont(FT_Face ftFace);
 #endif
 /// Loads a font file and returns its handle.
 FontHandle * loadFont(FreetypeHandle *library, const char *filename);
+/// Loads a font from binary data and returns its handle.
+FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
 /// Unloads a font file.
 void destroyFont(FontHandle *font);
 /// Outputs the metrics of a font file.

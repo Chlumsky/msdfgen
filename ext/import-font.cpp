@@ -20,6 +20,7 @@ class FreetypeHandle {
     friend FreetypeHandle * initializeFreetype();
     friend void deinitializeFreetype(FreetypeHandle *library);
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
+    friend FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
 
     FT_Library library;
 
@@ -28,6 +29,7 @@ class FreetypeHandle {
 class FontHandle {
     friend FontHandle * adoptFreetypeFont(FT_Face ftFace);
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
+    friend FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
     friend void destroyFont(FontHandle *font);
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
@@ -121,6 +123,19 @@ FontHandle * loadFont(FreetypeHandle *library, const char *filename) {
         return NULL;
     FontHandle *handle = new FontHandle;
     FT_Error error = FT_New_Face(library->library, filename, 0, &handle->face);
+    if (error) {
+        delete handle;
+        return NULL;
+    }
+    handle->ownership = true;
+    return handle;
+}
+
+FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length) {
+    if (!library)
+        return NULL;
+    FontHandle *handle = new FontHandle;
+    FT_Error error = FT_New_Memory_Face(library->library, data, length, 0, &handle->face);
     if (error) {
         delete handle;
         return NULL;
