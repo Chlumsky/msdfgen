@@ -310,8 +310,12 @@ static const char *helpText =
         "\tShifts all normalized distances in the output distance field by this value.\n"
     "  -edgecolors <sequence>\n"
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
-    "  -errorcorrection <threshold>\n"
-        "\tChanges the threshold used to detect and correct potential artifacts. 0 disables error correction.\n"
+    "  -errorcorrection <mode>\n"
+        "\tChanges the MSDF/MTSDF error correction mode. Use -errorcorrection help for a list of valid modes.\n"
+    "  -errordeviationratio <ratio>\n"
+        "\tSets the minimum ratio between the actual and maximum expected distance delta to be considered an error.\n"
+    "  -errorimproveratio <ratio>\n"
+        "\tSets the minimum ratio between the pre-correction distance error and the post-correction distance error.\n"
     "  -estimateerror\n"
         "\tComputes and prints the distance field's estimated fill error to the standard output.\n"
     "  -exportshape <filename.txt>\n"
@@ -371,6 +375,29 @@ static const char *helpText =
         "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
     "\n";
 
+static const char *errorCorrectionHelpText =
+    "\n"
+    "ERROR CORRECTION MODES\n"
+    "  auto-fast\n"
+        "\tDetects inversion artifacts and distance errors that do not affect edges by range testing.\n"
+    "  auto-full\n"
+        "\tDetects inversion artifacts and distance errors that do not affect edges by exact distance evaluation.\n"
+    "  auto-mixed (default)\n"
+        "\tDetects inversions by distance evaluation and distance errors that do not affect edges by range testing.\n"
+    "  disabled\n"
+        "\tDisables error correction.\n"
+    "  distance-fast\n"
+        "\tDetects distance errors by range testing. Does not care if edges and corners are affected.\n"
+    "  distance-full\n"
+        "\tDetects distance errors by exact distance evaluation. Does not care if edges and corners are affected, slow.\n"
+    "  edge-fast\n"
+        "\tDetects inversion artifacts only by range testing.\n"
+    "  edge-full\n"
+        "\tDetects inversion artifacts only by exact distance evaluation.\n"
+    "  help\n"
+        "\tDisplays this help.\n"
+    "\n";
+
 int main(int argc, const char * const *argv) {
     #define ABORT(msg) { puts(msg); return 1; }
 
@@ -398,7 +425,7 @@ int main(int argc, const char * const *argv) {
             false
         #endif
     );
-    GeneratorConfig generatorConfig;
+    MSDFGeneratorConfig generatorConfig;
     generatorConfig.overlapSupport = !geometryPreproc;
     bool scanlinePass = !geometryPreproc;
     FillRule fillRule = FILL_NONZERO;
@@ -427,7 +454,6 @@ int main(int argc, const char * const *argv) {
     Vector2 scale = 1;
     bool scaleSpecified = false;
     double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
-    ErrorCorrectionConfig errorCorrectionConfig;
     float outputDistanceShift = 0.f;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -441,6 +467,7 @@ int main(int argc, const char * const *argv) {
     } orientation = KEEP;
     unsigned long long coloringSeed = 0;
     void (*edgeColoring)(Shape &, double, unsigned long long) = edgeColoringSimple;
+    bool explicitErrorCorrectionMode = false;
 
     int argPos = 1;
     bool suggestHelp = false;
@@ -572,7 +599,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-size", 2) {
             unsigned w, h;
-            if (!parseUnsigned(w, argv[argPos+1]) || !parseUnsigned(h, argv[argPos+2]) || !w || !h)
+            if (!(parseUnsigned(w, argv[argPos+1]) && parseUnsigned(h, argv[argPos+2]) && w && h))
                 ABORT("Invalid size arguments. Use -size <width> <height> with two positive integers.");
             width = w, height = h;
             argPos += 3;
@@ -585,7 +612,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-range", 1) {
             double r;
-            if (!parseDouble(r, argv[argPos+1]) || r < 0)
+            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
                 ABORT("Invalid range argument. Use -range <range> with a positive real number.");
             rangeMode = RANGE_UNIT;
             range = r;
@@ -594,7 +621,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-pxrange", 1) {
             double r;
-            if (!parseDouble(r, argv[argPos+1]) || r < 0)
+            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
                 ABORT("Invalid range argument. Use -pxrange <range> with a positive real number.");
             rangeMode = RANGE_PX;
             pxRange = r;
@@ -603,7 +630,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-scale", 1) {
             double s;
-            if (!parseDouble(s, argv[argPos+1]) || s <= 0)
+            if (!(parseDouble(s, argv[argPos+1]) && s > 0))
                 ABORT("Invalid scale argument. Use -scale <scale> with a positive real number.");
             scale = s;
             scaleSpecified = true;
@@ -612,7 +639,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-ascale", 2) {
             double sx, sy;
-            if (!parseDouble(sx, argv[argPos+1]) || !parseDouble(sy, argv[argPos+2]) || sx <= 0 || sy <= 0)
+            if (!(parseDouble(sx, argv[argPos+1]) && parseDouble(sy, argv[argPos+2]) && sx > 0 && sy > 0))
                 ABORT("Invalid scale arguments. Use -ascale <x> <y> with two positive real numbers.");
             scale.set(sx, sy);
             scaleSpecified = true;
@@ -621,7 +648,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-translate", 2) {
             double tx, ty;
-            if (!parseDouble(tx, argv[argPos+1]) || !parseDouble(ty, argv[argPos+2]))
+            if (!(parseDouble(tx, argv[argPos+1]) && parseDouble(ty, argv[argPos+2])))
                 ABORT("Invalid translate arguments. Use -translate <x> <y> with two real numbers.");
             translate.set(tx, ty);
             argPos += 3;
@@ -636,13 +663,52 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-errorcorrection", 1) {
-            double ect;
-            if (!parseDouble(ect, argv[argPos+1]) && (ect >= 1 || ect == 0))
-                ABORT("Invalid error correction threshold. Use -errorcorrection <threshold> with a real number greater than or equal to 1 or 0 to disable.");
-            if (ect <= 0)
-                errorCorrectionConfig.mode = ErrorCorrectionConfig::DISABLED;
-            else
-                errorCorrectionConfig.threshold = ect;
+            if (!strcmp(argv[argPos+1], "disabled") || !strcmp(argv[argPos+1], "0") || !strcmp(argv[argPos+1], "none")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "default") || !strcmp(argv[argPos+1], "auto") || !strcmp(argv[argPos+1], "auto-mixed") || !strcmp(argv[argPos+1], "mixed")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::CHECK_DISTANCE_AT_EDGE;
+            } else if (!strcmp(argv[argPos+1], "auto-fast") || !strcmp(argv[argPos+1], "fast")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "auto-full") || !strcmp(argv[argPos+1], "full")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "distance") || !strcmp(argv[argPos+1], "distance-fast") || !strcmp(argv[argPos+1], "indiscriminate") || !strcmp(argv[argPos+1], "indiscriminate-fast")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::INDISCRIMINATE;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "distance-full") || !strcmp(argv[argPos+1], "indiscriminate-full")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::INDISCRIMINATE;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "edge-fast")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_ONLY;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "edge") || !strcmp(argv[argPos+1], "edge-full")) {
+                generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_ONLY;
+                generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
+            } else if (!strcmp(argv[argPos+1], "help")) {
+                puts(errorCorrectionHelpText);
+                return 0;
+            } else
+                puts("Unknown error correction mode. Use -errorcorrection help for more information.");
+            explicitErrorCorrectionMode = true;
+            argPos += 2;
+            continue;
+        }
+        ARG_CASE("-errordeviationratio", 1) {
+            double edr;
+            if (!(parseDouble(edr, argv[argPos+1]) && edr > 0))
+                ABORT("Invalid error deviation ratio. Use -errordeviationratio <ratio> with a positive real number.");
+            generatorConfig.errorCorrection.minDeviationRatio = edr;
+            argPos += 2;
+            continue;
+        }
+        ARG_CASE("-errorimproveratio", 1) {
+            double eir;
+            if (!(parseDouble(eir, argv[argPos+1]) && eir > 0))
+                ABORT("Invalid error improvement ratio. Use -errorimproveratio <ratio> with a positive real number.");
+            generatorConfig.errorCorrection.minImproveRatio = eir;
             argPos += 2;
             continue;
         }
@@ -887,9 +953,21 @@ int main(int argc, const char * const *argv) {
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
-    ErrorCorrectionConfig initialErrorCorrectionConfig(errorCorrectionConfig);
-    if (scanlinePass)
-        initialErrorCorrectionConfig.mode = ErrorCorrectionConfig::DISABLED;
+    MSDFGeneratorConfig postErrorCorrectionConfig(generatorConfig);
+    if (scanlinePass) {
+        if (explicitErrorCorrectionMode && generatorConfig.errorCorrection.distanceCheckMode != ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE) {
+            const char *fallbackModeName = "unknown";
+            switch (generatorConfig.errorCorrection.mode) {
+                case ErrorCorrectionConfig::DISABLED: fallbackModeName = "disabled"; break;
+                case ErrorCorrectionConfig::INDISCRIMINATE: fallbackModeName = "distance-fast"; break;
+                case ErrorCorrectionConfig::EDGE_PRIORITY: fallbackModeName = "auto-fast"; break;
+                case ErrorCorrectionConfig::EDGE_ONLY: fallbackModeName = "edge-fast"; break;
+            }
+            printf("Selected error correction mode not compatible with scanline mode, falling back to %s.\n", fallbackModeName);
+        }
+        generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
+        postErrorCorrectionConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+    }
     switch (mode) {
         case SINGLE: {
             sdf = Bitmap<float, 1>(width, height);
@@ -914,9 +992,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<float, 3>(width, height);
             if (legacyMode)
-                generateMSDF_legacy(msdf, shape, range, scale, translate, scanlinePass || errorCorrectionConfig.mode == ErrorCorrectionConfig::DISABLED ? 0 : errorCorrectionConfig.threshold);
+                generateMSDF_legacy(msdf, shape, range, scale, translate, generatorConfig.errorCorrection);
             else
-                generateMSDF(msdf, shape, projection, range, generatorConfig, initialErrorCorrectionConfig);
+                generateMSDF(msdf, shape, projection, range, generatorConfig);
             break;
         }
         case MULTI_AND_TRUE: {
@@ -926,9 +1004,9 @@ int main(int argc, const char * const *argv) {
                 parseColoring(shape, edgeAssignment);
             mtsdf = Bitmap<float, 4>(width, height);
             if (legacyMode)
-                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, scanlinePass || errorCorrectionConfig.mode == ErrorCorrectionConfig::DISABLED ? 0 : errorCorrectionConfig.threshold);
+                generateMTSDF_legacy(mtsdf, shape, range, scale, translate, generatorConfig.errorCorrection);
             else
-                generateMTSDF(mtsdf, shape, projection, range, generatorConfig, initialErrorCorrectionConfig);
+                generateMTSDF(mtsdf, shape, projection, range, generatorConfig);
             break;
         }
         default:;
@@ -963,11 +1041,11 @@ int main(int argc, const char * const *argv) {
                 break;
             case MULTI:
                 distanceSignCorrection(msdf, shape, projection, fillRule);
-                msdfErrorCorrection(msdf, shape, projection, range, errorCorrectionConfig);
+                msdfErrorCorrection(msdf, shape, projection, range, postErrorCorrectionConfig);
                 break;
             case MULTI_AND_TRUE:
                 distanceSignCorrection(mtsdf, shape, projection, fillRule);
-                msdfErrorCorrection(msdf, shape, projection, range, errorCorrectionConfig);
+                msdfErrorCorrection(msdf, shape, projection, range, postErrorCorrectionConfig);
                 break;
             default:;
         }

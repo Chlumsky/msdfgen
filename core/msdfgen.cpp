@@ -88,20 +88,20 @@ void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, co
         generateDistanceField<SimpleContourCombiner<PseudoDistanceSelector> >(output, shape, projection, range);
 }
 
-void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config, const ErrorCorrectionConfig &errorCorrectionConfig) {
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
     if (config.overlapSupport)
         generateDistanceField<OverlappingContourCombiner<MultiDistanceSelector> >(output, shape, projection, range);
     else
         generateDistanceField<SimpleContourCombiner<MultiDistanceSelector> >(output, shape, projection, range);
-    msdfErrorCorrection(output, shape, projection, range, errorCorrectionConfig);
+    msdfErrorCorrection(output, shape, projection, range, config);
 }
 
-void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const Projection &projection, double range, const GeneratorConfig &config, const ErrorCorrectionConfig &errorCorrectionConfig) {
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
     if (config.overlapSupport)
         generateDistanceField<OverlappingContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, projection, range);
     else
         generateDistanceField<SimpleContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, projection, range);
-    msdfErrorCorrection(output, shape, projection, range, errorCorrectionConfig);
+    msdfErrorCorrection(output, shape, projection, range, config);
 }
 
 // Legacy API
@@ -114,12 +114,12 @@ void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, do
     generatePseudoSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport));
 }
 
-void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorCorrectionThreshold, bool overlapSupport) {
-    generateMSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport), ErrorCorrectionConfig(ErrorCorrectionConfig::EDGE_PRIORITY, errorCorrectionThreshold));
+void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, const ErrorCorrectionConfig &errorCorrectionConfig, bool overlapSupport) {
+    generateMSDF(output, shape, Projection(scale, translate), range, MSDFGeneratorConfig(overlapSupport, errorCorrectionConfig));
 }
 
-void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double errorCorrectionThreshold, bool overlapSupport) {
-    generateMTSDF(output, shape, Projection(scale, translate), range, GeneratorConfig(overlapSupport), ErrorCorrectionConfig(ErrorCorrectionConfig::EDGE_PRIORITY, errorCorrectionThreshold));
+void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, const ErrorCorrectionConfig &errorCorrectionConfig, bool overlapSupport) {
+    generateMTSDF(output, shape, Projection(scale, translate), range, MSDFGeneratorConfig(overlapSupport, errorCorrectionConfig));
 }
 
 // Legacy version
@@ -173,7 +173,7 @@ void generatePseudoSDF_legacy(const BitmapRef<float, 1> &output, const Shape &sh
     }
 }
 
-void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
+void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, ErrorCorrectionConfig errorCorrectionConfig) {
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel for
 #endif
@@ -223,11 +223,11 @@ void generateMSDF_legacy(const BitmapRef<float, 3> &output, const Shape &shape, 
         }
     }
 
-    if (edgeThreshold > 0)
-        msdfErrorCorrection(output, shape, Projection(scale, translate), range, ErrorCorrectionConfig(ErrorCorrectionConfig::EDGE_PRIORITY, edgeThreshold));
+    errorCorrectionConfig.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+    msdfErrorCorrection(output, shape, Projection(scale, translate), range, MSDFGeneratorConfig(false, errorCorrectionConfig));
 }
 
-void generateMTSDF_legacy(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, double edgeThreshold) {
+void generateMTSDF_legacy(const BitmapRef<float, 4> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, ErrorCorrectionConfig errorCorrectionConfig) {
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel for
 #endif
@@ -281,8 +281,8 @@ void generateMTSDF_legacy(const BitmapRef<float, 4> &output, const Shape &shape,
         }
     }
 
-    if (edgeThreshold > 0)
-        msdfErrorCorrection(output, shape, Projection(scale, translate), range, ErrorCorrectionConfig(ErrorCorrectionConfig::EDGE_PRIORITY, edgeThreshold));
+    errorCorrectionConfig.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+    msdfErrorCorrection(output, shape, Projection(scale, translate), range, MSDFGeneratorConfig(false, errorCorrectionConfig));
 }
 
 }

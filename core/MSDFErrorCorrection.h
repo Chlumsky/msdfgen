@@ -20,17 +20,24 @@ public:
     };
 
     MSDFErrorCorrection();
-    explicit MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil);
+    explicit MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil, const Projection &projection, double range);
+    /// Sets the minimum ratio between the actual and maximum expected distance delta to be considered an error.
+    void setMinDeviationRatio(double minDeviationRatio);
+    /// Sets the minimum ratio between the pre-correction distance error and the post-correction distance error.
+    void setMinImproveRatio(double minImproveRatio);
     /// Flags all texels that are interpolated at corners as protected.
-    void protectCorners(const Shape &shape, const Projection &projection);
+    void protectCorners(const Shape &shape);
     /// Flags all texels that contribute to edges as protected.
     template <int N>
-    void protectEdges(const BitmapConstRef<float, N> &sdf, const Projection &projection, double range);
+    void protectEdges(const BitmapConstRef<float, N> &sdf);
     /// Flags all texels as protected.
     void protectAll();
-    /// Flags texels that are expected to cause interpolation artifacts.
+    /// Flags texels that are expected to cause interpolation artifacts based on analysis of the SDF only.
     template <int N>
-    void findErrors(const BitmapConstRef<float, N> &sdf, const Projection &projection, double range, double threshold);
+    void findErrors(const BitmapConstRef<float, N> &sdf);
+    /// Flags texels that are expected to cause interpolation artifacts based on analysis of the SDF and comparison with the exact shape distance.
+    template <template <typename> class ContourCombiner, int N>
+    void findErrors(const BitmapConstRef<float, N> &sdf, const Shape &shape);
     /// Modifies the MSDF so that all texels with the error flag are converted to single-channel.
     template <int N>
     void apply(const BitmapRef<float, N> &sdf) const;
@@ -39,6 +46,10 @@ public:
 
 private:
     BitmapRef<byte, 1> stencil;
+    Projection projection;
+    double invRange;
+    double minDeviationRatio;
+    double minImproveRatio;
 
 };
 
