@@ -304,7 +304,7 @@ static const char *helpText =
         "\tSets the scale used to convert shape units to pixels asymmetrically.\n"
     "  -autoframe\n"
         "\tAutomatically scales (unless specified) and translates the shape to fit.\n"
-    "  -coloringstrategy <simple / inktrap>\n"
+    "  -coloringstrategy <simple / inktrap / distance>\n"
         "\tSelects the strategy of the edge coloring heuristic.\n"
     "  -distanceshift <shift>\n"
         "\tShifts all normalized distances in the output distance field by this value.\n"
@@ -715,6 +715,7 @@ int main(int argc, const char * const *argv) {
         ARG_CASE("-coloringstrategy", 1) {
             if (!strcmp(argv[argPos+1], "simple")) edgeColoring = edgeColoringSimple;
             else if (!strcmp(argv[argPos+1], "inktrap")) edgeColoring = edgeColoringInkTrap;
+            else if (!strcmp(argv[argPos+1], "distance")) edgeColoring = edgeColoringByDistance;
             else
                 puts("Unknown coloring strategy specified.");
             argPos += 2;

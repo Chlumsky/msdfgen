@@ -20,4 +20,10 @@ void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long 
  */
 void edgeColoringInkTrap(Shape &shape, double angleThreshold, unsigned long long seed = 0);
 
+/** The alternative coloring by distance tries to use different colors for edges that are close together.
+ *  This should theoretically be the best strategy on average. However, since it needs to compute the distance
+ *  between all pairs of edges, and perform a graph optimization task, it is much slower than the rest.
+ */
+void edgeColoringByDistance(Shape &shape, double angleThreshold, unsigned long long seed = 0);
+
 }
