@@ -1,4 +1,11 @@
 
+## Version 1.9 (2021-05-28)
+
+- Error correction of multi-channel distance fields has been completely reworked
+- Added new edge coloring strategy that optimizes colors based on distances between edges
+- Added some minor functions for the library API
+- Minor code refactor and optimizations
+
 ## Version 1.8 (2020-10-17)
 
 - Integrated the Skia library into the project, which is used to preprocess the shape geometry and eliminate any self-intersections and other irregularities previously unsupported by the software

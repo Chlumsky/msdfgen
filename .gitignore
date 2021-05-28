@@ -18,6 +18,7 @@
 *.VC.opendb
 *.VC.db
 /bin/*.lib
+/bin/msdfgen
 output.png
 render.png
 out/
