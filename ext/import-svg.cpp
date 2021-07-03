@@ -129,7 +129,7 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
     }
 }
 
-static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
+bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     char nodeType = '\0';
     char prevNodeType = '\0';
     Point2 prevNode(0, 0);
