@@ -170,7 +170,7 @@ if(MSDFGEN_INSTALL)
     )
 
     if(MSDFGEN_BUILD_MSDFGEN_STANDALONE)
-        install(TARGETS msdfgen-standalone EXPORT msdfgenTargets RUNTIME DESTINATION bin)
+        install(TARGETS msdfgen-standalone EXPORT msdfgenTargets DESTINATION bin)
     endif()
 
     install(
