@@ -29,7 +29,7 @@ public:
     /// Evaluates if the median value xm interpolated at xt in the range between am at at and bm at bt indicates an artifact.
     inline int rangeTest(double at, double bt, double xt, float am, float bm, float xm) const {
         // For protected texels, only consider inversion artifacts (interpolated median has different sign than boundaries). For the rest, it is sufficient that the interpolated median is outside its boundaries.
-        if ((am > .5f && bm > .5f && xm < .5f) || (am < .5f && bm < .5f && xm > .5f) || (!protectedFlag && median(am, bm, xm) != xm)) {
+        if ((am > .5f && bm > .5f && xm <= .5f) || (am < .5f && bm < .5f && xm >= .5f) || (!protectedFlag && median(am, bm, xm) != xm)) {
             double axSpan = (xt-at)*span, bxSpan = (bt-xt)*span;
             // Check if the interpolated median's value is in the expected range based on its distance (span) from boundaries a, b.
             if (!(xm >= am-axSpan && xm <= am+axSpan && xm >= bm-bxSpan && xm <= bm+bxSpan))
@@ -276,7 +276,7 @@ static float interpolatedMedian(const float *a, const float *l, const float *q, 
 static bool isArtifact(bool isProtected, double axSpan, double bxSpan, float am, float bm, float xm) {
     return (
         // For protected texels, only report an artifact if it would cause fill inversion (change between positive and negative distance).
-        (!isProtected || (am > .5f && bm > .5f && xm < .5f) || (am < .5f && bm < .5f && xm > .5f)) &&
+        (!isProtected || (am > .5f && bm > .5f && xm <= .5f) || (am < .5f && bm < .5f && xm >= .5f)) &&
         // This is an artifact if the interpolated median is outside the range of possible values based on its distance from a, b.
         !(xm >= am-axSpan && xm <= am+axSpan && xm >= bm-bxSpan && xm <= bm+bxSpan)
     );
@@ -340,7 +340,7 @@ static bool hasLinearArtifact(const ArtifactClassifier &artifactClassifier, floa
     float bm = median(b[0], b[1], b[2]);
     return (
         // Out of the pair, only report artifacts for the texel further from the edge to minimize side effects.
-        fabsf(am-.5f) > fabsf(bm-.5f) && (
+        fabsf(am-.5f) >= fabsf(bm-.5f) && (
             // Check points where each pair of color channels meets.
             hasLinearArtifactInner(artifactClassifier, am, bm, a, b, a[1]-a[0], b[1]-b[0]) ||
             hasLinearArtifactInner(artifactClassifier, am, bm, a, b, a[2]-a[1], b[2]-b[1]) ||
@@ -354,7 +354,7 @@ template <class ArtifactClassifier>
 static bool hasDiagonalArtifact(const ArtifactClassifier &artifactClassifier, float am, const float *a, const float *b, const float *c, const float *d) {
     float dm = median(d[0], d[1], d[2]);
     // Out of the pair, only report artifacts for the texel further from the edge to minimize side effects.
-    if (fabsf(am-.5f) > fabsf(dm-.5f)) {
+    if (fabsf(am-.5f) >= fabsf(dm-.5f)) {
         float abc[3] = {
             a[0]-b[0]-c[0],
             a[1]-b[1]-c[1],
