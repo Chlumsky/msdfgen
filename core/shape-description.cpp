@@ -244,43 +244,34 @@ bool writeShapeDescription(FILE *output, const Shape &shape) {
                         default:;
                     }
                 }
-                {
-                    const LinearSegment *e = dynamic_cast<const LinearSegment *>(&**edge);
-                    if (e) {
-                        fprintf(output, "\t");
-                        writeCoord(output, e->p[0]);
-                        fprintf(output, ";\n");
-                        if (colorCode)
-                            fprintf(output, "\t\t%c;\n", colorCode);
-                    }
+                if (const LinearSegment *e = dynamic_cast<const LinearSegment *>(&**edge)) {
+                    fprintf(output, "\t");
+                    writeCoord(output, e->p[0]);
+                    fprintf(output, ";\n");
+                    if (colorCode)
+                        fprintf(output, "\t\t%c;\n", colorCode);
                 }
-                {
-                    const QuadraticSegment *e = dynamic_cast<const QuadraticSegment *>(&**edge);
-                    if (e) {
-                        fprintf(output, "\t");
-                        writeCoord(output, e->p[0]);
-                        fprintf(output, ";\n\t\t");
-                        if (colorCode)
-                            fprintf(output, "%c", colorCode);
-                        fprintf(output, "(");
-                        writeCoord(output, e->p[1]);
-                        fprintf(output, ");\n");
-                    }
+                if (const QuadraticSegment *e = dynamic_cast<const QuadraticSegment *>(&**edge)) {
+                    fprintf(output, "\t");
+                    writeCoord(output, e->p[0]);
+                    fprintf(output, ";\n\t\t");
+                    if (colorCode)
+                        fprintf(output, "%c", colorCode);
+                    fprintf(output, "(");
+                    writeCoord(output, e->p[1]);
+                    fprintf(output, ");\n");
                 }
-                {
-                    const CubicSegment *e = dynamic_cast<const CubicSegment *>(&**edge);
-                    if (e) {
-                        fprintf(output, "\t");
-                        writeCoord(output, e->p[0]);
-                        fprintf(output, ";\n\t\t");
-                        if (colorCode)
-                            fprintf(output, "%c", colorCode);
-                        fprintf(output, "(");
-                        writeCoord(output, e->p[1]);
-                        fprintf(output, "; ");
-                        writeCoord(output, e->p[2]);
-                        fprintf(output, ");\n");
-                    }
+                if (const CubicSegment *e = dynamic_cast<const CubicSegment *>(&**edge)) {
+                    fprintf(output, "\t");
+                    writeCoord(output, e->p[0]);
+                    fprintf(output, ";\n\t\t");
+                    if (colorCode)
+                        fprintf(output, "%c", colorCode);
+                    fprintf(output, "(");
+                    writeCoord(output, e->p[1]);
+                    fprintf(output, "; ");
+                    writeCoord(output, e->p[2]);
+                    fprintf(output, ");\n");
                 }
             }
             fprintf(output, "\t#\n");
