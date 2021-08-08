@@ -40,7 +40,6 @@ file(GLOB_RECURSE msdfgen-ext_PRIVATE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DI
 file(GLOB_RECURSE msdfgen-ext_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 	"ext/*.cpp"
 	"lib/*.cpp"
-	"lib/*.cpp"
 )
 
 # Build the library (aliased name because it's the same target name the exe)
