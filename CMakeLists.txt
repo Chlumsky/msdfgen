@@ -59,7 +59,7 @@ add_library(msdfgen::msdfgen ALIAS msdfgen)
 set_target_properties(msdfgen PROPERTIES PUBLIC_HEADER "${msdfgen_HEADERS}")
 target_include_directories(msdfgen INTERFACE
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
 
 if(MSDFGEN_USE_CPP11)
@@ -89,7 +89,7 @@ target_link_libraries(msdfgen-ext PUBLIC msdfgen::msdfgen Freetype::Freetype)
 target_include_directories(msdfgen-ext
 PUBLIC
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 	
 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
