@@ -40,7 +40,6 @@ file(GLOB_RECURSE msdfgen-ext_PRIVATE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DI
 file(GLOB_RECURSE msdfgen-ext_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 	"ext/*.cpp"
 	"lib/*.cpp"
-	"lib/*.cpp"
 )
 
 # Build the library (aliased name because it's the same target name the exe)
@@ -60,7 +59,7 @@ add_library(msdfgen::msdfgen ALIAS msdfgen)
 set_target_properties(msdfgen PROPERTIES PUBLIC_HEADER "${msdfgen_HEADERS}")
 target_include_directories(msdfgen INTERFACE
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
 
 if(MSDFGEN_USE_CPP11)
@@ -90,7 +89,7 @@ target_link_libraries(msdfgen-ext PUBLIC msdfgen::msdfgen Freetype::Freetype)
 target_include_directories(msdfgen-ext
 PUBLIC
 	$<INSTALL_INTERFACE:include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 	
 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
