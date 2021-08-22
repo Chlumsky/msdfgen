@@ -129,7 +129,7 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
     }
 }
 
-static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
+bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSnapRange) {
     char nodeType = '\0';
     char prevNodeType = '\0';
     Point2 prevNode(0, 0);
@@ -248,7 +248,7 @@ static bool buildFromPath(Shape &shape, const char *pathDef, double size) {
     NEXT_CONTOUR:
         // Fix contour if it isn't properly closed
         if (!contour.edges.empty() && prevNode != startPoint) {
-            if ((contour.edges.back()->point(1)-contour.edges[0]->point(0)).length() < ENDPOINT_SNAP_RANGE_PROPORTION*size)
+            if ((contour.edges.back()->point(1)-contour.edges[0]->point(0)).length() < endpointSnapRange)
                 contour.edges.back()->moveEndPoint(contour.edges[0]->point(0));
             else
                 contour.addEdge(new LinearSegment(prevNode, startPoint));
@@ -304,7 +304,7 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     }
     if (dimensions)
         *dimensions = dims;
-    return buildFromPath(output, pd, dims.length());
+    return buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
 }
 
 }
