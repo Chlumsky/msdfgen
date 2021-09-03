@@ -9,10 +9,6 @@
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"
 
-#if defined(_WIN32) && !defined(MSDFGEN_CMAKE_BUILD)
-    #pragma comment(lib, "skia.lib")
-#endif
-
 namespace msdfgen {
 
 SkPoint pointToSkiaPoint(Point2 p) {
