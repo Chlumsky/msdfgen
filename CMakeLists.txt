@@ -100,11 +100,12 @@ endif()
 if(MSDFGEN_BUILD_STANDALONE)
     add_executable(msdfgen main.cpp)
     target_compile_definitions(msdfgen PUBLIC MSDFGEN_STANDALONE)
-    target_link_libraries(msdfgen PUBLIC msdfgen::msdfgen-ext)
+    target_link_libraries(msdfgen PUBLIC msdfgen::msdfgen-core msdfgen::msdfgen-ext)
 endif()
 
 # Installation
 if(MSDFGEN_INSTALL)
+    include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
     set(MSDFGEN_CONFIG_PATH "lib/cmake/msdfgen")
 
@@ -130,21 +131,21 @@ if(MSDFGEN_INSTALL)
     )
 
     install(TARGETS msdfgen-core EXPORT msdfgenTargets
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        FRAMEWORK DESTINATION lib
-        PUBLIC_HEADER DESTINATION include/msdfgen/core
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/core
     )
 
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
 
     install(TARGETS msdfgen-ext EXPORT msdfgenTargets
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        FRAMEWORK DESTINATION lib
-        PUBLIC_HEADER DESTINATION include/msdfgen/ext
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/ext
     )
 
     if(MSDFGEN_BUILD_STANDALONE)
