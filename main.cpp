@@ -876,6 +876,10 @@ int main(int argc, const char * const *argv) {
         #ifdef MSDFGEN_USE_SKIA
             if (!resolveShapeGeometry(shape))
                 puts("Shape geometry preprocessing failed, skipping.");
+            else if (skipColoring) {
+                skipColoring = false;
+                puts("Note: Input shape coloring won't be preserved due to geometry preprocessing");
+            }
         #else
             ABORT("Shape geometry preprocessing (-preprocess) is not available in this version because the Skia library is not present.");
         #endif
