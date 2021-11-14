@@ -371,6 +371,8 @@ static const char *helpText =
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
+    "  -windingpreprocess\n"
+        "\tAttempts to fix only the contour windings assuming no self-intersections and even-odd fill rule.\n"
     "  -yflip\n"
         "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
     "\n";
@@ -417,17 +419,21 @@ int main(int argc, const char * const *argv) {
         MULTI_AND_TRUE,
         METRICS
     } mode = MULTI;
-    bool legacyMode = false;
-    bool geometryPreproc = (
+    enum {
+        NO_PREPROCESS,
+        WINDING_PREPROCESS,
+        FULL_PREPROCESS
+    } geometryPreproc = (
         #ifdef MSDFGEN_USE_SKIA
-            true
+            FULL_PREPROCESS
         #else
-            false
+            NO_PREPROCESS
         #endif
     );
+    bool legacyMode = false;
     MSDFGeneratorConfig generatorConfig;
-    generatorConfig.overlapSupport = !geometryPreproc;
-    bool scanlinePass = !geometryPreproc;
+    generatorConfig.overlapSupport = geometryPreproc == NO_PREPROCESS;
+    bool scanlinePass = geometryPreproc == NO_PREPROCESS;
     FillRule fillRule = FILL_NONZERO;
     Format format = AUTO;
     const char *input = NULL;
@@ -542,12 +548,17 @@ int main(int argc, const char * const *argv) {
             continue;
         }
         ARG_CASE("-nopreprocess", 0) {
-            geometryPreproc = false;
+            geometryPreproc = NO_PREPROCESS;
+            argPos += 1;
+            continue;
+        }
+        ARG_CASE("-windingpreprocess", 0) {
+            geometryPreproc = WINDING_PREPROCESS;
             argPos += 1;
             continue;
         }
         ARG_CASE("-preprocess", 0) {
-            geometryPreproc = true;
+            geometryPreproc = FULL_PREPROCESS;
             argPos += 1;
             continue;
         }
@@ -872,17 +883,24 @@ int main(int argc, const char * const *argv) {
     // Validate and normalize shape
     if (!shape.validate())
         ABORT("The geometry of the loaded shape is invalid.");
-    if (geometryPreproc) {
-        #ifdef MSDFGEN_USE_SKIA
-            if (!resolveShapeGeometry(shape))
-                puts("Shape geometry preprocessing failed, skipping.");
-            else if (skipColoring) {
-                skipColoring = false;
-                puts("Note: Input shape coloring won't be preserved due to geometry preprocessing");
-            }
-        #else
-            ABORT("Shape geometry preprocessing (-preprocess) is not available in this version because the Skia library is not present.");
-        #endif
+    switch (geometryPreproc) {
+        case NO_PREPROCESS:
+            break;
+        case WINDING_PREPROCESS:
+            shape.orientContours();
+            break;
+        case FULL_PREPROCESS:
+            #ifdef MSDFGEN_USE_SKIA
+                if (!resolveShapeGeometry(shape))
+                    puts("Shape geometry preprocessing failed, skipping.");
+                else if (skipColoring) {
+                    skipColoring = false;
+                    puts("Note: Input shape coloring won't be preserved due to geometry preprocessing");
+                }
+            #else
+                ABORT("Shape geometry preprocessing (-preprocess) is not available in this version because the Skia library is not present.");
+            #endif
+            break;
     }
     shape.normalize();
     if (yFlip)
@@ -968,7 +986,7 @@ int main(int argc, const char * const *argv) {
                 case ErrorCorrectionConfig::EDGE_PRIORITY: fallbackModeName = "auto-fast"; break;
                 case ErrorCorrectionConfig::EDGE_ONLY: fallbackModeName = "edge-fast"; break;
             }
-            printf("Selected error correction mode not compatible with scanline mode, falling back to %s.\n", fallbackModeName);
+            printf("Selected error correction mode not compatible with scanline pass, falling back to %s.\n", fallbackModeName);
         }
         generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
         postErrorCorrectionConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
