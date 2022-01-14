@@ -52,7 +52,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{84BE2D91-F071-4151-BE12-61460464C494}</ProjectGuid>
-    <RootNamespace>Msdfgen</RootNamespace>
+    <RootNamespace>msdfgen</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -526,7 +526,7 @@
     <ClCompile Include="core\msdfgen.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Msdfgen.rc" />
+    <ResourceCompile Include="msdfgen.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />

@@ -217,7 +217,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Msdfgen.rc">
+    <ResourceCompile Include="msdfgen.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

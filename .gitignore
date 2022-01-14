@@ -26,3 +26,5 @@ build/
 build_xcode/
 skia/win32/
 skia/win64/
+/cmake-gen.bat
+/line-ending-check.bat
