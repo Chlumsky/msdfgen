@@ -88,10 +88,6 @@ unsigned GlyphIndex::getIndex() const {
     return index;
 }
 
-bool GlyphIndex::operator!() const {
-    return index == 0;
-}
-
 FreetypeHandle * initializeFreetype() {
     FreetypeHandle *handle = new FreetypeHandle;
     FT_Error error = FT_Init_FreeType(&handle->library);

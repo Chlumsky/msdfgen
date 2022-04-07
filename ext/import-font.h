@@ -17,7 +17,6 @@ class GlyphIndex {
 public:
     explicit GlyphIndex(unsigned index = 0);
     unsigned getIndex() const;
-    bool operator!() const;
 
 private:
     unsigned index;
