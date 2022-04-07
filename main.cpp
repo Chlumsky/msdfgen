@@ -503,9 +503,10 @@ int main(int argc, const char * const *argv) {
             unsigned gi;
             switch (charArg[0]) {
                 case 'G': case 'g':
-                    if (parseUnsignedDecOrHex(gi, charArg+1))
+                    if (parseUnsignedDecOrHex(gi, charArg+1)) {
                         glyphIndex = GlyphIndex(gi);
                         glyphIndexSpecified = true;
+                    }
                     break;
                 case 'U': case 'u':
                     ++charArg;
