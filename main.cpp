@@ -442,6 +442,7 @@ int main(int argc, const char * const *argv) {
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
+    bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
     int svgPathIndex = 0;
@@ -504,6 +505,7 @@ int main(int argc, const char * const *argv) {
                 case 'G': case 'g':
                     if (parseUnsignedDecOrHex(gi, charArg+1))
                         glyphIndex = GlyphIndex(gi);
+                        glyphIndexSpecified = true;
                     break;
                 case 'U': case 'u':
                     ++charArg;
@@ -838,7 +840,7 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case FONT: {
-            if (!glyphIndex && !unicode)
+            if (!glyphIndexSpecified && !unicode)
                 ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a Unicode index (65, 0x41), a character in apostrophes ('A'), or a glyph index prefixed by g (g36, g0x24).");
             FreetypeHandle *ft = initializeFreetype();
             if (!ft) return -1;
