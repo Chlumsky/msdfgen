@@ -3,8 +3,22 @@
 
 #include "arithmetics.hpp"
 #include "equation-solver.h"
+#include <sstream>
 
 namespace msdfgen {
+
+static std::string colorStr(EdgeColor c) {
+    switch ( c) {
+        case BLACK: return "black";
+        case RED: return "red";
+        case GREEN: return "green";
+        case YELLOW: return "yellow";
+        case BLUE: return "blue";
+        case MAGENTA: return "magenta";
+        case CYAN: return "cyan";
+        case WHITE: return "white";
+    }
+}
 
 void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const {
     if (param < 0) {
@@ -37,12 +51,25 @@ LinearSegment::LinearSegment(Point2 p0, Point2 p1, EdgeColor edgeColor) : EdgeSe
     p[1] = p1;
 }
 
+std::string LinearSegment::svg(float scale) const {
+    std::stringstream ss;
+    ss<< "<path d=\"" << "M"<<(p[0].x*scale)<<","<<(p[0].y*scale)<<" L" << (p[1].x*scale)<<","<<(p[1].y*scale) << "\" stroke=\"" << colorStr(this->color) << "\" />";
+    return ss.str();
+}
+
 QuadraticSegment::QuadraticSegment(Point2 p0, Point2 p1, Point2 p2, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
     if (p1 == p0 || p1 == p2)
         p1 = 0.5*(p0+p2);
     p[0] = p0;
     p[1] = p1;
     p[2] = p2;
+}
+
+std::string QuadraticSegment::svg(float scale) const {
+    std::stringstream ss;
+    ss << "<path d=\""
+       << "M" << (p[0].x*scale) << "," << (p[0].y*scale) << " Q" << (p[1].x*scale) << "," << (p[1].y*scale) << " " << (p[2].x*scale) << "," << (p[2].y*scale) << "\" stroke=\"" << colorStr(this->color) << "\" />";
+    return ss.str();
 }
 
 CubicSegment::CubicSegment(Point2 p0, Point2 p1, Point2 p2, Point2 p3, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
@@ -54,6 +81,13 @@ CubicSegment::CubicSegment(Point2 p0, Point2 p1, Point2 p2, Point2 p3, EdgeColor
     p[1] = p1;
     p[2] = p2;
     p[3] = p3;
+}
+
+std::string CubicSegment::svg(float scale) const {
+    std::stringstream ss;
+    ss << "<path d=\""
+       << "M" << (p[0].x*scale) << "," << (p[0].y*scale) << " C" << (p[1].x*scale) << "," << (p[1].y*scale) << " " << (p[2].x*scale) << "," << (p[2].y*scale) << " " << (p[3].x*scale) << ","<<(p[3].y*scale) << "\" stroke=\"" << colorStr(this->color) << "\" />";
+    return ss.str();
 }
 
 LinearSegment * LinearSegment::clone() const {

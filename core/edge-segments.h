@@ -4,6 +4,7 @@
 #include "Vector2.h"
 #include "SignedDistance.h"
 #include "EdgeColor.h"
+#include <string>
 
 namespace msdfgen {
 
@@ -44,7 +45,8 @@ public:
     virtual void moveEndPoint(Point2 to) = 0;
     /// Splits the edge segments into thirds which together represent the original edge.
     virtual void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const = 0;
-
+    
+    virtual std::string svg(float scale) const = 0;
 };
 
 /// A line segment.
@@ -67,7 +69,7 @@ public:
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
-
+    std::string svg(float scale) const;
 };
 
 /// A quadratic Bezier curve.
@@ -92,7 +94,7 @@ public:
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
 
     EdgeSegment * convertToCubic() const;
-
+    std::string svg(float scale) const;
 };
 
 /// A cubic Bezier curve.
@@ -116,7 +118,7 @@ public:
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
 
     void deconverge(int param, double amount);
-
+    std::string svg(float scale) const;
 };
 
 }

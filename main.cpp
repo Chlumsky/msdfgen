@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
-
+#include <fstream>
 #include "msdfgen.h"
 #include "msdfgen-ext.h"
 
@@ -252,6 +252,29 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     return NULL;
 }
 
+static void outputColoredEdgesAsSvg(const std::string &filename, const Shape &shape, int width, int height, float scale)
+{
+    std::ofstream svgFile(filename);
+    if (svgFile.is_open())
+    {
+        svgFile << "<?xml version=\"1.0\" standalone=\"no\"?>\n";
+        svgFile << "<svg viewBox=\""
+                << 0 << " " << 0 << " " << width << " " << height
+                << "\" style=\"background-color:#ffffff00\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xml:space=\"preserve\" x=\""
+                << 0 << "px\" y=\"" << 0 << "px\" width=\"" << width << "\" height=\"" << height << "\">\n";
+        for (auto contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+        {
+            int m = (int)contour->edges.size();
+            for (int i = 0; i < m; ++i)
+            {
+                svgFile << contour->edges[i]->svg(scale) << "\n";
+            }
+        }
+        svgFile << "</svg>";
+        svgFile.close();
+    }
+}
+
 #if defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
     #define TITLE_SUFFIX    " with Skia & OpenMP"
     #define EXTRA_UNDERLINE "-------------------"
@@ -369,6 +392,8 @@ static const char *helpText =
         "\tRenders an image preview using the generated distance field and saves it as a PNG file.\n"
     "  -testrendermulti <filename.png> <width> <height>\n"
         "\tRenders an image preview without flattening the color channels.\n"
+    "  -outputedgecolor <filename.svg> <width> <height> <scale>\n"
+        "\tSaves colored edges as a svg file.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
     "  -windingpreprocess\n"
@@ -441,6 +466,7 @@ int main(int argc, const char * const *argv) {
     const char *shapeExport = NULL;
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
+    const char *outputEdgeColor = NULL;
     bool outputSpecified = false;
     bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
@@ -450,6 +476,8 @@ int main(int argc, const char * const *argv) {
     int width = 64, height = 64;
     int testWidth = 0, testHeight = 0;
     int testWidthM = 0, testHeightM = 0;
+    int outputEdgeColorWidth = 0, outputEdgeColorHeight = 0;
+    float outputEdgeColorScale = 1.0f;
     bool autoFrame = false;
     enum {
         RANGE_UNIT,
@@ -779,6 +807,18 @@ int main(int argc, const char * const *argv) {
             argPos += 4;
             continue;
         }
+        ARG_CASE("-outputedgecolor", 4) {
+            unsigned w, h;
+            double scale;
+            if (!parseUnsigned(w, argv[argPos + 2]) || !parseUnsigned(h, argv[argPos + 3]) || !w || !h || !parseDouble(scale, argv[argPos + 4]))
+                ABORT("Invalid arguments for output edge color. Use -outputedgecolor <output.svg> <width> <height> <scale>.");
+            outputEdgeColor = argv[argPos + 1];
+            outputEdgeColorWidth = w, outputEdgeColorHeight = h;
+            outputEdgeColorScale = (float)scale;
+
+            argPos += 5;
+            continue;
+        }
         ARG_CASE("-yflip", 0) {
             yFlip = true;
             argPos += 1;
@@ -1012,8 +1052,12 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case MULTI: {
-            if (!skipColoring)
+            if (!skipColoring) {
                 edgeColoring(shape, angleThreshold, coloringSeed);
+                if (outputEdgeColor) {
+                    outputColoredEdgesAsSvg(outputEdgeColor, shape, outputEdgeColorWidth, outputEdgeColorHeight, outputEdgeColorScale);
+                }
+            }
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             msdf = Bitmap<float, 3>(width, height);
@@ -1024,8 +1068,12 @@ int main(int argc, const char * const *argv) {
             break;
         }
         case MULTI_AND_TRUE: {
-            if (!skipColoring)
+            if (!skipColoring) {
                 edgeColoring(shape, angleThreshold, coloringSeed);
+                if (outputEdgeColor) {
+                    outputColoredEdgesAsSvg(outputEdgeColor, shape, outputEdgeColorWidth, outputEdgeColorHeight, outputEdgeColorScale);
+                }
+            }
             if (edgeAssignment)
                 parseColoring(shape, edgeAssignment);
             mtsdf = Bitmap<float, 4>(width, height);
