@@ -6,6 +6,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
+#include FT_MULTIPLE_MASTERS_H
 
 namespace msdfgen {
 
@@ -17,6 +18,7 @@ class FreetypeHandle {
     friend void deinitializeFreetype(FreetypeHandle *library);
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
     friend FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
+    friend bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *axisname, double coordinate);
 
     FT_Library library;
 
@@ -34,6 +36,7 @@ class FontHandle {
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+    friend bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *axisname, double coordinate);
 
     FT_Face face;
     bool ownership;
@@ -213,6 +216,29 @@ bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphI
 
 bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
     return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode1)), GlyphIndex(FT_Get_Char_Index(font->face, unicode2)));
+}
+
+bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *name, double coordinate) {
+    bool success = false;
+    if (font->face->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS) {
+        FT_MM_Var *amaster;
+        FT_Get_MM_Var(font->face, &amaster);
+
+        std::vector<FT_Fixed> coords;
+        coords.resize(amaster->num_axis);
+
+        FT_Get_Var_Design_Coordinates(font->face, coords.size(), coords.data());
+        for (FT_UInt i = 0; i < amaster->num_axis; i++) {
+            int strdiff = strcmp(name,amaster->axis[i].name);
+            if (strdiff == 0) {
+                coords[i] = (int)(coordinate * 65536.0);
+                success = true;
+            }
+        }
+        FT_Set_Var_Design_Coordinates(font->face, coords.size(), coords.data());
+        FT_Done_MM_Var(library->library, amaster);
+    }
+    return success;
 }
 
 }

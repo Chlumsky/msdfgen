@@ -62,5 +62,7 @@ bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advan
 /// Outputs the kerning distance adjustment between two specific glyphs.
 bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
 bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+/// Sets variation axis of variable font.
+bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *name, double coordinate);
 
 }
