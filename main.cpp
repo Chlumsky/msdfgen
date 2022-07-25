@@ -371,6 +371,8 @@ static const char *helpText =
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
+    "  -variation <name> <coordinate>\n"
+        "\tSets a variation axis coordinate in font units. Can be used multiple times to combine axes.\n"
     "  -windingpreprocess\n"
         "\tAttempts to fix only the contour windings assuming no self-intersections and even-odd fill rule.\n"
     "  -yflip\n"
