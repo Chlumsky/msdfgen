@@ -78,6 +78,7 @@ Some of the important ones are:
  - **-exportshape \<filename.txt\>** - saves the text description of the shape with edge coloring to the specified file.
    This can be later edited and used as input through -shapedesc.
  - **-printmetrics** &ndash; prints some useful information about the shape's layout.
+ - **-variation \<name\> \<coordinate\>** &ndash; Sets a variation axis coordinate in font units. Can be used multiple times to combine axes.
 
 For example,
 ```
@@ -197,7 +198,7 @@ The text shape description has the following syntax.
  - The last point of each contour must be equal to the first, or the symbol `#` can be used, which represents the first point.
  - There can be an edge segment specification between any two points, also separated by semicolons.
    This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two Bézier curve control points inside parentheses.
-   
+
 For example,
 ```
 { -1, -1; m; -1, +1; y; +1, +1; m; +1, -1; y; # }
