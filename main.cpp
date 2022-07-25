@@ -447,6 +447,8 @@ int main(int argc, const char * const *argv) {
     unicode_t unicode = 0;
     int svgPathIndex = 0;
 
+    std::vector<FontVariationCoordinate> variationCoordinates;
+
     int width = 64, height = 64;
     int testWidth = 0, testHeight = 0;
     int testWidthM = 0, testHeightM = 0;
@@ -676,6 +678,17 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-variation", 2) {
+            const char *name = argv[argPos+1];
+            double c;
+            if (!(parseDouble(c, argv[argPos+2]) && c > 0))
+                ABORT("Invalid variation argument. Use -variation <axisname> <coord> with a positive real number.");
+
+            FontVariationCoordinate variationCoordinate{name, c};
+            variationCoordinates.push_back(variationCoordinate);
+            argPos += 3;
+            continue;
+        }
         ARG_CASE("-errorcorrection", 1) {
             if (!strcmp(argv[argPos+1], "disabled") || !strcmp(argv[argPos+1], "0") || !strcmp(argv[argPos+1], "none")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
@@ -849,6 +862,12 @@ int main(int argc, const char * const *argv) {
             if (!font) {
                 deinitializeFreetype(ft);
                 ABORT("Failed to load font file.");
+            }
+            for (size_t i = 0; i < variationCoordinates.size(); i++) {
+                FontVariationCoordinate &vc = variationCoordinates[i];
+                if(!setVariationAxis(font, ft, vc.name, vc.coordinate)) {
+                    printf("Failed to set variation axis '%s' with coordinate '%f'.\n", vc.name, vc.coordinate);
+                }
             }
             if (unicode)
                 getGlyphIndex(glyphIndex, font, unicode);

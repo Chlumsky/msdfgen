@@ -35,6 +35,14 @@ struct FontMetrics {
     double underlineY, underlineThickness;
 };
 
+/// Variation axis of a typeface (in font units).
+struct FontVariationCoordinate {
+    /// The axis's name. Not always meaningful for TrueType GX or OpenType variation fonts.
+    const char * name;
+    /// The value as double.
+    double coordinate;
+};
+
 /// Initializes the FreeType library.
 FreetypeHandle * initializeFreetype();
 /// Deinitializes the FreeType library.
