@@ -21,6 +21,7 @@ class FreetypeHandle {
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
     friend FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
     friend bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *axisname, double coordinate);
+    friend bool getVariationAxes(std::vector<FontVariationAxis> &axes, FontHandle *font, FreetypeHandle *library);
 
     FT_Library library;
 
@@ -39,6 +40,7 @@ class FontHandle {
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
     friend bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *axisname, double coordinate);
+    friend bool getVariationAxes(std::vector<FontVariationAxis> &axes, FontHandle *font, FreetypeHandle *library);
 
     FT_Face face;
     bool ownership;
@@ -242,6 +244,26 @@ bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *nam
         FT_Done_MM_Var(library->library, amaster);
     }
     return success;
+}
+
+bool getVariationAxes(std::vector<FontVariationAxis> &axes, FontHandle *font, FreetypeHandle *library) {
+    if (font->face->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS) {
+        FT_MM_Var *amaster;
+        FT_Get_MM_Var(font->face, &amaster);
+
+        for (FT_UInt i = 0; i < amaster->num_axis; i++) {
+            FontVariationAxis axis{
+                amaster->axis[i].name,
+                F16DOT16_TO_DOUBLE(amaster->axis[i].minimum),
+                F16DOT16_TO_DOUBLE(amaster->axis[i].def),
+                F16DOT16_TO_DOUBLE(amaster->axis[i].maximum)
+            };
+            axes.push_back(axis);
+        }
+        FT_Done_MM_Var(library->library, amaster);
+        return true;
+    }
+    return false;
 }
 
 }

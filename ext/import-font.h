@@ -35,6 +35,18 @@ struct FontMetrics {
     double underlineY, underlineThickness;
 };
 
+/// A structure to model a given axis for variation fonts.
+struct FontVariationAxis {
+    /// The name of the variation axis.
+    const char * name;
+    /// The axis's minimum design coordinate.
+    double minimum;
+    /// The axis's default design coordinate. FreeType computes meaningful default values for Adobe MM fonts.
+    double def;
+    /// The axis's maximum design coordinate.
+    double maximum;
+};
+
 /// Initializes the FreeType library.
 FreetypeHandle * initializeFreetype();
 /// Deinitializes the FreeType library.
@@ -64,5 +76,6 @@ bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphI
 bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
 /// Sets variation axis of variable font.
 bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *name, double coordinate);
+bool getVariationAxes(std::vector<FontVariationAxis> &axes, FontHandle *font, FreetypeHandle *library);
 
 }
