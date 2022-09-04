@@ -12,6 +12,8 @@ namespace msdfgen {
 
 #define REQUIRE(cond) { if (!(cond)) return false; }
 #define F26DOT6_TO_DOUBLE(x) (1/64.*double(x))
+#define DOUBLE_TO_F16DOT16(x)  (FT_Fixed(x*65536.))
+#define F16DOT16_TO_DOUBLE(x)  (1/65536.*double(x))
 
 class FreetypeHandle {
     friend FreetypeHandle * initializeFreetype();
@@ -231,8 +233,9 @@ bool setVariationAxis(FontHandle *font, FreetypeHandle *library, const char *nam
         for (FT_UInt i = 0; i < amaster->num_axis; i++) {
             int strdiff = strcmp(name,amaster->axis[i].name);
             if (strdiff == 0) {
-                coords[i] = (int)(coordinate * 65536.0);
+                coords[i] = DOUBLE_TO_F16DOT16(coordinate);
                 success = true;
+                break;
             }
         }
         FT_Set_Var_Design_Coordinates(font->face, coords.size(), coords.data());
