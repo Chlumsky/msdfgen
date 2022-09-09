@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 #include "msdfgen.h"
 #include "msdfgen-ext.h"
@@ -133,6 +134,29 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
                 break;
         }
     }
+}
+
+static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
+    std::string buffer;
+    while (*filename && *filename != '?')
+        buffer.push_back(*filename++);
+    FontHandle *font = loadFont(library, buffer.c_str());
+    if (*filename++ == '?') {
+        do {
+            buffer.clear();
+            while (*filename && *filename != '=')
+                buffer.push_back(*filename++);
+            if (*filename == '=') {
+                double value = 0;
+                int skip = 0;
+                if (sscanf(++filename, "%lf%n", &value, &skip) == 1) {
+                    setFontVariationAxis(library, font, buffer.c_str(), value);
+                    filename += skip;
+                }
+            }
+        } while (*filename++ == '&');
+    }
+    return font;
 }
 
 template <int N>
@@ -295,6 +319,8 @@ static const char *helpText =
         "\tReads text shape description from the standard input.\n"
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
+    "  -varfont <filename and variables> <character code>\n"
+        "\tLoads a single glyph from a variable font. Specify variable values as x.ttf?var1=0.5&var2=1\n"
     "\n"
     // Keep alphabetical order!
     "OPTIONS\n"
@@ -408,6 +434,7 @@ int main(int argc, const char * const *argv) {
         NONE,
         SVG,
         FONT,
+        VAR_FONT,
         DESCRIPTION_ARG,
         DESCRIPTION_STDIN,
         DESCRIPTION_FILE
@@ -496,8 +523,8 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
-        ARG_CASE("-font", 2) {
-            inputType = FONT;
+        //ARG_CASE -font, -varfont
+        if (argPos+2 < argc && ((!strcmp(arg, "-font") && (inputType = FONT)) || (!strcmp(arg, "-varfont") && (inputType = VAR_FONT)))) {
             input = argv[argPos+1];
             const char *charArg = argv[argPos+2];
             unsigned gi;
@@ -840,12 +867,13 @@ int main(int argc, const char * const *argv) {
                 ABORT("Failed to load shape from SVG file.");
             break;
         }
-        case FONT: {
+        case FONT: case VAR_FONT: {
             if (!glyphIndexSpecified && !unicode)
                 ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a Unicode index (65, 0x41), a character in apostrophes ('A'), or a glyph index prefixed by g (g36, g0x24).");
             FreetypeHandle *ft = initializeFreetype();
-            if (!ft) return -1;
-            FontHandle *font = loadFont(ft, input);
+            if (!ft)
+                return -1;
+            FontHandle *font = inputType == VAR_FONT ? loadVarFont(ft, input) : loadFont(ft, input);
             if (!font) {
                 deinitializeFreetype(ft);
                 ABORT("Failed to load font file.");
