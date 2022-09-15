@@ -36,6 +36,18 @@ there is a Windows binary available for download in the ["Releases" section](htt
 To build the project, you may use the included [Visual Studio solution](Msdfgen.sln)
 or [CMake script](CMakeLists.txt).
 
+### Installing from vcpkg
+
+You can download and install `msdfgen` using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+```sh
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh #.\bootstrap-vcpkg.bat(for windows)
+./vcpkg integrate install
+./vcpkg install msdfgen
+```
+The `msdfgen` port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull   request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
 ## Console commands
 
 The standalone program is executed as
