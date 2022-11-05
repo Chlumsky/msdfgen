@@ -1,3 +1,4 @@
+/build/
 /Debug/
 /Release/
 /Release OpenMP/
@@ -22,9 +23,6 @@
 output.png
 render.png
 out/
-build/
-build_xcode/
-skia/win32/
-skia/win64/
+/build_xcode/
 /cmake-gen.bat
 /line-ending-check.bat

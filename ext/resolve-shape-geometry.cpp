@@ -3,8 +3,8 @@
 
 #ifdef MSDFGEN_USE_SKIA
 
-#include <core/SkPath.h>
-#include <pathops/SkPathOps.h>
+#include <skia/core/SkPath.h>
+#include <skia/pathops/SkPathOps.h>
 #include "../core/Vector2.h"
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"

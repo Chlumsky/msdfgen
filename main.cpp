@@ -1,8 +1,8 @@
 
 /*
- * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR v1.9 (2021-05-28) - standalone console program
- * --------------------------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2021
+ * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR - standalone console program
+ * --------------------------------------------------------------------------
+ * A utility by Viktor Chlumsky, (c) 2014 - 2022
  *
  */
 
@@ -276,6 +276,10 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     return NULL;
 }
 
+#define STRINGIZE_(x) #x
+#define STRINGIZE(x) STRINGIZE_(x)
+#define MSDFGEN_VERSION_STRING STRINGIZE(MSDFGEN_VERSION)
+
 #if defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
     #define TITLE_SUFFIX    " with Skia & OpenMP"
     #define EXTRA_UNDERLINE "-------------------"
@@ -292,7 +296,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
 
 static const char *helpText =
     "\n"
-    "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION TITLE_SUFFIX "\n"
+    "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
     "---------------------------------------------------------------------" EXTRA_UNDERLINE "\n"
     "  Usage: msdfgen"
     #ifdef _WIN32
