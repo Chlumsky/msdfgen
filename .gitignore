@@ -8,6 +8,7 @@
 /x86/
 /x64/
 .vs/
+.vscode/
 *.exe
 *.zip
 *.user
