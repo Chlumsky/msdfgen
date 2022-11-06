@@ -1,5 +1,6 @@
 
 cmake_minimum_required(VERSION 3.15)
+include(cmake/version.cmake)
 
 option(MSDFGEN_CORE_ONLY "Only build the core library with no dependencies" OFF)
 option(MSDFGEN_BUILD_STANDALONE "Build the msdfgen standalone executable" ON)
@@ -39,13 +40,7 @@ if(MSDFGEN_USE_VCPKG)
     endif()
 endif()
 
-
-set(MSDFGEN_VERSION_MAJOR 1)
-set(MSDFGEN_VERSION_MINOR 10)
-set(MSDFGEN_VERSION_REVISION 0)
-set(MSDFGEN_VERSION 1.10)
-string(TIMESTAMP MSDFGEN_COPYRIGHT_YEAR "%Y")
-
+# Version is specified in vcpkg.json
 project(msdfgen VERSION ${MSDFGEN_VERSION} LANGUAGES CXX)
 
 file(GLOB_RECURSE MSDFGEN_CORE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.h" "core/*.hpp")
@@ -131,6 +126,7 @@ if(MSDFGEN_BUILD_STANDALONE)
     endif()
     add_executable(msdfgen ${MSDFGEN_STANDALONE_SOURCES})
     target_compile_definitions(msdfgen PUBLIC MSDFGEN_STANDALONE)
+    target_compile_definitions(msdfgen PRIVATE MSDFGEN_VERSION_UNDERLINE=${MSDFGEN_VERSION_UNDERLINE})
     set_property(TARGET msdfgen PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     target_link_libraries(msdfgen PRIVATE msdfgen::msdfgen)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen)

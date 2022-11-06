@@ -279,25 +279,30 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
 #define STRINGIZE_(x) #x
 #define STRINGIZE(x) STRINGIZE_(x)
 #define MSDFGEN_VERSION_STRING STRINGIZE(MSDFGEN_VERSION)
+#ifdef MSDFGEN_VERSION_UNDERLINE
+    #define VERSION_UNDERLINE STRINGIZE(MSDFGEN_VERSION_UNDERLINE)
+#else
+    #define VERSION_UNDERLINE "--------"
+#endif
 
 #if defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
-    #define TITLE_SUFFIX    " with Skia & OpenMP"
-    #define EXTRA_UNDERLINE "-------------------"
+    #define TITLE_SUFFIX     " with Skia & OpenMP"
+    #define SUFFIX_UNDERLINE "-------------------"
 #elif defined(MSDFGEN_USE_SKIA)
-    #define TITLE_SUFFIX    " with Skia"
-    #define EXTRA_UNDERLINE "----------"
+    #define TITLE_SUFFIX     " with Skia"
+    #define SUFFIX_UNDERLINE "----------"
 #elif defined(MSDFGEN_USE_OPENMP)
-    #define TITLE_SUFFIX    " with OpenMP"
-    #define EXTRA_UNDERLINE "------------"
+    #define TITLE_SUFFIX     " with OpenMP"
+    #define SUFFIX_UNDERLINE "------------"
 #else
     #define TITLE_SUFFIX
-    #define EXTRA_UNDERLINE
+    #define SUFFIX_UNDERLINE
 #endif
 
 static const char *helpText =
     "\n"
     "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
-    "---------------------------------------------------------------------" EXTRA_UNDERLINE "\n"
+    "------------------------------------------------------------------" VERSION_UNDERLINE SUFFIX_UNDERLINE "\n"
     "  Usage: msdfgen"
     #ifdef _WIN32
         ".exe"
