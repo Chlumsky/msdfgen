@@ -1,31 +1,69 @@
 
 cmake_minimum_required(VERSION 3.15)
+include(cmake/version.cmake)
 
 option(MSDFGEN_CORE_ONLY "Only build the core library with no dependencies" OFF)
 option(MSDFGEN_BUILD_STANDALONE "Build the msdfgen standalone executable" ON)
+option(MSDFGEN_USE_VCPKG "Use vcpkg package manager to link project dependencies" ON)
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
-option(MSDFGEN_USE_SKIA "Build with the Skia library" OFF)
-option(MSDFGEN_INSTALL "Generate installation target" ON)
+option(MSDFGEN_USE_SKIA "Build with the Skia library" ON)
+option(MSDFGEN_INSTALL "Generate installation target" OFF)
 
 if(MSDFGEN_CORE_ONLY AND MSDFGEN_BUILD_STANDALONE)
     message(WARNING "Option MSDFGEN_CORE_ONLY ignored - extensions are required for standalone executable")
     set(MSDFGEN_CORE_ONLY OFF)
 endif()
+if(MSDFGEN_CORE_ONLY AND MSDFGEN_USE_VCPKG)
+    message(STATUS "Option MSDFGEN_USE_VCPKG ignored due to MSDFGEN_CORE_ONLY - core has no dependencies")
+    set(MSDFGEN_USE_VCPKG OFF)
+endif()
 
-project(msdfgen VERSION 1.9 LANGUAGES CXX)
+get_property(MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT MULTI_CONFIG AND NOT CMAKE_BUILD_TYPE)
+    message(STATUS "CMAKE_BUILD_TYPE not set, defaulting to Release")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
-if(NOT CMAKE_MSVC_RUNTIME_LIBRARY)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    get_directory_property(MSDFGEN_HAS_PARENT PARENT_DIRECTORY)
-    if(MSDFGEN_HAS_PARENT)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY ${CMAKE_MSVC_RUNTIME_LIBRARY} PARENT_SCOPE)
+if(MSDFGEN_USE_VCPKG)
+    # Make sure that vcpkg toolchain file is set
+    if(NOT CMAKE_TOOLCHAIN_FILE)
+        if(DEFINED ENV{VCPKG_ROOT})
+            set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+        else()
+            message(SEND_ERROR "Vcpkg toolchain not configured. Either set VCPKG_ROOT environment variable or pass -DCMAKE_TOOLCHAIN_FILE=VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake to cmake")
+        endif()
+    endif()
+    # Default to statically linked vcpkg triplet on Windows
+    if(WIN32 AND NOT VCPKG_TARGET_TRIPLET)
+        if(${CMAKE_GENERATOR_PLATFORM} MATCHES "64$")
+            set(VCPKG_TARGET_TRIPLET "x64-windows-static")
+        elseif(${CMAKE_GENERATOR_PLATFORM} MATCHES "32$" OR ${CMAKE_GENERATOR_PLATFORM} STREQUAL "x86")
+            set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+        else()
+            message(WARNING "Vcpkg triplet not explicitly specified and could not be deduced. Recommend using -DVCPKG_TARGET_TRIPLET=x86-windows-static or similar")
+        endif()
+    endif()
+    # Select project features
+    if(NOT MSDFGEN_VCPKG_FEATURES_SET)
+        set(VCPKG_MANIFEST_NO_DEFAULT_FEATURES ON)
+        if(NOT MSDFGEN_CORE_ONLY)
+            list(APPEND VCPKG_MANIFEST_FEATURES "extensions")
+        endif()
+        if(MSDFGEN_BUILD_STANDALONE)
+            list(APPEND VCPKG_MANIFEST_FEATURES "standalone")
+        endif()
+        if(MSDFGEN_USE_SKIA)
+            list(APPEND VCPKG_MANIFEST_FEATURES "geometry-preprocessing")
+        endif()
+        if(MSDFGEN_USE_OPENMP)
+            list(APPEND VCPKG_MANIFEST_FEATURES "openmp")
+        endif()
     endif()
 endif()
 
-if(NOT TARGET Freetype::Freetype)
-    find_package(Freetype REQUIRED)
-endif()
+# Version is specified in vcpkg.json
+project(msdfgen VERSION ${MSDFGEN_VERSION} LANGUAGES CXX)
 
 file(GLOB_RECURSE MSDFGEN_CORE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.h" "core/*.hpp")
 file(GLOB_RECURSE MSDFGEN_CORE_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.cpp")
@@ -36,7 +74,14 @@ file(GLOB_RECURSE MSDFGEN_EXT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ext/
 add_library(msdfgen-core "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" ${MSDFGEN_CORE_HEADERS} ${MSDFGEN_CORE_SOURCES})
 add_library(msdfgen::msdfgen-core ALIAS msdfgen-core)
 set_target_properties(msdfgen-core PROPERTIES PUBLIC_HEADER "${MSDFGEN_CORE_HEADERS}")
-#set_property(TARGET msdfgen-core PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET msdfgen-core PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+target_compile_definitions(msdfgen-core PUBLIC
+    MSDFGEN_VERSION=${MSDFGEN_VERSION}
+    MSDFGEN_VERSION_MAJOR=${MSDFGEN_VERSION_MAJOR}
+    MSDFGEN_VERSION_MINOR=${MSDFGEN_VERSION_MINOR}
+    MSDFGEN_VERSION_REVISION=${MSDFGEN_VERSION_REVISION}
+    MSDFGEN_COPYRIGHT_YEAR=${MSDFGEN_COPYRIGHT_YEAR}
+)
 target_include_directories(msdfgen-core INTERFACE
     $<INSTALL_INTERFACE:include/msdfgen>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
@@ -57,10 +102,22 @@ endif()
 
 # Extensions library
 if(NOT MSDFGEN_CORE_ONLY)
+    if(NOT TARGET Freetype::Freetype)
+        find_package(Freetype REQUIRED)
+    endif()
+    if(NOT TARGET tinyxml2::tinyxml2)
+        find_package(tinyxml2 REQUIRED)
+    endif()
+    if(NOT TARGET PNG::PNG)
+        find_package(PNG REQUIRED)
+    endif()
+
     add_library(msdfgen-ext "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" ${MSDFGEN_EXT_HEADERS} ${MSDFGEN_EXT_SOURCES})
     add_library(msdfgen::msdfgen-ext ALIAS msdfgen-ext)
     set_target_properties(msdfgen-ext PROPERTIES PUBLIC_HEADER "${MSDFGEN_EXT_HEADERS}")
-    target_link_libraries(msdfgen-ext PUBLIC msdfgen::msdfgen-core Freetype::Freetype)
+    set_property(TARGET msdfgen-ext PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_LIBPNG)
+    target_link_libraries(msdfgen-ext PRIVATE msdfgen::msdfgen-core Freetype::Freetype tinyxml2::tinyxml2 PNG::PNG)
     target_include_directories(msdfgen-ext
         PUBLIC
             $<INSTALL_INTERFACE:include/msdfgen>
@@ -71,14 +128,20 @@ if(NOT MSDFGEN_CORE_ONLY)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen-ext)
 
     if(MSDFGEN_USE_SKIA)
-        find_package(Skia REQUIRED)
+        set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+        find_package(Threads REQUIRED)
+        if(NOT TARGET skia)
+            find_package(skia REQUIRED)
+        endif()
+        target_compile_features(msdfgen-ext PUBLIC cxx_std_17)
         target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_SKIA)
-        target_link_libraries(msdfgen-ext PUBLIC Skia::Skia)
+        target_link_libraries(msdfgen-ext PRIVATE Threads::Threads skia)
     endif()
 
-    add_library(msdfgen-all INTERFACE)
-    add_library(msdfgen::msdfgen ALIAS msdfgen-all)
-    target_link_libraries(msdfgen-all INTERFACE msdfgen::msdfgen-core msdfgen::msdfgen-ext)
+    add_library(msdfgen-full INTERFACE)
+    add_library(msdfgen::msdfgen ALIAS msdfgen-full)
+    target_link_libraries(msdfgen-full INTERFACE msdfgen::msdfgen-core msdfgen::msdfgen-ext)
 endif()
 
 # Standalone executable
@@ -89,7 +152,9 @@ if(MSDFGEN_BUILD_STANDALONE)
     endif()
     add_executable(msdfgen ${MSDFGEN_STANDALONE_SOURCES})
     target_compile_definitions(msdfgen PUBLIC MSDFGEN_STANDALONE)
-    target_link_libraries(msdfgen PUBLIC msdfgen::msdfgen)
+    target_compile_definitions(msdfgen PRIVATE MSDFGEN_VERSION_UNDERLINE=${MSDFGEN_VERSION_UNDERLINE})
+    set_property(TARGET msdfgen PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_link_libraries(msdfgen PRIVATE msdfgen::msdfgen)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen)
 endif()
 
@@ -138,7 +203,7 @@ if(MSDFGEN_INSTALL)
             PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/ext
         )
         install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
-        install(TARGETS msdfgen-all EXPORT msdfgenTargets)
+        install(TARGETS msdfgen-full EXPORT msdfgenTargets)
     endif()
 
     export(EXPORT msdfgenTargets NAMESPACE msdfgen:: FILE "${CMAKE_CURRENT_BINARY_DIR}/msdfgenTargets.cmake")

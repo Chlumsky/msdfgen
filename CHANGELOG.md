@@ -1,4 +1,21 @@
 
+## Version 1.10
+
+- Switched to vcpkg as the primary dependency management system
+- Switched to libpng as the primary PNG file encoder
+- Parameters of variable fonts can be specified
+- Fixed a bug that prevented glyph 0 to be specified in a glyphset
+
+### Version 1.9.2 (2021-12-01)
+
+- Improved detection of numerical errors in cubic equation solver
+- Added -windingpreprocess option
+- Fixed edge coloring not restored if lost during preprocessing
+
+### Version 1.9.1 (2021-07-09)
+
+- Fixed an edge case bug in the new MSDF error correction algorithm
+
 ## Version 1.9 (2021-05-28)
 
 - Error correction of multi-channel distance fields has been completely reworked

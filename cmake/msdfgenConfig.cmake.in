@@ -20,9 +20,9 @@ include("${CMAKE_CURRENT_LIST_DIR}/msdfgenTargets.cmake")
 
 if(NOT MSDFGEN_CORE_ONLY)
     if(${CMAKE_VERSION} VERSION_LESS "3.18.0")
-        set_target_properties(msdfgen::msdfgen-all PROPERTIES IMPORTED_GLOBAL TRUE)
+        set_target_properties(msdfgen::msdfgen-full PROPERTIES IMPORTED_GLOBAL TRUE)
     endif()
-    add_library(msdfgen::msdfgen ALIAS msdfgen::msdfgen-all)
+    add_library(msdfgen::msdfgen ALIAS msdfgen::msdfgen-full)
 endif()
 
 if(MSDFGEN_STANDALONE_AVAILABLE)
