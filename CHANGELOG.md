@@ -1,5 +1,5 @@
 
-## Version 1.10
+## Version 1.10 (2023-01-15)
 
 - Switched to vcpkg as the primary dependency management system
 - Switched to libpng as the primary PNG file encoder

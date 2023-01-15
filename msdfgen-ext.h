@@ -15,7 +15,8 @@
  *   (to load input font files)
  * - TinyXML 2 by Lee Thomason
  *   (to aid in parsing input SVG files)
- * - LodePNG by Lode Vandevenne
+ * - libpng by the PNG Development Group
+ * - or LodePNG by Lode Vandevenne
  *   (to save output PNG images)
  *
  */

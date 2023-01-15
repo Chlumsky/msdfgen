@@ -13,16 +13,11 @@
         },
         "extensions": {
             "description": "Extended functionality that depends on external libraries - loading fonts and SVG files, generating PNG images",
-            "dependencies": [ {
-                "name": "freetype",
-                "version>=": "2.12.1#2"
-            }, {
-                "name": "tinyxml2",
-                "version>=": "9.0.0#1"
-            }, {
-                "name": "libpng",
-                "version>=": "1.6.37#19"
-            } ]
+            "dependencies": [
+                "freetype",
+                "tinyxml2",
+                "libpng"
+            ]
         },
         "geometry-preprocessing": {
             "description": "Preprocessing of non-compliant vector geometry via the Skia library",
@@ -33,7 +28,7 @@
             }, {
                 "name": "skia",
                 "default-features": false,
-                "version>=": "0.36.0"
+                "version>=": "0.36.0#3"
             } ]
         },
         "standalone": {
