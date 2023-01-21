@@ -2,7 +2,7 @@
 /*
  * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR - standalone console program
  * --------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2022
+ * A utility by Viktor Chlumsky, (c) 2014 - 2023
  *
  */
 
@@ -141,7 +141,7 @@ static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
     while (*filename && *filename != '?')
         buffer.push_back(*filename++);
     FontHandle *font = loadFont(library, buffer.c_str());
-    if (*filename++ == '?') {
+    if (font && *filename++ == '?') {
         do {
             buffer.clear();
             while (*filename && *filename != '=')
@@ -299,7 +299,11 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     #define SUFFIX_UNDERLINE
 #endif
 
-static const char *helpText =
+static const char * const versionText =
+    "MSDFgen v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
+    "(c) 2016 - " STRINGIZE(MSDFGEN_COPYRIGHT_YEAR) " Viktor Chlumsky";
+
+static const char * const helpText =
     "\n"
     "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
     "------------------------------------------------------------------" VERSION_UNDERLINE SUFFIX_UNDERLINE "\n"
@@ -406,6 +410,8 @@ static const char *helpText =
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
+    "  -version\n"
+        "\tPrints the version of the program.\n"
     "  -windingpreprocess\n"
         "\tAttempts to fix only the contour windings assuming no self-intersections and even-odd fill rule.\n"
     "  -yflip\n"
@@ -519,6 +525,10 @@ int main(int argc, const char * const *argv) {
         #define ARG_CASE(s, p) if (!strcmp(arg, s) && argPos+(p) < argc)
         #define ARG_MODE(s, m) if (!strcmp(arg, s)) { mode = m; ++argPos; continue; }
         #define SET_FORMAT(fmt, ext) do { format = fmt; if (!outputSpecified) output = "output." ext; } while (false)
+
+        // Accept arguments prefixed with -- instead of -
+        if (arg[0] == '-' && arg[1] == '-')
+            ++arg;
 
         ARG_MODE("sdf", SINGLE)
         ARG_MODE("psdf", PSEUDO)
@@ -851,11 +861,15 @@ int main(int argc, const char * const *argv) {
             argPos += 2;
             continue;
         }
+        ARG_CASE("-version", 0) {
+            puts(versionText);
+            return 0;
+        }
         ARG_CASE("-help", 0) {
             puts(helpText);
             return 0;
         }
-        printf("Unknown setting or insufficient parameters: %s\n", arg);
+        printf("Unknown setting or insufficient parameters: %s\n", argv[argPos]);
         suggestHelp = true;
         ++argPos;
     }
