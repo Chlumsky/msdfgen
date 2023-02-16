@@ -68,6 +68,8 @@ bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
 bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
 /// Outputs the glyph index corresponding to the specified Unicode character.
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
+/// Loads the geometry of a glyph from a font file with already selected glyph with FT_Load_Glyph.
+bool loadGlyphShape(Shape &output, FontHandle *font);
 /// Loads the geometry of a glyph from a font file.
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance = NULL);
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance = NULL);

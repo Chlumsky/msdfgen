@@ -34,6 +34,7 @@ class FontHandle {
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
     friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
+    friend bool loadGlyphShape(Shape &output, FontHandle *font);
     friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance);
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
@@ -175,6 +176,24 @@ bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) 
     return glyphIndex.getIndex() != 0;
 }
 
+bool loadGlyphShape(Shape &output, FontHandle *font) {
+    FtContext context = {};
+    context.shape = &output;
+    FT_Outline_Funcs ftFunctions;
+    ftFunctions.move_to = &ftMoveTo;
+    ftFunctions.line_to = &ftLineTo;
+    ftFunctions.conic_to = &ftConicTo;
+    ftFunctions.cubic_to = &ftCubicTo;
+    ftFunctions.shift = 0;
+    ftFunctions.delta = 0;
+    FT_Error error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    if (error)
+        return false;
+    if (!output.contours.empty() && output.contours.back().edges.empty())
+        output.contours.pop_back();
+    return true;
+}
+
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance) {
     if (!font)
         return false;
@@ -185,22 +204,7 @@ bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *a
     output.inverseYAxis = false;
     if (advance)
         *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
-
-    FtContext context = { };
-    context.shape = &output;
-    FT_Outline_Funcs ftFunctions;
-    ftFunctions.move_to = &ftMoveTo;
-    ftFunctions.line_to = &ftLineTo;
-    ftFunctions.conic_to = &ftConicTo;
-    ftFunctions.cubic_to = &ftCubicTo;
-    ftFunctions.shift = 0;
-    ftFunctions.delta = 0;
-    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
-    if (error)
-        return false;
-    if (!output.contours.empty() && output.contours.back().edges.empty())
-        output.contours.pop_back();
-    return true;
+    return loadGlyphShape(output, font);
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
