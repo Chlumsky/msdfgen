@@ -34,9 +34,8 @@ class FontHandle {
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
     friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
-    friend bool loadGlyphShape(Shape &output, FontHandle *font);
-    friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance);
-    friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
+    friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance, unsigned loadFlags);
+    friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance, unsigned loadFlags);
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
     friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
@@ -176,8 +175,18 @@ bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) 
     return glyphIndex.getIndex() != 0;
 }
 
-bool loadGlyphShape(Shape &output, FontHandle *font) {
-    FtContext context = {};
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance, unsigned loadFlags) {
+    if (!font)
+        return false;
+    FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), loadFlags);
+    if (error)
+        return false;
+    output.contours.clear();
+    output.inverseYAxis = false;
+    if (advance)
+        *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
+
+    FtContext context = { };
     context.shape = &output;
     FT_Outline_Funcs ftFunctions;
     ftFunctions.move_to = &ftMoveTo;
@@ -186,7 +195,7 @@ bool loadGlyphShape(Shape &output, FontHandle *font) {
     ftFunctions.cubic_to = &ftCubicTo;
     ftFunctions.shift = 0;
     ftFunctions.delta = 0;
-    FT_Error error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
+    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
     if (error)
         return false;
     if (!output.contours.empty() && output.contours.back().edges.empty())
@@ -194,21 +203,8 @@ bool loadGlyphShape(Shape &output, FontHandle *font) {
     return true;
 }
 
-bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance) {
-    if (!font)
-        return false;
-    FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), FT_LOAD_NO_SCALE);
-    if (error)
-        return false;
-    output.contours.clear();
-    output.inverseYAxis = false;
-    if (advance)
-        *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
-    return loadGlyphShape(output, font);
-}
-
-bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
-    return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), advance);
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance, unsigned loadFlags) {
+    return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), advance, loadFlags);
 }
 
 bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2) {

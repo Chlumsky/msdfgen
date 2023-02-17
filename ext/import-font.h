@@ -68,11 +68,10 @@ bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
 bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
 /// Outputs the glyph index corresponding to the specified Unicode character.
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
-/// Loads the geometry of a glyph from a font file with already selected glyph with FT_Load_Glyph.
-bool loadGlyphShape(Shape &output, FontHandle *font);
 /// Loads the geometry of a glyph from a font file.
-bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance = NULL);
-bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance = NULL);
+/// loadFlags == 1 corresponds to FT_LOAD_NO_SCALE
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance = NULL, unsigned loadFlags = 1);
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance = NULL, unsigned loadFlags = 1);
 /// Outputs the kerning distance adjustment between two specific glyphs.
 bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
 bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
