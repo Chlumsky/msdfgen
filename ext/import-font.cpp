@@ -116,6 +116,24 @@ FontHandle * adoptFreetypeFont(FT_Face ftFace) {
     return handle;
 }
 
+FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline) {
+    output.contours.clear();
+    output.inverseYAxis = false;
+    FtContext context = { };
+    context.shape = &output;
+    FT_Outline_Funcs ftFunctions;
+    ftFunctions.move_to = &ftMoveTo;
+    ftFunctions.line_to = &ftLineTo;
+    ftFunctions.conic_to = &ftConicTo;
+    ftFunctions.cubic_to = &ftCubicTo;
+    ftFunctions.shift = 0;
+    ftFunctions.delta = 0;
+    FT_Error error = FT_Outline_Decompose(outline, &ftFunctions, &context);
+    if (!output.contours.empty() && output.contours.back().edges.empty())
+        output.contours.pop_back();
+    return error;
+}
+
 FontHandle * loadFont(FreetypeHandle *library, const char *filename) {
     if (!library)
         return NULL;
@@ -181,26 +199,9 @@ bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *a
     FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), FT_LOAD_NO_SCALE);
     if (error)
         return false;
-    output.contours.clear();
-    output.inverseYAxis = false;
     if (advance)
         *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
-
-    FtContext context = { };
-    context.shape = &output;
-    FT_Outline_Funcs ftFunctions;
-    ftFunctions.move_to = &ftMoveTo;
-    ftFunctions.line_to = &ftLineTo;
-    ftFunctions.conic_to = &ftConicTo;
-    ftFunctions.cubic_to = &ftCubicTo;
-    ftFunctions.shift = 0;
-    ftFunctions.delta = 0;
-    error = FT_Outline_Decompose(&font->face->glyph->outline, &ftFunctions, &context);
-    if (error)
-        return false;
-    if (!output.contours.empty() && output.contours.back().edges.empty())
-        output.contours.pop_back();
-    return true;
+    return !readFreetypeOutline(output, &font->face->glyph->outline);
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
