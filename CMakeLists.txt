@@ -12,10 +12,6 @@ option(MSDFGEN_INSTALL "Generate installation target" OFF)
 option(MSDFGEN_DYNAMIC_RUNTIME "Link dynamic runtime library instead of static" OFF)
 option(BUILD_SHARED_LIBS "Generate dynamic library files instead of static" OFF)
 
-if(MSDFGEN_CORE_ONLY AND MSDFGEN_BUILD_STANDALONE)
-    message(WARNING "Option MSDFGEN_CORE_ONLY ignored - extensions are required for standalone executable")
-    set(MSDFGEN_CORE_ONLY OFF)
-endif()
 if(MSDFGEN_CORE_ONLY AND MSDFGEN_USE_VCPKG)
     message(STATUS "Option MSDFGEN_USE_VCPKG ignored due to MSDFGEN_CORE_ONLY - core has no dependencies")
     set(MSDFGEN_USE_VCPKG OFF)
@@ -140,6 +136,7 @@ if(NOT MSDFGEN_CORE_ONLY)
     set_target_properties(msdfgen-ext PROPERTIES PUBLIC_HEADER "${MSDFGEN_EXT_HEADERS}")
     set_property(TARGET msdfgen-ext PROPERTY MSVC_RUNTIME_LIBRARY "${MSDFGEN_MSVC_RUNTIME}")
     target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_LIBPNG)
+    target_compile_definitions(msdfgen-ext INTERFACE MSDFGEN_EXTENSIONS)
     target_link_libraries(msdfgen-ext PRIVATE msdfgen::msdfgen-core Freetype::Freetype tinyxml2::tinyxml2 PNG::PNG)
     target_include_directories(msdfgen-ext
         PUBLIC
@@ -171,6 +168,8 @@ if(NOT MSDFGEN_CORE_ONLY)
     add_library(msdfgen-full INTERFACE)
     add_library(msdfgen::msdfgen ALIAS msdfgen-full)
     target_link_libraries(msdfgen-full INTERFACE msdfgen::msdfgen-core msdfgen::msdfgen-ext)
+else()
+    add_library(msdfgen::msdfgen ALIAS msdfgen-core)
 endif()
 
 # Standalone executable
@@ -186,6 +185,10 @@ if(MSDFGEN_BUILD_STANDALONE)
     target_link_libraries(msdfgen PRIVATE msdfgen::msdfgen)
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen)
 endif()
+
+# Hide ZERO_CHECK and ALL_BUILD targets
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER meta)
 
 # Installation
 if(MSDFGEN_INSTALL)

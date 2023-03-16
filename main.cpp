@@ -16,12 +16,22 @@
 #include <string>
 
 #include "msdfgen.h"
+#ifdef MSDFGEN_EXTENSIONS
 #include "msdfgen-ext.h"
+#endif
 
 #include "core/ShapeDistanceFinder.h"
 
 #define SDF_ERROR_ESTIMATE_PRECISION 19
 #define DEFAULT_ANGLE_THRESHOLD 3.
+
+#ifdef MSDFGEN_EXTENSIONS
+#define DEFAULT_IMAGE_EXTENSION "png"
+#define SAVE_DEFAULT_IMAGE_FORMAT savePng
+#else
+#define DEFAULT_IMAGE_EXTENSION "tif"
+#define SAVE_DEFAULT_IMAGE_FORMAT saveTiff
+#endif
 
 using namespace msdfgen;
 
@@ -66,19 +76,6 @@ static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
 static bool parseDouble(double &value, const char *arg) {
     char c;
     return sscanf(arg, "%lf%c", &value, &c) == 1;
-}
-
-static bool parseUnicode(unicode_t &unicode, const char *arg) {
-    unsigned uuc;
-    if (parseUnsignedDecOrHex(uuc, arg)) {
-        unicode = uuc;
-        return true;
-    }
-    if (arg[0] == '\'' && arg[1] && arg[2] == '\'' && !arg[3]) {
-        unicode = (unicode_t) (unsigned char) arg[1];
-        return true;
-    }
-    return false;
 }
 
 static bool parseAngle(double &value, const char *arg) {
@@ -136,6 +133,20 @@ static void parseColoring(Shape &shape, const char *edgeAssignment) {
     }
 }
 
+#ifdef MSDFGEN_EXTENSIONS
+static bool parseUnicode(unicode_t &unicode, const char *arg) {
+    unsigned uuc;
+    if (parseUnsignedDecOrHex(uuc, arg)) {
+        unicode = uuc;
+        return true;
+    }
+    if (arg[0] == '\'' && arg[1] && arg[2] == '\'' && !arg[3]) {
+        unicode = (unicode_t) (unsigned char) arg[1];
+        return true;
+    }
+    return false;
+}
+
 static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
     std::string buffer;
     while (*filename && *filename != '?')
@@ -158,6 +169,7 @@ static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
     }
     return font;
 }
+#endif
 
 template <int N>
 static void invertColor(const BitmapRef<float, N> &bitmap) {
@@ -229,7 +241,12 @@ template <int N>
 static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
     if (filename) {
         if (format == AUTO) {
+        #ifdef MSDFGEN_EXTENSIONS
             if (cmpExtension(filename, ".png")) format = PNG;
+        #else
+            if (cmpExtension(filename, ".png"))
+                return "PNG format is not available in core-only version.";
+        #endif
             else if (cmpExtension(filename, ".bmp")) format = BMP;
             else if (cmpExtension(filename, ".tif") || cmpExtension(filename, ".tiff")) format = TIFF;
             else if (cmpExtension(filename, ".txt")) format = TEXT;
@@ -238,7 +255,9 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
                 return "Could not deduce format from output file name.";
         }
         switch (format) {
+        #ifdef MSDFGEN_EXTENSIONS
             case PNG: return savePng(bitmap, filename) ? NULL : "Failed to write output PNG image.";
+        #endif
             case BMP: return saveBmp(bitmap, filename) ? NULL : "Failed to write output BMP image.";
             case TIFF: return saveTiff(bitmap, filename) ? NULL : "Failed to write output TIFF image.";
             case TEXT: case TEXT_FLOAT: {
@@ -285,7 +304,13 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     #define VERSION_UNDERLINE "--------"
 #endif
 
-#if defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
+#if !defined(MSDFGEN_EXTENSIONS) && defined(MSDFGEN_USE_OPENMP)
+    #define TITLE_SUFFIX     " - core with OpenMP"
+    #define SUFFIX_UNDERLINE "-------------------"
+#elif !defined(MSDFGEN_EXTENSIONS)
+    #define TITLE_SUFFIX     " - core only"
+    #define SUFFIX_UNDERLINE "------------"
+#elif defined(MSDFGEN_USE_SKIA) && defined(MSDFGEN_USE_OPENMP)
     #define TITLE_SUFFIX     " with Skia & OpenMP"
     #define SUFFIX_UNDERLINE "-------------------"
 #elif defined(MSDFGEN_USE_SKIA)
@@ -323,17 +348,21 @@ static const char * const helpText =
     "INPUT SPECIFICATION\n"
     "  -defineshape <definition>\n"
         "\tDefines input shape using the ad-hoc text definition.\n"
+#ifdef MSDFGEN_EXTENSIONS
     "  -font <filename.ttf> <character code>\n"
         "\tLoads a single glyph from the specified font file.\n"
         "\tFormat of character code is '?', 63, 0x3F (Unicode value), or g34 (glyph index).\n"
+#endif
     "  -shapedesc <filename.txt>\n"
         "\tLoads text shape description from a file.\n"
     "  -stdin\n"
         "\tReads text shape description from the standard input.\n"
+#ifdef MSDFGEN_EXTENSIONS
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
     "  -varfont <filename and variables> <character code>\n"
         "\tLoads a single glyph from a variable font. Specify variable values as x.ttf?var1=0.5&var2=1\n"
+#endif
     "\n"
     // Keep alphabetical order!
     "OPTIONS\n"
@@ -361,7 +390,11 @@ static const char * const helpText =
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
     "  -fillrule <nonzero / evenodd / positive / negative>\n"
         "\tSets the fill rule for the scanline pass. Default is nonzero.\n"
+#ifdef MSDFGEN_EXTENSIONS
     "  -format <png / bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
+#else
+    "  -format <bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
+#endif
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
     "  -guessorder\n"
         "\tAttempts to detect if shape contours have the wrong winding and generates the SDF with the right one.\n"
@@ -379,7 +412,7 @@ static const char * const helpText =
         "\tDisables the scanline pass, which corrects the distance field's signs according to the selected fill rule.\n"
 #endif
     "  -o <filename>\n"
-        "\tSets the output file name. The default value is \"output.png\".\n"
+        "\tSets the output file name. The default value is \"output." DEFAULT_IMAGE_EXTENSION "\".\n"
 #ifdef MSDFGEN_USE_SKIA
     "  -overlap\n"
         "\tSwitches to distance field generator with support for overlapping contours.\n"
@@ -404,9 +437,13 @@ static const char * const helpText =
         "\tSets the dimensions of the output image.\n"
     "  -stdout\n"
         "\tPrints the output instead of storing it in a file. Only text formats are supported.\n"
-    "  -testrender <filename.png> <width> <height>\n"
+    "  -testrender <filename." DEFAULT_IMAGE_EXTENSION "> <width> <height>\n"
+#ifdef MSDFGEN_EXTENSIONS
         "\tRenders an image preview using the generated distance field and saves it as a PNG file.\n"
-    "  -testrendermulti <filename.png> <width> <height>\n"
+#else
+        "\tRenders an image preview using the generated distance field and saves it as a TIFF file.\n"
+#endif
+    "  -testrendermulti <filename." DEFAULT_IMAGE_EXTENSION "> <width> <height>\n"
         "\tRenders an image preview without flattening the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
@@ -442,7 +479,7 @@ static const char *errorCorrectionHelpText =
     "\n";
 
 int main(int argc, const char * const *argv) {
-    #define ABORT(msg) { puts(msg); return 1; }
+    #define ABORT(msg) do { fputs(msg "\n", stderr); return 1; } while (false)
 
     // Parse command line arguments
     enum {
@@ -479,15 +516,17 @@ int main(int argc, const char * const *argv) {
     FillRule fillRule = FILL_NONZERO;
     Format format = AUTO;
     const char *input = NULL;
-    const char *output = "output.png";
+    const char *output = "output." DEFAULT_IMAGE_EXTENSION;
     const char *shapeExport = NULL;
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
+#ifdef MSDFGEN_EXTENSIONS
     bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
     int svgPathIndex = 0;
+#endif
 
     int width = 64, height = 64;
     int testWidth = 0, testHeight = 0;
@@ -536,6 +575,7 @@ int main(int argc, const char * const *argv) {
         ARG_MODE("mtsdf", MULTI_AND_TRUE)
         ARG_MODE("metrics", METRICS)
 
+    #ifdef MSDFGEN_EXTENSIONS
         ARG_CASE("-svg", 1) {
             inputType = SVG;
             input = argv[argPos+1];
@@ -562,6 +602,17 @@ int main(int argc, const char * const *argv) {
             argPos += 3;
             continue;
         }
+    #else
+        ARG_CASE("-svg", 1) {
+            ABORT("SVG input is not available in core-only version.");
+        }
+        ARG_CASE("-font", 2) {
+            ABORT("Font input is not available in core-only version.");
+        }
+        ARG_CASE("-varfont", 2) {
+            ABORT("Variable font input is not available in core-only version.");
+        }
+    #endif
         ARG_CASE("-defineshape", 1) {
             inputType = DESCRIPTION_ARG;
             input = argv[argPos+1];
@@ -638,22 +689,27 @@ int main(int argc, const char * const *argv) {
             else if (!strcmp(argv[argPos+1], "positive")) fillRule = FILL_POSITIVE;
             else if (!strcmp(argv[argPos+1], "negative")) fillRule = FILL_NEGATIVE;
             else
-                puts("Unknown fill rule specified.");
+                fputs("Unknown fill rule specified.\n", stderr);
             argPos += 2;
             continue;
         }
         ARG_CASE("-format", 1) {
             if (!strcmp(argv[argPos+1], "auto")) format = AUTO;
+        #ifdef MSDFGEN_EXTENSIONS
             else if (!strcmp(argv[argPos+1], "png")) SET_FORMAT(PNG, "png");
+        #else
+            else if (!strcmp(argv[argPos+1], "png"))
+                fputs("PNG format is not available in core-only version.\n", stderr);
+        #endif
             else if (!strcmp(argv[argPos+1], "bmp")) SET_FORMAT(BMP, "bmp");
-            else if (!strcmp(argv[argPos+1], "tiff")) SET_FORMAT(TIFF, "tif");
+            else if (!strcmp(argv[argPos+1], "tiff") || !strcmp(argv[argPos+1], "tif")) SET_FORMAT(TIFF, "tif");
             else if (!strcmp(argv[argPos+1], "text") || !strcmp(argv[argPos+1], "txt")) SET_FORMAT(TEXT, "txt");
             else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
             else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SET_FORMAT(BINARY, "bin");
             else if (!strcmp(argv[argPos+1], "binfloat") || !strcmp(argv[argPos+1], "binfloatle")) SET_FORMAT(BINARY_FLOAT, "bin");
             else if (!strcmp(argv[argPos+1], "binfloatbe")) SET_FORMAT(BINARY_FLOAT_BE, "bin");
             else
-                puts("Unknown format specified.");
+                fputs("Unknown format specified.\n", stderr);
             argPos += 2;
             continue;
         }
@@ -751,7 +807,7 @@ int main(int argc, const char * const *argv) {
                 puts(errorCorrectionHelpText);
                 return 0;
             } else
-                puts("Unknown error correction mode. Use -errorcorrection help for more information.");
+                fputs("Unknown error correction mode. Use -errorcorrection help for more information.\n", stderr);
             explicitErrorCorrectionMode = true;
             argPos += 2;
             continue;
@@ -777,7 +833,7 @@ int main(int argc, const char * const *argv) {
             else if (!strcmp(argv[argPos+1], "inktrap")) edgeColoring = edgeColoringInkTrap;
             else if (!strcmp(argv[argPos+1], "distance")) edgeColoring = edgeColoringByDistance;
             else
-                puts("Unknown coloring strategy specified.");
+                fputs("Unknown coloring strategy specified.\n", stderr);
             argPos += 2;
             continue;
         }
@@ -810,7 +866,7 @@ int main(int argc, const char * const *argv) {
         ARG_CASE("-testrender", 3) {
             unsigned w, h;
             if (!parseUnsigned(w, argv[argPos+2]) || !parseUnsigned(h, argv[argPos+3]) || !w || !h)
-                ABORT("Invalid arguments for test render. Use -testrender <output.png> <width> <height>.");
+                ABORT("Invalid arguments for test render. Use -testrender <output." DEFAULT_IMAGE_EXTENSION "> <width> <height>.");
             testRender = argv[argPos+1];
             testWidth = w, testHeight = h;
             argPos += 4;
@@ -819,7 +875,7 @@ int main(int argc, const char * const *argv) {
         ARG_CASE("-testrendermulti", 3) {
             unsigned w, h;
             if (!parseUnsigned(w, argv[argPos+2]) || !parseUnsigned(h, argv[argPos+3]) || !w || !h)
-                ABORT("Invalid arguments for test render. Use -testrendermulti <output.png> <width> <height>.");
+                ABORT("Invalid arguments for test render. Use -testrendermulti <output." DEFAULT_IMAGE_EXTENSION "> <width> <height>.");
             testRenderMulti = argv[argPos+1];
             testWidthM = w, testHeightM = h;
             argPos += 4;
@@ -869,22 +925,28 @@ int main(int argc, const char * const *argv) {
             puts(helpText);
             return 0;
         }
-        printf("Unknown setting or insufficient parameters: %s\n", argv[argPos]);
+        fprintf(stderr, "Unknown setting or insufficient parameters: %s\n", argv[argPos]);
         suggestHelp = true;
         ++argPos;
     }
     if (suggestHelp)
-        printf("Use -help for more information.\n");
+        fprintf(stderr, "Use -help for more information.\n");
 
     // Load input
     Vector2 svgDims;
     double glyphAdvance = 0;
-    if (!inputType || !input)
-        ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+    if (!inputType || !input) {
+        #ifdef MSDFGEN_EXTENSIONS
+            ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+        #else
+            ABORT("No input specified! See -help.");
+        #endif
+    }
     if (mode == MULTI_AND_TRUE && (format == BMP || (format == AUTO && output && cmpExtension(output, ".bmp"))))
         ABORT("Incompatible image format. A BMP file cannot contain alpha channel, which is required in mtsdf mode.");
     Shape shape;
     switch (inputType) {
+    #ifdef MSDFGEN_EXTENSIONS
         case SVG: {
             if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
                 ABORT("Failed to load shape from SVG file.");
@@ -912,6 +974,7 @@ int main(int argc, const char * const *argv) {
             deinitializeFreetype(ft);
             break;
         }
+    #endif
         case DESCRIPTION_ARG: {
             if (!readShapeDescription(input, shape, &skipColoring))
                 ABORT("Parse error in shape description.");
@@ -946,10 +1009,10 @@ int main(int argc, const char * const *argv) {
         case FULL_PREPROCESS:
             #ifdef MSDFGEN_USE_SKIA
                 if (!resolveShapeGeometry(shape))
-                    puts("Shape geometry preprocessing failed, skipping.");
+                    fputs("Shape geometry preprocessing failed, skipping.\n", stderr);
                 else if (skipColoring) {
                     skipColoring = false;
-                    puts("Note: Input shape coloring won't be preserved due to geometry preprocessing");
+                    fputs("Note: Input shape coloring won't be preserved due to geometry preprocessing.\n", stderr);
                 }
             #else
                 ABORT("Shape geometry preprocessing (-preprocess) is not available in this version because the Skia library is not present.");
@@ -1040,7 +1103,7 @@ int main(int argc, const char * const *argv) {
                 case ErrorCorrectionConfig::EDGE_PRIORITY: fallbackModeName = "auto-fast"; break;
                 case ErrorCorrectionConfig::EDGE_ONLY: fallbackModeName = "edge-fast"; break;
             }
-            printf("Selected error correction mode not compatible with scanline pass, falling back to %s.\n", fallbackModeName);
+            fprintf(stderr, "Selected error correction mode not compatible with scanline pass, falling back to %s.\n", fallbackModeName);
         }
         generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
         postErrorCorrectionConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
@@ -1156,15 +1219,16 @@ int main(int argc, const char * const *argv) {
             writeShapeDescription(file, shape);
             fclose(file);
         } else
-            puts("Failed to write shape export file.");
+            fputs("Failed to write shape export file.\n", stderr);
     }
     const char *error = NULL;
     switch (mode) {
         case SINGLE:
         case PSEUDO:
-            error = writeOutput<1>(sdf, output, format);
-            if (error)
-                ABORT(error);
+            if ((error = writeOutput<1>(sdf, output, format))) {
+                fprintf(stderr, "%s\n", error);
+                return 1;
+            }
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(sdf);
             if (estimateError) {
@@ -1174,20 +1238,21 @@ int main(int argc, const char * const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRenderMulti))
-                    puts("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRender))
-                    puts("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             break;
         case MULTI:
-            error = writeOutput<3>(msdf, output, format);
-            if (error)
-                ABORT(error);
+            if ((error = writeOutput<3>(msdf, output, format))) {
+                fprintf(stderr, "%s\n", error);
+                return 1;
+            }
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(msdf);
             if (estimateError) {
@@ -1197,20 +1262,21 @@ int main(int argc, const char * const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRenderMulti))
-                    puts("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRender))
-                    ABORT("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             break;
         case MULTI_AND_TRUE:
-            error = writeOutput<4>(mtsdf, output, format);
-            if (error)
-                ABORT(error);
+            if ((error = writeOutput<4>(mtsdf, output, format))) {
+                fprintf(stderr, "%s\n", error);
+                return 1;
+            }
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(mtsdf);
             if (estimateError) {
@@ -1220,14 +1286,14 @@ int main(int argc, const char * const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 4> render(testWidthM, testHeightM);
                 renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRenderMulti))
-                    puts("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
-                if (!savePng(render, testRender))
-                    ABORT("Failed to write test render file.");
+                if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
+                    fputs("Failed to write test render file.\n", stderr);
             }
             break;
         default:;

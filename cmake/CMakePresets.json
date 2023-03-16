@@ -1,0 +1,170 @@
+{
+    "version": 4,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "release-only",
+            "displayName": "Release only configuration",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }, {
+            "name": "debug-only",
+            "displayName": "Debug only configuration",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }, {
+            "name": "win64-base",
+            "displayName": "Windows 64-bit base configuration",
+            "hidden": true,
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/win64",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }, {
+            "name": "win32-base",
+            "displayName": "Windows 32-bit base configuration",
+            "hidden": true,
+            "architecture": "Win32",
+            "binaryDir": "${sourceDir}/build/win32",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }, {
+            "name": "osx-base",
+            "displayName": "Mac OS base configuration",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/osx",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        }, {
+            "name": "osx-rel-base",
+            "displayName": "Mac OS base release configuration",
+            "inherits": [ "osx-base", "release-only" ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/osx-rel"
+        }, {
+            "name": "osx-dbg-base",
+            "displayName": "Mac OS base debug configuration",
+            "inherits": [ "osx-base", "debug-only" ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/osx-dbg"
+        }, {
+            "name": "linux-base",
+            "displayName": "Linux base configuration",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        }, {
+            "name": "linux-rel-base",
+            "displayName": "Linux base release configuration",
+            "inherits": [ "linux-base", "release-only" ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/linux-rel"
+        }, {
+            "name": "linux-dbg-base",
+            "displayName": "Linux base debug configuration",
+            "inherits": [ "linux-base", "debug-only" ],
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/linux-dbg"
+        }, {
+            "name": "core-only",
+            "displayName": "Configuration with extensions disabled",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_CORE_ONLY": "ON",
+                "MSDFGEN_USE_VCPKG": "OFF",
+                "MSDFGEN_USE_SKIA": "OFF"
+            }
+        }, {
+            "name": "vcpkg",
+            "displayName": "Configuration with vcpkg as dependency management system",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_USE_VCPKG": "ON"
+            }
+        }, {
+            "name": "no-vcpkg",
+            "displayName": "Configuration with dependencies not managed by vcpkg",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_USE_VCPKG": "OFF"
+            }
+        }, {
+            "name": "openmp",
+            "displayName": "Configuration with OpenMP enabled",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_USE_OPENMP": "ON"
+            }
+        }, {
+            "name": "skia",
+            "displayName": "Configuration with Skia geometry preprocessing",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_USE_SKIA": "ON"
+            }
+        }, {
+            "name": "no-skia",
+            "displayName": "Configuration without Skia geometry preprocessing",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_USE_SKIA": "OFF"
+            }
+        }, {
+            "name": "install",
+            "displayName": "Configuration with installation targets",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_INSTALL": "ON"
+            }
+        }, {
+            "name": "static-runtime",
+            "displayName": "Configuration that links against the static runtime",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_DYNAMIC_RUNTIME": "OFF"
+            }
+        }, {
+            "name": "dynamic-runtime",
+            "displayName": "Configuration that links against the dynamic runtime",
+            "hidden": true,
+            "cacheVariables": {
+                "MSDFGEN_DYNAMIC_RUNTIME": "ON"
+            }
+        }, {
+            "name": "static-lib",
+            "displayName": "Configuration that builds and links msdfgen statically",
+            "hidden": true,
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "OFF"
+            }
+        }, {
+            "name": "dynamic-lib",
+            "displayName": "Configuration that builds and links msdfgen dynamically",
+            "hidden": true,
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON"
+            }
+        }
+    ]
+}

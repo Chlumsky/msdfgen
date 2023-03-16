@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include "BitmapRef.hpp"
 
+#ifndef MSDFGEN_PUBLIC
+#define MSDFGEN_PUBLIC // for DLL import/export
+#endif
+
 namespace msdfgen {
 
 /// The configuration of the MSDF error correction pass.
