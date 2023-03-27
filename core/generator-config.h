@@ -1,8 +1,7 @@
 
 #pragma once
 
-#include <cstdlib>
-#include "BitmapRef.hpp"
+#include "BitmapRef.hpp" // for msdfgen::byte
 
 #ifndef MSDFGEN_PUBLIC
 #define MSDFGEN_PUBLIC // for DLL import/export
