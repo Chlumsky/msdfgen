@@ -1,6 +1,8 @@
 
 #include "EdgeHolder.h"
 
+#include <cstddef> // for NULL
+
 namespace msdfgen {
 
 void EdgeHolder::swap(EdgeHolder &a, EdgeHolder &b) {

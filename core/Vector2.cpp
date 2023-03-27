@@ -1,6 +1,8 @@
 
 #include "Vector2.h"
 
+#include <cmath> // for sqrt(), atan2()
+
 namespace msdfgen {
 
 Vector2::Vector2(double val) : x(val), y(val) { }
