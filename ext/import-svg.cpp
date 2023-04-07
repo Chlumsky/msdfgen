@@ -3,6 +3,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "import-svg.h"
 
+#ifndef MSDFGEN_DISABLE_SVG
+
 #include <cstdio>
 #include <tinyxml2.h>
 #include "../core/arithmetics.hpp"
@@ -308,3 +310,5 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
 }
 
 }
+
+#endif

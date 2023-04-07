@@ -25,7 +25,7 @@
 #define SDF_ERROR_ESTIMATE_PRECISION 19
 #define DEFAULT_ANGLE_THRESHOLD 3.
 
-#ifdef MSDFGEN_EXTENSIONS
+#if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
 #define DEFAULT_IMAGE_EXTENSION "png"
 #define SAVE_DEFAULT_IMAGE_FORMAT savePng
 #else
@@ -241,7 +241,7 @@ template <int N>
 static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
     if (filename) {
         if (format == AUTO) {
-        #ifdef MSDFGEN_EXTENSIONS
+        #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
             if (cmpExtension(filename, ".png")) format = PNG;
         #else
             if (cmpExtension(filename, ".png"))
@@ -255,7 +255,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
                 return "Could not deduce format from output file name.";
         }
         switch (format) {
-        #ifdef MSDFGEN_EXTENSIONS
+        #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
             case PNG: return savePng(bitmap, filename) ? NULL : "Failed to write output PNG image.";
         #endif
             case BMP: return saveBmp(bitmap, filename) ? NULL : "Failed to write output BMP image.";
@@ -304,7 +304,10 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     #define VERSION_UNDERLINE "--------"
 #endif
 
-#if !defined(MSDFGEN_EXTENSIONS) && defined(MSDFGEN_USE_OPENMP)
+#if defined(MSDFGEN_EXTENSIONS) && (defined(MSDFGEN_DISABLE_SVG) || defined(MSDFGEN_DISABLE_PNG))
+    #define TITLE_SUFFIX     " - custom config"
+    #define SUFFIX_UNDERLINE "----------------"
+#elif !defined(MSDFGEN_EXTENSIONS) && defined(MSDFGEN_USE_OPENMP)
     #define TITLE_SUFFIX     " - core with OpenMP"
     #define SUFFIX_UNDERLINE "-------------------"
 #elif !defined(MSDFGEN_EXTENSIONS)
@@ -357,9 +360,11 @@ static const char * const helpText =
         "\tLoads text shape description from a file.\n"
     "  -stdin\n"
         "\tReads text shape description from the standard input.\n"
-#ifdef MSDFGEN_EXTENSIONS
+#if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
+#endif
+#ifdef MSDFGEN_EXTENSIONS
     "  -varfont <filename and variables> <character code>\n"
         "\tLoads a single glyph from a variable font. Specify variable values as x.ttf?var1=0.5&var2=1\n"
 #endif
@@ -390,7 +395,7 @@ static const char * const helpText =
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
     "  -fillrule <nonzero / evenodd / positive / negative>\n"
         "\tSets the fill rule for the scanline pass. Default is nonzero.\n"
-#ifdef MSDFGEN_EXTENSIONS
+#if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
     "  -format <png / bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
 #else
     "  -format <bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
@@ -438,7 +443,7 @@ static const char * const helpText =
     "  -stdout\n"
         "\tPrints the output instead of storing it in a file. Only text formats are supported.\n"
     "  -testrender <filename." DEFAULT_IMAGE_EXTENSION "> <width> <height>\n"
-#ifdef MSDFGEN_EXTENSIONS
+#if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
         "\tRenders an image preview using the generated distance field and saves it as a PNG file.\n"
 #else
         "\tRenders an image preview using the generated distance field and saves it as a TIFF file.\n"
@@ -575,13 +580,15 @@ int main(int argc, const char * const *argv) {
         ARG_MODE("mtsdf", MULTI_AND_TRUE)
         ARG_MODE("metrics", METRICS)
 
-    #ifdef MSDFGEN_EXTENSIONS
+    #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
         ARG_CASE("-svg", 1) {
             inputType = SVG;
             input = argv[argPos+1];
             argPos += 2;
             continue;
         }
+    #endif
+    #ifdef MSDFGEN_EXTENSIONS
         //ARG_CASE -font, -varfont
         if (argPos+2 < argc && ((!strcmp(arg, "-font") && (inputType = FONT)) || (!strcmp(arg, "-varfont") && (inputType = VAR_FONT)))) {
             input = argv[argPos+1];
@@ -695,7 +702,7 @@ int main(int argc, const char * const *argv) {
         }
         ARG_CASE("-format", 1) {
             if (!strcmp(argv[argPos+1], "auto")) format = AUTO;
-        #ifdef MSDFGEN_EXTENSIONS
+        #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
             else if (!strcmp(argv[argPos+1], "png")) SET_FORMAT(PNG, "png");
         #else
             else if (!strcmp(argv[argPos+1], "png"))
@@ -937,7 +944,11 @@ int main(int argc, const char * const *argv) {
     double glyphAdvance = 0;
     if (!inputType || !input) {
         #ifdef MSDFGEN_EXTENSIONS
-            ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+            #ifdef MSDFGEN_DISABLE_SVG
+                ABORT("No input specified! Use -font <file.ttf/otf> <character code> or see -help.");
+            #else
+                ABORT("No input specified! Use either -svg <file.svg> or -font <file.ttf/otf> <character code>, or see -help.");
+            #endif
         #else
             ABORT("No input specified! See -help.");
         #endif
@@ -946,12 +957,14 @@ int main(int argc, const char * const *argv) {
         ABORT("Incompatible image format. A BMP file cannot contain alpha channel, which is required in mtsdf mode.");
     Shape shape;
     switch (inputType) {
-    #ifdef MSDFGEN_EXTENSIONS
+    #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
         case SVG: {
             if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
                 ABORT("Failed to load shape from SVG file.");
             break;
         }
+    #endif
+    #ifdef MSDFGEN_EXTENSIONS
         case FONT: case VAR_FONT: {
             if (!glyphIndexSpecified && !unicode)
                 ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a Unicode index (65, 0x41), a character in apostrophes ('A'), or a glyph index prefixed by g (g36, g0x24).");

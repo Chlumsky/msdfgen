@@ -4,6 +4,8 @@
 #include <cstddef>
 #include "../core/Shape.h"
 
+#ifndef MSDFGEN_DISABLE_SVG
+
 namespace msdfgen {
 
 /// Builds a shape from an SVG path string
@@ -13,3 +15,5 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
 bool loadSvgShape(Shape &output, const char *filename, int pathIndex = 0, Vector2 *dimensions = NULL);
 
 }
+
+#endif
