@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <cstdlib>
+#include <cstddef>
 #include "../core/Shape.h"
 
 namespace msdfgen {

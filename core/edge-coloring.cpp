@@ -1,10 +1,10 @@
 
 #include "edge-coloring.h"
 
-#include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include <cfloat>
+#include <vector>
 #include <queue>
 #include "arithmetics.hpp"
 

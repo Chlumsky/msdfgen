@@ -24,6 +24,7 @@
 /bin/msdfgen
 output.png
 render.png
+CMakeUserPresets.json
 out/
 /build_xcode/
 /cmake-gen.bat

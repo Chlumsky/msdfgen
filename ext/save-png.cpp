@@ -1,7 +1,6 @@
 
 #include "save-png.h"
 
-#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <vector>
