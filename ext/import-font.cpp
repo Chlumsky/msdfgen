@@ -6,7 +6,9 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 #include FT_MULTIPLE_MASTERS_H
+#endif
 
 namespace msdfgen {
 
@@ -222,6 +224,8 @@ bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t 
     return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode1)), GlyphIndex(FT_Get_Char_Index(font->face, unicode2)));
 }
 
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
+
 bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate) {
     bool success = false;
     if (font->face->face_flags&FT_FACE_FLAG_MULTIPLE_MASTERS) {
@@ -265,5 +269,7 @@ bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle 
     }
     return false;
 }
+
+#endif
 
 }

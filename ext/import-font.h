@@ -77,9 +77,12 @@ bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advan
 /// Outputs the kerning distance adjustment between two specific glyphs.
 bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
 bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 /// Sets a single variation axis of a variable font.
 bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
 /// Lists names and ranges of variation axes of a variable font.
 bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
+#endif
 
 }

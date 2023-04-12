@@ -147,6 +147,7 @@ static bool parseUnicode(unicode_t &unicode, const char *arg) {
     return false;
 }
 
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
     std::string buffer;
     while (*filename && *filename != '?')
@@ -169,6 +170,7 @@ static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
     }
     return font;
 }
+#endif
 #endif
 
 template <int N>
@@ -304,7 +306,7 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     #define VERSION_UNDERLINE "--------"
 #endif
 
-#if defined(MSDFGEN_EXTENSIONS) && (defined(MSDFGEN_DISABLE_SVG) || defined(MSDFGEN_DISABLE_PNG))
+#if defined(MSDFGEN_EXTENSIONS) && (defined(MSDFGEN_DISABLE_SVG) || defined(MSDFGEN_DISABLE_PNG) || defined(MSDFGEN_DISABLE_VARIABLE_FONTS))
     #define TITLE_SUFFIX     " - custom config"
     #define SUFFIX_UNDERLINE "----------------"
 #elif !defined(MSDFGEN_EXTENSIONS) && defined(MSDFGEN_USE_OPENMP)
@@ -364,7 +366,7 @@ static const char * const helpText =
     "  -svg <filename.svg>\n"
         "\tLoads the last vector path found in the specified SVG file.\n"
 #endif
-#ifdef MSDFGEN_EXTENSIONS
+#if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_VARIABLE_FONTS)
     "  -varfont <filename and variables> <character code>\n"
         "\tLoads a single glyph from a variable font. Specify variable values as x.ttf?var1=0.5&var2=1\n"
 #endif
@@ -590,7 +592,12 @@ int main(int argc, const char * const *argv) {
     #endif
     #ifdef MSDFGEN_EXTENSIONS
         //ARG_CASE -font, -varfont
-        if (argPos+2 < argc && ((!strcmp(arg, "-font") && (inputType = FONT)) || (!strcmp(arg, "-varfont") && (inputType = VAR_FONT)))) {
+        if (argPos+2 < argc && (
+            (!strcmp(arg, "-font") && (inputType = FONT, true))
+            #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
+                || (!strcmp(arg, "-varfont") && (inputType = VAR_FONT, true))
+            #endif
+        )) {
             input = argv[argPos+1];
             const char *charArg = argv[argPos+2];
             unsigned gi;
@@ -971,7 +978,12 @@ int main(int argc, const char * const *argv) {
             FreetypeHandle *ft = initializeFreetype();
             if (!ft)
                 return -1;
-            FontHandle *font = inputType == VAR_FONT ? loadVarFont(ft, input) : loadFont(ft, input);
+            FontHandle *font = (
+                #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
+                    inputType == VAR_FONT ? loadVarFont(ft, input) :
+                #endif
+                loadFont(ft, input)
+            );
             if (!font) {
                 deinitializeFreetype(ft);
                 ABORT("Failed to load font file.");

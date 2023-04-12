@@ -215,7 +215,7 @@
             "name": "osx-core-dbg",
             "configurePreset": "osx-core-dbg"
         },
-        
+
         {
             "name": "linux-vcpkg-rel",
             "configurePreset": "linux-vcpkg-rel"

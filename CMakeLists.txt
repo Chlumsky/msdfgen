@@ -147,6 +147,9 @@ if(NOT MSDFGEN_CORE_ONLY)
     else()
         target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_DISABLE_PNG)
     endif()
+    if(MSDFGEN_DISABLE_VARIABLE_FONTS)
+        target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_DISABLE_VARIABLE_FONTS)
+    endif()
     target_link_libraries(msdfgen-ext PRIVATE Freetype::Freetype msdfgen::msdfgen-core)
     target_include_directories(msdfgen-ext
         PUBLIC
