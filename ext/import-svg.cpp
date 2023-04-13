@@ -262,33 +262,28 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
     return true;
 }
 
-static void getPathElements(tinyxml2::XMLElement *parent, std::vector<tinyxml2::XMLElement*> *vectorPath) {
-    for (tinyxml2::XMLElement* child = parent->FirstChildElement("path"); child != NULL; child = child->NextSiblingElement("path"))
-    {
-        vectorPath->push_back(child);
+static void getPathElements(tinyxml2::XMLElement *parent, std::vector<tinyxml2::XMLElement*> *pathElements) {
+    for (tinyxml2::XMLElement* child = parent->FirstChildElement("path"); child != NULL; child = child->NextSiblingElement("path")) {
+        pathElements->push_back(child);
     }
 }
 
-static void getGroupElements(tinyxml2::XMLElement *element, std::vector<tinyxml2::XMLElement*> *vectorPath) {
+static void getGroupElements(tinyxml2::XMLElement *element, std::vector<tinyxml2::XMLElement*> *pathElements) {
     std::vector<tinyxml2::XMLElement*> groupPath; 
-    for (tinyxml2::XMLElement* child = element->FirstChildElement("g"); child != NULL; child = child->NextSiblingElement("g"))
-    {
+    for (tinyxml2::XMLElement* child = element->FirstChildElement("g"); child != NULL; child = child->NextSiblingElement("g")) {
         groupPath.push_back(child);
     }
-    if(groupPath.size() != 0)
-    {
-        for (std::vector<tinyxml2::XMLElement*>::iterator element = groupPath.begin(); element != groupPath.end(); ++element )
-        {
-            getPathElements((*element),vectorPath);
-            getGroupElements((*element),vectorPath);
+    if(groupPath.size() != 0) {
+        for (std::vector<tinyxml2::XMLElement*>::iterator element = groupPath.begin(); element != groupPath.end(); ++element ) {
+            getPathElements((*element),pathElements);
+            getGroupElements((*element),pathElements);
         }
     }
 }
 
-static std::vector<char*> getRawPaths(std::vector<tinyxml2::XMLElement*> *vectorPath) {
+static std::vector<char*> getRawPaths(std::vector<tinyxml2::XMLElement*> *pathElements) {
     std::vector<char*> stringVector;
-    for (std::vector<tinyxml2::XMLElement*>::iterator element = vectorPath->begin(); element != vectorPath->end(); ++element)
-    {
+    for (std::vector<tinyxml2::XMLElement*>::iterator element = pathElements->begin(); element != pathElements->end(); ++element) {
         char *pd = strdup((*element)->Attribute("d"));
         if (pd)
             stringVector.push_back(pd);
@@ -305,13 +300,13 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
         return false;
         
     tinyxml2::XMLElement *path = NULL;
-    std::vector<tinyxml2::XMLElement*> vectorPath;
+    std::vector<tinyxml2::XMLElement*> pathElements;
     if (pathIndex > 0) {
-        getPathElements(root,&vectorPath);
-        getGroupElements(root,&vectorPath);
+        getPathElements(root,&pathElements);
+        getGroupElements(root,&pathElements);
     } else {
-        getPathElements(root,&vectorPath);
-        getGroupElements(root,&vectorPath);
+        getPathElements(root,&pathElements);
+        getGroupElements(root,&pathElements);
      }
     output.contours.clear();
     output.inverseYAxis = true;
@@ -325,11 +320,11 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     if (dimensions)
         *dimensions = dims;
 
-    std::vector<char*> pathCollection = getRawPaths(&vectorPath);
-    if(pathCollection.size() == 0)
+    std::vector<char*> rawPathCollection = getRawPaths(&pathElements);
+    if(rawPathCollection.size() == 0)
         return false;
     
-    for (std::vector<char*>::iterator path = pathCollection.begin(); path != pathCollection.end(); ++path)
+    for (std::vector<char*>::iterator path = rawPathCollection.begin(); path != rawPathCollection.end(); ++path)
     {
         if(buildShapeFromSvgPath(output, (*path), ENDPOINT_SNAP_RANGE_PROPORTION*dims.length()) == false)
         {
