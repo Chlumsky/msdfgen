@@ -1,4 +1,5 @@
 
+#define _CRT_SECURE_NO_WARNINGS
 #include "save-png.h"
 
 #include <cstdio>

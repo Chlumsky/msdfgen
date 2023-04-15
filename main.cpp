@@ -532,7 +532,6 @@ int main(int argc, const char * const *argv) {
     bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
-    int svgPathIndex = 0;
 #endif
 
     int width = 64, height = 64;
@@ -947,7 +946,7 @@ int main(int argc, const char * const *argv) {
         fprintf(stderr, "Use -help for more information.\n");
 
     // Load input
-    Vector2 svgDims;
+    Shape::Bounds svgViewBox = { };
     double glyphAdvance = 0;
     if (!inputType || !input) {
         #ifdef MSDFGEN_EXTENSIONS
@@ -966,8 +965,17 @@ int main(int argc, const char * const *argv) {
     switch (inputType) {
     #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
         case SVG: {
-            if (!loadSvgShape(shape, input, svgPathIndex, &svgDims))
+            int svgImportFlags = loadSvgShape(shape, svgViewBox, input);
+            if (!(svgImportFlags&SVG_IMPORT_SUCCESS_FLAG))
                 ABORT("Failed to load shape from SVG file.");
+            if (svgImportFlags&SVG_IMPORT_PARTIAL_FAILURE_FLAG)
+                fputs("Warning: Failed to load part of SVG file.\n", stderr);
+            if (svgImportFlags&SVG_IMPORT_INCOMPLETE_FLAG)
+                fputs("Warning: SVG file contains multiple paths or shapes but this version is only able to load one.\n", stderr);
+            else if (svgImportFlags&SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG)
+                fputs("Warning: SVG file likely contains elements that are unsupported.\n", stderr);
+            if (svgImportFlags&SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG)
+                fputs("Warning: SVG path transformation ignored.\n", stderr);
             break;
         }
     #endif
@@ -1096,19 +1104,19 @@ int main(int argc, const char * const *argv) {
             ABORT("Failed to write output file.");
         if (shape.inverseYAxis)
             fprintf(out, "inverseY = true\n");
-        if (bounds.r >= bounds.l && bounds.t >= bounds.b)
-            fprintf(out, "bounds = %.12g, %.12g, %.12g, %.12g\n", bounds.l, bounds.b, bounds.r, bounds.t);
-        if (svgDims.x != 0 && svgDims.y != 0)
-            fprintf(out, "dimensions = %.12g, %.12g\n", svgDims.x, svgDims.y);
+        if (svgViewBox.l < svgViewBox.r && svgViewBox.b < svgViewBox.t)
+            fprintf(out, "view box = %.17g, %.17g, %.17g, %.17g\n", svgViewBox.l, svgViewBox.b, svgViewBox.r, svgViewBox.t);
+        if (bounds.l < bounds.r && bounds.b < bounds.t)
+            fprintf(out, "bounds = %.17g, %.17g, %.17g, %.17g\n", bounds.l, bounds.b, bounds.r, bounds.t);
         if (glyphAdvance != 0)
-            fprintf(out, "advance = %.12g\n", glyphAdvance);
+            fprintf(out, "advance = %.17g\n", glyphAdvance);
         if (autoFrame) {
             if (!scaleSpecified)
-                fprintf(out, "scale = %.12g\n", avgScale);
-            fprintf(out, "translate = %.12g, %.12g\n", translate.x, translate.y);
+                fprintf(out, "scale = %.17g\n", avgScale);
+            fprintf(out, "translate = %.17g, %.17g\n", translate.x, translate.y);
         }
         if (rangeMode == RANGE_PX)
-            fprintf(out, "range = %.12g\n", range);
+            fprintf(out, "range = %.17g\n", range);
         if (mode == METRICS && outputSpecified)
             fclose(out);
     }

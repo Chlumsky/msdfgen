@@ -55,7 +55,17 @@ void shapeFromSkiaPath(Shape &shape, const SkPath &skPath) {
             case SkPath::kCubic_Verb:
                 contour->addEdge(new CubicSegment(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1]), pointFromSkiaPoint(edgePoints[2]), pointFromSkiaPoint(edgePoints[3])));
                 break;
-            default:;
+            case SkPath::kConic_Verb:
+                {
+                    SkPoint quadPoints[5];
+                    SkPath::ConvertConicToQuads(edgePoints[0], edgePoints[1], edgePoints[2], pathIterator.conicWeight(), quadPoints, 1);
+                    contour->addEdge(new QuadraticSegment(pointFromSkiaPoint(quadPoints[0]), pointFromSkiaPoint(quadPoints[1]), pointFromSkiaPoint(quadPoints[2])));
+                    contour->addEdge(new QuadraticSegment(pointFromSkiaPoint(quadPoints[2]), pointFromSkiaPoint(quadPoints[3]), pointFromSkiaPoint(quadPoints[4])));
+                }
+                break;
+            case SkPath::kClose_Verb:
+            case SkPath::kDone_Verb:
+                break;
         }
     }
     if (contour->edges.empty())

@@ -77,6 +77,14 @@ endif()
 # Version is specified in vcpkg.json
 project(msdfgen VERSION ${MSDFGEN_VERSION} LANGUAGES CXX)
 
+if(MAX_WARNING_LEVEL)
+    if (MSVC)
+        add_compile_options(/W4)
+    else()
+        add_compile_options(-Wall -Wextra -Wpedantic)
+    endif()
+endif()
+
 file(GLOB_RECURSE MSDFGEN_CORE_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.h" "core/*.hpp")
 file(GLOB_RECURSE MSDFGEN_CORE_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.cpp")
 file(GLOB_RECURSE MSDFGEN_EXT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ext/*.h" "ext/*.hpp")
@@ -176,6 +184,13 @@ if(NOT MSDFGEN_CORE_ONLY)
         target_compile_features(msdfgen-ext PUBLIC cxx_std_17)
         target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_USE_SKIA)
         target_link_libraries(msdfgen-ext PRIVATE Threads::Threads ${MSDFGEN_SKIA_LIB})
+    endif()
+
+    if(BUILD_SHARED_LIBS AND WIN32)
+        target_compile_definitions(msdfgen-ext PRIVATE "MSDFGEN_EXT_PUBLIC=__declspec(dllexport)")
+        target_compile_definitions(msdfgen-ext INTERFACE "MSDFGEN_EXT_PUBLIC=__declspec(dllimport)")
+    else()
+        target_compile_definitions(msdfgen-ext PUBLIC MSDFGEN_EXT_PUBLIC=)
     endif()
 
     add_library(msdfgen-full INTERFACE)
