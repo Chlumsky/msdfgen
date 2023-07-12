@@ -1,0 +1,63 @@
+
+cmake_minimum_required(VERSION 3.15)
+
+option(MSDFGEN_USE_VCPKG "Use vcpkg package manager to link project dependencies" ON)
+option(MSDFGEN_USE_FREETYPE "Build with the FreeType library" ON)
+
+if(MSDFGEN_USE_VCPKG AND MSDFGEN_USE_FREETYPE)
+    # Make sure that vcpkg toolchain file is set
+    if(NOT CMAKE_TOOLCHAIN_FILE)
+        if(DEFINED ENV{VCPKG_ROOT})
+            set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+        else()
+            message(SEND_ERROR "Vcpkg toolchain not configured. Either set VCPKG_ROOT environment variable or pass -DCMAKE_TOOLCHAIN_FILE=VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake to cmake")
+        endif()
+    endif()
+    # Default to statically linked vcpkg triplet on Windows
+    if(WIN32 AND NOT VCPKG_TARGET_TRIPLET AND NOT MSDFGEN_DYNAMIC_RUNTIME)
+        if(CMAKE_GENERATOR_PLATFORM MATCHES "64$" AND NOT CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+            set(VCPKG_TARGET_TRIPLET "x64-windows-static")
+        elseif(CMAKE_GENERATOR_PLATFORM MATCHES "32$" OR CMAKE_GENERATOR_PLATFORM STREQUAL "x86")
+            set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+        else()
+            if(CMAKE_GENERATOR_PLATFORM)
+                message(WARNING "Vcpkg triplet not explicitly specified and could not be deduced. Recommend using -DVCPKG_TARGET_TRIPLET=x64-windows-static or similar")
+            else()
+                message(WARNING "Vcpkg triplet not explicitly specified and could not be deduced. Recommend using -A to explicitly select platform (Win32 or x64)")
+            endif()
+        endif()
+    endif()
+endif()
+
+project(msdfgen LANGUAGES CXX)
+
+if(MAX_WARNING_LEVEL)
+    if (MSVC)
+        add_compile_options(/W4)
+    else()
+        add_compile_options(-Wall -Wextra -Wpedantic)
+    endif()
+endif()
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+if(MSDFGEN_USE_FREETYPE AND NOT TARGET Freetype::Freetype)
+    find_package(Freetype REQUIRED)
+endif()
+
+execute_process(COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/generate.py")
+
+add_library(msdfgen "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.cpp")
+set_property(TARGET msdfgen PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+target_compile_features(msdfgen PUBLIC cxx_std_11)
+if(MSDFGEN_USE_FREETYPE)
+    target_compile_definitions(msdfgen PUBLIC MSDFGEN_USE_FREETYPE)
+    target_link_libraries(msdfgen PRIVATE Freetype::Freetype)
+endif()
+
+add_executable(msdfgen-test "${CMAKE_CURRENT_SOURCE_DIR}/test.cpp")
+set_property(TARGET msdfgen-test PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+target_link_libraries(msdfgen-test PRIVATE msdfgen)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen-test)
+if(MSDFGEN_USE_FREETYPE)
+    target_link_libraries(msdfgen-test PRIVATE Freetype::Freetype)
+endif()

@@ -1,0 +1,8 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/master/docs/vcpkg.schema.json",
+    "name": "msdfgen-all-in-one",
+    "version": "1.10.0",
+    "dependencies": [
+        "freetype"
+    ]
+}
