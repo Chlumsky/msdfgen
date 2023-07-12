@@ -162,16 +162,18 @@ void Shape::orientContours() {
                     }
                 }
             }
-            qsort(&intersections[0], intersections.size(), sizeof(Intersection), &Intersection::compare);
-            // Disqualify multiple intersections
-            for (int j = 1; j < (int) intersections.size(); ++j)
-                if (intersections[j].x == intersections[j-1].x)
-                    intersections[j].direction = intersections[j-1].direction = 0;
-            // Inspect scanline and deduce orientations of intersected contours
-            for (int j = 0; j < (int) intersections.size(); ++j)
-                if (intersections[j].direction)
-                    orientations[intersections[j].contourIndex] += 2*((j&1)^(intersections[j].direction > 0))-1;
-            intersections.clear();
+            if (!intersections.empty()) {
+                qsort(&intersections[0], intersections.size(), sizeof(Intersection), &Intersection::compare);
+                // Disqualify multiple intersections
+                for (int j = 1; j < (int) intersections.size(); ++j)
+                    if (intersections[j].x == intersections[j-1].x)
+                        intersections[j].direction = intersections[j-1].direction = 0;
+                // Inspect scanline and deduce orientations of intersected contours
+                for (int j = 0; j < (int) intersections.size(); ++j)
+                    if (intersections[j].direction)
+                        orientations[intersections[j].contourIndex] += 2*((j&1)^(intersections[j].direction > 0))-1;
+                intersections.clear();
+            }
         }
     }
     // Reverse contours that have the opposite orientation

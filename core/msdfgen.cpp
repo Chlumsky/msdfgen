@@ -1,6 +1,7 @@
 
 #include "../msdfgen.h"
 
+#include <cstddef>
 #include <vector>
 #include "edge-selectors.h"
 #include "contour-combiners.h"
