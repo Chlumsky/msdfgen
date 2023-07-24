@@ -55,9 +55,8 @@ sourceList = [
 header = """
 #pragma once
 
-#ifndef _USE_MATH_DEFINES
-#define _USE_MATH_DEFINES
-#endif
+#define MSDFGEN_USE_CPP11
+#define MSDFGEN_USE_FREETYPE
 
 #include <cstddef>
 #include <cstdlib>
@@ -79,6 +78,14 @@ source = """
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 #include FT_MULTIPLE_MASTERS_H
 #endif
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4456 4458)
+#endif
+
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
 #endif
 """
 
