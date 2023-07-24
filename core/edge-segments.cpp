@@ -68,6 +68,30 @@ CubicSegment * CubicSegment::clone() const {
     return new CubicSegment(p[0], p[1], p[2], p[3], color);
 }
 
+int LinearSegment::type() const {
+    return (int) EDGE_TYPE;
+}
+
+int QuadraticSegment::type() const {
+    return (int) EDGE_TYPE;
+}
+
+int CubicSegment::type() const {
+    return (int) EDGE_TYPE;
+}
+
+const Point2 * LinearSegment::controlPoints() const {
+    return p;
+}
+
+const Point2 * QuadraticSegment::controlPoints() const {
+    return p;
+}
+
+const Point2 * CubicSegment::controlPoints() const {
+    return p;
+}
+
 Point2 LinearSegment::point(double param) const {
     return mix(p[0], p[1], param);
 }

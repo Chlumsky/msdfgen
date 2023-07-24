@@ -24,12 +24,18 @@ void shapeToSkiaPath(SkPath &skPath, const Shape &shape) {
         if (!contour->edges.empty()) {
             skPath.moveTo(pointToSkiaPoint(contour->edges.front()->point(0)));
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                if (const LinearSegment *linearSegment = dynamic_cast<const LinearSegment *>(&**edge))
-                    skPath.lineTo(pointToSkiaPoint(linearSegment->p[1]));
-                else if (const QuadraticSegment *quadraticSegment = dynamic_cast<const QuadraticSegment *>(&**edge))
-                    skPath.quadTo(pointToSkiaPoint(quadraticSegment->p[1]), pointToSkiaPoint(quadraticSegment->p[2]));
-                else if (const CubicSegment *cubicSegment = dynamic_cast<const CubicSegment *>(&**edge))
-                    skPath.cubicTo(pointToSkiaPoint(cubicSegment->p[1]), pointToSkiaPoint(cubicSegment->p[2]), pointToSkiaPoint(cubicSegment->p[3]));
+                const Point2 *p = (*edge)->controlPoints();
+                switch ((*edge)->type()) {
+                    case (int) LinearSegment::EDGE_TYPE:
+                        skPath.lineTo(pointToSkiaPoint(p[1]));
+                        break;
+                    case (int) QuadraticSegment::EDGE_TYPE:
+                        skPath.quadTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]));
+                        break;
+                    case (int) CubicSegment::EDGE_TYPE:
+                        skPath.cubicTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]), pointToSkiaPoint(p[3]));
+                        break;
+                }
             }
         }
     }

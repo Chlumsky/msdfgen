@@ -609,6 +609,7 @@ int main(int argc, const char * const *argv) {
                     break;
                 case 'U': case 'u':
                     ++charArg;
+                    // fallthrough
                 default:
                     parseUnicode(unicode, charArg);
             }
