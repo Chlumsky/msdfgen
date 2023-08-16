@@ -6,22 +6,22 @@ import re
 rootDir = os.path.join(os.path.dirname(__file__), '..')
 
 sourceList = [
+    'core/base.h',
     'core/arithmetics.hpp',
     'core/equation-solver.h',
     'core/equation-solver.cpp',
-    'core/Vector2.h',
-    'core/Vector2.cpp',
+    'core/Vector2.hpp',
     'core/pixel-conversion.hpp',
     'core/BitmapRef.hpp',
     'core/Bitmap.h',
     'core/Bitmap.hpp',
     'core/Projection.h',
     'core/Projection.cpp',
-    'core/SignedDistance.h',
-    'core/SignedDistance.cpp',
+    'core/SignedDistance.hpp',
     'core/Scanline.h',
     'core/Scanline.cpp',
     'core/EdgeColor.h',
+    'core/bezier-solver.hpp',
     'core/edge-segments.h',
     'core/edge-segments.cpp',
     'core/EdgeHolder.h',
@@ -39,6 +39,8 @@ sourceList = [
     'core/contour-combiners.cpp',
     'core/ShapeDistanceFinder.h',
     'core/ShapeDistanceFinder.hpp',
+    'core/approximate-sdf.h',
+    'core/approximate-sdf.cpp',
     'core/generator-config.h',
     'core/msdf-error-correction.h',
     'core/msdf-error-correction.cpp',
@@ -57,6 +59,7 @@ header = """
 
 #define MSDFGEN_USE_CPP11
 #define MSDFGEN_USE_FREETYPE
+#define MSDFGEN_DISABLE_VARIABLE_FONTS
 
 #include <cstddef>
 #include <cstdlib>
@@ -68,7 +71,6 @@ header = """
 source = """
 #include "msdfgen.h"
 
-#include <algorithm>
 #include <queue>
 
 #ifdef MSDFGEN_USE_FREETYPE
@@ -81,11 +83,23 @@ source = """
 #endif
 
 #ifdef _MSC_VER
-#pragma warning(disable : 4456 4458)
+#pragma warning(push)
+#pragma warning(disable : 4456 4457 4458)
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795
+#endif
+"""
+
+sourceAppendix = """
+#ifdef _MSC_VER
+#pragma warning(pop)
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
 """
 
@@ -134,7 +148,7 @@ source = """
 """+license+"""
  *
  */
-"""+source
+"""+source+sourceAppendix
 
 with open(os.path.join(os.path.dirname(__file__), 'msdfgen.h'), 'w') as file:
     file.write(header)
