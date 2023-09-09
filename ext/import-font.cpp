@@ -21,8 +21,10 @@ class FreetypeHandle {
     friend void deinitializeFreetype(FreetypeHandle *library);
     friend FontHandle * loadFont(FreetypeHandle *library, const char *filename);
     friend FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
     friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
     friend bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
+#endif
 
     FT_Library library;
 
@@ -40,8 +42,10 @@ class FontHandle {
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+#ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
     friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
     friend bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
+#endif
 
     FT_Face face;
     bool ownership;
@@ -257,12 +261,12 @@ bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle 
         if (FT_Get_MM_Var(font->face, &master))
             return false;
         axes.resize(master->num_axis);
-        for (FT_UInt i = 0; i < master->num_axis; i++) {
+        for (FT_UInt i = 0; i < master->num_axis; ++i) {
             FontVariationAxis &axis = axes[i];
             axis.name = master->axis[i].name;
-            axis.minValue = master->axis[i].minimum;
-            axis.maxValue = master->axis[i].maximum;
-            axis.defaultValue = master->axis[i].def;
+            axis.minValue = F16DOT16_TO_DOUBLE(master->axis[i].minimum);
+            axis.maxValue = F16DOT16_TO_DOUBLE(master->axis[i].maximum);
+            axis.defaultValue = F16DOT16_TO_DOUBLE(master->axis[i].def);
         }
         FT_Done_MM_Var(library->library, master);
         return true;
