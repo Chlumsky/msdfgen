@@ -1,6 +1,7 @@
 
 #include "edge-coloring.h"
 
+#include <cstdlib> // for: qsort()
 #include <cmath>
 #include <cstring>
 #include <cfloat>
