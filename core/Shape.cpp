@@ -1,7 +1,7 @@
 
 #include "Shape.h"
 
-#include <algorithm>
+#include <cstdlib>
 #include "arithmetics.hpp"
 
 namespace msdfgen {

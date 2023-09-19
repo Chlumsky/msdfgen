@@ -1,6 +1,7 @@
 
 #include "edge-coloring.h"
 
+#include <cstdlib>
 #include <cmath>
 #include <cstring>
 #include <cfloat>
