@@ -148,7 +148,7 @@ static bool parseUnicode(unicode_t &unicode, const char *arg) {
 }
 
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
-static FontHandle * loadVarFont(FreetypeHandle *library, const char *filename) {
+static FontHandle *loadVarFont(FreetypeHandle *library, const char *filename) {
     std::string buffer;
     while (*filename && *filename != '?')
         buffer.push_back(*filename++);
@@ -240,7 +240,7 @@ static bool cmpExtension(const char *path, const char *ext) {
 }
 
 template <int N>
-static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
+static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
     if (filename) {
         if (format == AUTO) {
         #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
@@ -329,11 +329,11 @@ static const char * writeOutput(const BitmapConstRef<float, N> &bitmap, const ch
     #define SUFFIX_UNDERLINE
 #endif
 
-static const char * const versionText =
+static const char *const versionText =
     "MSDFgen v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
     "(c) 2016 - " STRINGIZE(MSDFGEN_COPYRIGHT_YEAR) " Viktor Chlumsky";
 
-static const char * const helpText =
+static const char *const helpText =
     "\n"
     "Multi-channel signed distance field generator by Viktor Chlumsky v" MSDFGEN_VERSION_STRING TITLE_SUFFIX "\n"
     "------------------------------------------------------------------" VERSION_UNDERLINE SUFFIX_UNDERLINE "\n"
@@ -485,7 +485,7 @@ static const char *errorCorrectionHelpText =
         "\tDisplays this help.\n"
     "\n";
 
-int main(int argc, const char * const *argv) {
+int main(int argc, const char *const *argv) {
     #define ABORT(msg) do { fputs(msg "\n", stderr); return 1; } while (false)
 
     // Parse command line arguments

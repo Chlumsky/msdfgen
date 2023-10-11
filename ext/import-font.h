@@ -48,21 +48,21 @@ struct FontVariationAxis {
 };
 
 /// Initializes the FreeType library.
-FreetypeHandle * initializeFreetype();
+FreetypeHandle *initializeFreetype();
 /// Deinitializes the FreeType library.
 void deinitializeFreetype(FreetypeHandle *library);
 
 #ifdef FT_LOAD_DEFAULT // FreeType included
 /// Creates a FontHandle from FT_Face that was loaded by the user. destroyFont must still be called but will not affect the FT_Face.
-FontHandle * adoptFreetypeFont(FT_Face ftFace);
+FontHandle *adoptFreetypeFont(FT_Face ftFace);
 /// Converts the geometry of FreeType's FT_Outline to a Shape object.
 FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline);
 #endif
 
 /// Loads a font file and returns its handle.
-FontHandle * loadFont(FreetypeHandle *library, const char *filename);
+FontHandle *loadFont(FreetypeHandle *library, const char *filename);
 /// Loads a font from binary data and returns its handle.
-FontHandle * loadFontData(FreetypeHandle *library, const byte *data, int length);
+FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
 /// Unloads a font file.
 void destroyFont(FontHandle *font);
 /// Outputs the metrics of a font file.

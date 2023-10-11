@@ -17,7 +17,7 @@ struct BitmapRef {
     inline BitmapRef() : pixels(NULL), width(0), height(0) { }
     inline BitmapRef(T *pixels, int width, int height) : pixels(pixels), width(width), height(height) { }
 
-    inline T * operator()(int x, int y) const {
+    inline T *operator()(int x, int y) const {
         return pixels+N*(width*y+x);
     }
 
@@ -34,7 +34,7 @@ struct BitmapConstRef {
     inline BitmapConstRef(const T *pixels, int width, int height) : pixels(pixels), width(width), height(height) { }
     inline BitmapConstRef(const BitmapRef<T, N> &orig) : pixels(orig.pixels), width(orig.width), height(orig.height) { }
 
-    inline const T * operator()(int x, int y) const {
+    inline const T *operator()(int x, int y) const {
         return pixels+N*(width*y+x);
     }
 

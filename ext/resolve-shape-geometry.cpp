@@ -5,7 +5,7 @@
 
 #include <skia/core/SkPath.h>
 #include <skia/pathops/SkPathOps.h>
-#include "../core/Vector2.h"
+#include "../core/Vector2.hpp"
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"
 

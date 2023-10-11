@@ -16,7 +16,7 @@
  */
 
 #include "core/arithmetics.hpp"
-#include "core/Vector2.h"
+#include "core/Vector2.hpp"
 #include "core/Projection.h"
 #include "core/Scanline.h"
 #include "core/Shape.h"
