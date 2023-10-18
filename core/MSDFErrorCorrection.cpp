@@ -317,7 +317,7 @@ static bool hasDiagonalArtifactInner(const ArtifactClassifier &artifactClassifie
                 em[0] = am, em[1] = dm;
                 tEnd[tEx0 > t[i]] = tEx0;
                 em[tEx0 > t[i]] = interpolatedMedian(a, l, q, tEx0);
-                rangeFlags |= artifactClassifier.rangeTest(tEnd[0], tEnd[1], t[i], am, dm, xm);
+                rangeFlags |= artifactClassifier.rangeTest(tEnd[0], tEnd[1], t[i], em[0], em[1], xm);
             }
             // tEx1
             if (tEx1 > 0 && tEx1 < 1) {
@@ -325,7 +325,7 @@ static bool hasDiagonalArtifactInner(const ArtifactClassifier &artifactClassifie
                 em[0] = am, em[1] = dm;
                 tEnd[tEx1 > t[i]] = tEx1;
                 em[tEx1 > t[i]] = interpolatedMedian(a, l, q, tEx1);
-                rangeFlags |= artifactClassifier.rangeTest(tEnd[0], tEnd[1], t[i], am, dm, xm);
+                rangeFlags |= artifactClassifier.rangeTest(tEnd[0], tEnd[1], t[i], em[0], em[1], xm);
             }
             if (artifactClassifier.evaluate(t[i], xm, rangeFlags))
                 return true;
