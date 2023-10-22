@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "types.h"
 #include "Vector2.hpp"
 
 namespace msdfgen {
@@ -20,13 +21,13 @@ public:
     /// Converts the vector from pixel coordinate space.
     Vector2 unprojectVector(const Vector2 &vector) const;
     /// Converts the X-coordinate from shape to pixel coordinate space.
-    double projectX(double x) const;
+    real projectX(real x) const;
     /// Converts the Y-coordinate from shape to pixel coordinate space.
-    double projectY(double y) const;
+    real projectY(real y) const;
     /// Converts the X-coordinate from pixel to shape coordinate space.
-    double unprojectX(double x) const;
+    real unprojectX(real x) const;
     /// Converts the Y-coordinate from pixel to shape coordinate space.
-    double unprojectY(double y) const;
+    real unprojectY(real y) const;
 
 private:
     Vector2 scale;

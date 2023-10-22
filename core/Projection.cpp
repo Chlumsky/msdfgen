@@ -23,19 +23,19 @@ Vector2 Projection::unprojectVector(const Vector2 &vector) const {
     return vector/scale;
 }
 
-double Projection::projectX(double x) const {
+real Projection::projectX(real x) const {
     return scale.x*(x+translate.x);
 }
 
-double Projection::projectY(double y) const {
+real Projection::projectY(real y) const {
     return scale.y*(y+translate.y);
 }
 
-double Projection::unprojectX(double x) const {
+real Projection::unprojectX(real x) const {
     return x/scale.x-translate.x;
 }
 
-double Projection::unprojectY(double y) const {
+real Projection::unprojectY(real y) const {
     return y/scale.y-translate.y;
 }
 

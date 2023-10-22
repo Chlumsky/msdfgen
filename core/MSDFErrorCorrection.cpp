@@ -13,24 +13,24 @@
 
 namespace msdfgen {
 
-#define ARTIFACT_T_EPSILON .01
-#define PROTECTION_RADIUS_TOLERANCE 1.001
+#define ARTIFACT_T_EPSILON ::msdfgen::real(.01)
+#define PROTECTION_RADIUS_TOLERANCE ::msdfgen::real(1.001)
 
 #define CLASSIFIER_FLAG_CANDIDATE 0x01
 #define CLASSIFIER_FLAG_ARTIFACT 0x02
 
-MSDFGEN_PUBLIC const double ErrorCorrectionConfig::defaultMinDeviationRatio = 1.11111111111111111;
-MSDFGEN_PUBLIC const double ErrorCorrectionConfig::defaultMinImproveRatio = 1.11111111111111111;
+MSDFGEN_PUBLIC const real ErrorCorrectionConfig::defaultMinDeviationRatio = 1.11111111111111111;
+MSDFGEN_PUBLIC const real ErrorCorrectionConfig::defaultMinImproveRatio = 1.11111111111111111;
 
 /// The base artifact classifier recognizes artifacts based on the contents of the SDF alone.
 class BaseArtifactClassifier {
 public:
-    inline BaseArtifactClassifier(double span, bool protectedFlag) : span(span), protectedFlag(protectedFlag) { }
+    inline BaseArtifactClassifier(real span, bool protectedFlag) : span(span), protectedFlag(protectedFlag) { }
     /// Evaluates if the median value xm interpolated at xt in the range between am at at and bm at bt indicates an artifact.
-    inline int rangeTest(double at, double bt, double xt, float am, float bm, float xm) const {
+    inline int rangeTest(real at, real bt, real xt, float am, float bm, float xm) const {
         // For protected texels, only consider inversion artifacts (interpolated median has different sign than boundaries). For the rest, it is sufficient that the interpolated median is outside its boundaries.
         if ((am > .5f && bm > .5f && xm <= .5f) || (am < .5f && bm < .5f && xm >= .5f) || (!protectedFlag && median(am, bm, xm) != xm)) {
-            double axSpan = (xt-at)*span, bxSpan = (bt-xt)*span;
+            real axSpan = (xt-at)*span, bxSpan = (bt-xt)*span;
             // Check if the interpolated median's value is in the expected range based on its distance (span) from boundaries a, b.
             if (!(xm >= am-axSpan && xm <= am+axSpan && xm >= bm-bxSpan && xm <= bm+bxSpan))
                 return CLASSIFIER_FLAG_CANDIDATE|CLASSIFIER_FLAG_ARTIFACT;
@@ -39,11 +39,11 @@ public:
         return 0;
     }
     /// Returns true if the combined results of the tests performed on the median value m interpolated at t indicate an artifact.
-    inline bool evaluate(double t, float m, int flags) const {
-        return (flags&2) != 0;
+    inline bool evaluate(real t, float m, int flags) const {
+        return (flags&CLASSIFIER_FLAG_ARTIFACT) != 0;
     }
 private:
-    double span;
+    real span;
     bool protectedFlag;
 };
 
@@ -53,9 +53,9 @@ class ShapeDistanceChecker {
 public:
     class ArtifactClassifier : public BaseArtifactClassifier {
     public:
-        inline ArtifactClassifier(ShapeDistanceChecker *parent, const Vector2 &direction, double span) : BaseArtifactClassifier(span, parent->protectedFlag), parent(parent), direction(direction) { }
+        inline ArtifactClassifier(ShapeDistanceChecker *parent, const Vector2 &direction, real span) : BaseArtifactClassifier(span, parent->protectedFlag), parent(parent), direction(direction) { }
         /// Returns true if the combined results of the tests performed on the median value m interpolated at t indicate an artifact.
-        inline bool evaluate(double t, float m, int flags) const {
+        inline bool evaluate(real t, float m, int flags) const {
             if (flags&CLASSIFIER_FLAG_CANDIDATE) {
                 // Skip expensive distance evaluation if the point has already been classified as an artifact by the base classifier.
                 if (flags&CLASSIFIER_FLAG_ARTIFACT)
@@ -66,7 +66,7 @@ public:
                 Point2 sdfCoord = parent->sdfCoord+tVector;
                 interpolate(oldMSD, parent->sdf, sdfCoord);
                 // Compute the color that would be interpolated at the artifact candidate's position if error correction was applied on the current texel.
-                double aWeight = (1-fabs(tVector.x))*(1-fabs(tVector.y));
+                real aWeight = (real(1)-fabs(tVector.x))*(real(1)-fabs(tVector.y));
                 float aPSD = median(parent->msd[0], parent->msd[1], parent->msd[2]);
                 newMSD[0] = float(oldMSD[0]+aWeight*(aPSD-parent->msd[0]));
                 newMSD[1] = float(oldMSD[1]+aWeight*(aPSD-parent->msd[1]));
@@ -74,9 +74,9 @@ public:
                 // Compute the evaluated distance (interpolated median) before and after error correction, as well as the exact shape distance.
                 float oldPSD = median(oldMSD[0], oldMSD[1], oldMSD[2]);
                 float newPSD = median(newMSD[0], newMSD[1], newMSD[2]);
-                float refPSD = float(parent->invRange*parent->distanceFinder.distance(parent->shapeCoord+tVector*parent->texelSize)+.5);
+                float refPSD = float(parent->invRange*parent->distanceFinder.distance(parent->shapeCoord+tVector*parent->texelSize)+real(.5));
                 // Compare the differences of the exact distance and the before and after distances.
-                return parent->minImproveRatio*fabsf(newPSD-refPSD) < double(fabsf(oldPSD-refPSD));
+                return parent->minImproveRatio*fabsf(newPSD-refPSD) < real(fabsf(oldPSD-refPSD));
             }
             return false;
         }
@@ -87,34 +87,34 @@ public:
     Point2 shapeCoord, sdfCoord;
     const float *msd;
     bool protectedFlag;
-    inline ShapeDistanceChecker(const BitmapConstRef<float, N> &sdf, const Shape &shape, const Projection &projection, double invRange, double minImproveRatio) : distanceFinder(shape), sdf(sdf), invRange(invRange), minImproveRatio(minImproveRatio) {
+    inline ShapeDistanceChecker(const BitmapConstRef<float, N> &sdf, const Shape &shape, const Projection &projection, real invRange, real minImproveRatio) : distanceFinder(shape), sdf(sdf), invRange(invRange), minImproveRatio(minImproveRatio) {
         texelSize = projection.unprojectVector(Vector2(1));
     }
-    inline ArtifactClassifier classifier(const Vector2 &direction, double span) {
+    inline ArtifactClassifier classifier(const Vector2 &direction, real span) {
         return ArtifactClassifier(this, direction, span);
     }
 private:
     ShapeDistanceFinder<ContourCombiner<PseudoDistanceSelector> > distanceFinder;
     BitmapConstRef<float, N> sdf;
-    double invRange;
+    real invRange;
     Vector2 texelSize;
-    double minImproveRatio;
+    real minImproveRatio;
 };
 
 MSDFErrorCorrection::MSDFErrorCorrection() { }
 
-MSDFErrorCorrection::MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil, const Projection &projection, double range) : stencil(stencil), projection(projection) {
-    invRange = 1/range;
+MSDFErrorCorrection::MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil, const Projection &projection, real range) : stencil(stencil), projection(projection) {
+    invRange = real(1)/range;
     minDeviationRatio = ErrorCorrectionConfig::defaultMinDeviationRatio;
     minImproveRatio = ErrorCorrectionConfig::defaultMinImproveRatio;
     memset(stencil.pixels, 0, sizeof(byte)*stencil.width*stencil.height);
 }
 
-void MSDFErrorCorrection::setMinDeviationRatio(double minDeviationRatio) {
+void MSDFErrorCorrection::setMinDeviationRatio(real minDeviationRatio) {
     this->minDeviationRatio = minDeviationRatio;
 }
 
-void MSDFErrorCorrection::setMinImproveRatio(double minImproveRatio) {
+void MSDFErrorCorrection::setMinImproveRatio(real minImproveRatio) {
     this->minImproveRatio = minImproveRatio;
 }
 
@@ -130,8 +130,8 @@ void MSDFErrorCorrection::protectCorners(const Shape &shape) {
                     Point2 p = projection.project((*edge)->point(0));
                     if (shape.inverseYAxis)
                         p.y = stencil.height-p.y;
-                    int l = (int) floor(p.x-.5);
-                    int b = (int) floor(p.y-.5);
+                    int l = (int) floor(p.x-real(.5));
+                    int b = (int) floor(p.y-real(.5));
                     int r = l+1;
                     int t = b+1;
                     // Check that the positions are within bounds.
@@ -154,7 +154,7 @@ void MSDFErrorCorrection::protectCorners(const Shape &shape) {
 /// Determines if the channel contributes to an edge between the two texels a, b.
 static bool edgeBetweenTexelsChannel(const float *a, const float *b, int channel) {
     // Find interpolation ratio t (0 < t < 1) where an edge is expected (mix(a[channel], b[channel], t) == 0.5).
-    double t = (a[channel]-.5)/(a[channel]-b[channel]);
+    real t = (a[channel]-real(.5))/(a[channel]-b[channel]);
     if (t > 0 && t < 1) {
         // Interpolate channel values at t.
         float c[3] = {
@@ -256,7 +256,7 @@ void MSDFErrorCorrection::protectAll() {
 }
 
 /// Returns the median of the linear interpolation of texels a, b at t.
-static float interpolatedMedian(const float *a, const float *b, double t) {
+static float interpolatedMedian(const float *a, const float *b, real t) {
     return median(
         mix(a[0], b[0], t),
         mix(a[1], b[1], t),
@@ -264,7 +264,7 @@ static float interpolatedMedian(const float *a, const float *b, double t) {
     );
 }
 /// Returns the median of the bilinear interpolation with the given constant, linear, and quadratic terms at t.
-static float interpolatedMedian(const float *a, const float *l, const float *q, double t) {
+static float interpolatedMedian(const float *a, const float *l, const float *q, real t) {
     return float(median(
         t*(t*q[0]+l[0])+a[0],
         t*(t*q[1]+l[1])+a[1],
@@ -273,7 +273,7 @@ static float interpolatedMedian(const float *a, const float *l, const float *q, 
 }
 
 /// Determines if the interpolated median xm is an artifact.
-static bool isArtifact(bool isProtected, double axSpan, double bxSpan, float am, float bm, float xm) {
+static bool isArtifact(bool isProtected, real axSpan, real bxSpan, float am, float bm, float xm) {
     return (
         // For protected texels, only report an artifact if it would cause fill inversion (change between positive and negative distance).
         (!isProtected || (am > .5f && bm > .5f && xm <= .5f) || (am < .5f && bm < .5f && xm >= .5f)) &&
@@ -286,8 +286,8 @@ static bool isArtifact(bool isProtected, double axSpan, double bxSpan, float am,
 template <class ArtifactClassifier>
 static bool hasLinearArtifactInner(const ArtifactClassifier &artifactClassifier, float am, float bm, const float *a, const float *b, float dA, float dB) {
     // Find interpolation ratio t (0 < t < 1) where two color channels are equal (mix(dA, dB, t) == 0).
-    double t = (double) dA/(dA-dB);
-    if (t > ARTIFACT_T_EPSILON && t < 1-ARTIFACT_T_EPSILON) {
+    real t = (real) dA/(dA-dB);
+    if (t > ARTIFACT_T_EPSILON && t < real(1)-ARTIFACT_T_EPSILON) {
         // Interpolate median at t and let the classifier decide if its value indicates an artifact.
         float xm = interpolatedMedian(a, b, t);
         return artifactClassifier.evaluate(t, xm, artifactClassifier.rangeTest(0, 1, t, am, bm, xm));
@@ -297,22 +297,22 @@ static bool hasLinearArtifactInner(const ArtifactClassifier &artifactClassifier,
 
 /// Checks if a bilinear interpolation artifact will occur at a point where two specific color channels are equal - such points have extreme median values.
 template <class ArtifactClassifier>
-static bool hasDiagonalArtifactInner(const ArtifactClassifier &artifactClassifier, float am, float dm, const float *a, const float *l, const float *q, float dA, float dBC, float dD, double tEx0, double tEx1) {
+static bool hasDiagonalArtifactInner(const ArtifactClassifier &artifactClassifier, float am, float dm, const float *a, const float *l, const float *q, float dA, float dBC, float dD, real tEx0, real tEx1) {
     // Find interpolation ratios t (0 < t[i] < 1) where two color channels are equal.
-    double t[2];
+    real t[2];
     int solutions = solveQuadratic(t, dD-dBC+dA, dBC-dA-dA, dA);
     for (int i = 0; i < solutions; ++i) {
         // Solutions t[i] == 0 and t[i] == 1 are singularities and occur very often because two channels are usually equal at texels.
-        if (t[i] > ARTIFACT_T_EPSILON && t[i] < 1-ARTIFACT_T_EPSILON) {
+        if (t[i] > ARTIFACT_T_EPSILON && t[i] < real(1)-ARTIFACT_T_EPSILON) {
             // Interpolate median xm at t.
             float xm = interpolatedMedian(a, l, q, t[i]);
             // Determine if xm deviates too much from medians of a, d.
             int rangeFlags = artifactClassifier.rangeTest(0, 1, t[i], am, dm, xm);
             // Additionally, check xm against the interpolated medians at the local extremes tEx0, tEx1.
-            double tEnd[2];
+            real tEnd[2];
             float em[2];
             // tEx0
-            if (tEx0 > 0 && tEx0 < 1) {
+            if (tEx0 > real(0) && tEx0 < real(1)) {
                 tEnd[0] = 0, tEnd[1] = 1;
                 em[0] = am, em[1] = dm;
                 tEnd[tEx0 > t[i]] = tEx0;
@@ -320,7 +320,7 @@ static bool hasDiagonalArtifactInner(const ArtifactClassifier &artifactClassifie
                 rangeFlags |= artifactClassifier.rangeTest(tEnd[0], tEnd[1], t[i], em[0], em[1], xm);
             }
             // tEx1
-            if (tEx1 > 0 && tEx1 < 1) {
+            if (tEx1 > real(0) && tEx1 < real(1)) {
                 tEnd[0] = 0, tEnd[1] = 1;
                 em[0] = am, em[1] = dm;
                 tEnd[tEx1 > t[i]] = tEx1;
@@ -373,10 +373,10 @@ static bool hasDiagonalArtifact(const ArtifactClassifier &artifactClassifier, fl
             d[2]+abc[2]
         };
         // Compute interpolation ratios tEx (0 < tEx[i] < 1) for the local extremes of each color channel (the derivative 2*q[i]*tEx[i]+l[i] == 0).
-        double tEx[3] = {
-            -.5*l[0]/q[0],
-            -.5*l[1]/q[1],
-            -.5*l[2]/q[2]
+        real tEx[3] = {
+            real(-.5)*l[0]/q[0],
+            real(-.5)*l[1]/q[1],
+            real(-.5)*l[2]/q[2]
         };
         // Check points where each pair of color channels meets.
         return (
@@ -391,9 +391,9 @@ static bool hasDiagonalArtifact(const ArtifactClassifier &artifactClassifier, fl
 template <int N>
 void MSDFErrorCorrection::findErrors(const BitmapConstRef<float, N> &sdf) {
     // Compute the expected deltas between values of horizontally, vertically, and diagonally adjacent texels.
-    double hSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange, 0)).length();
-    double vSpan = minDeviationRatio*projection.unprojectVector(Vector2(0, invRange)).length();
-    double dSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange)).length();
+    real hSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange, 0)).length();
+    real vSpan = minDeviationRatio*projection.unprojectVector(Vector2(0, invRange)).length();
+    real dSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange)).length();
     // Inspect all texels.
     for (int y = 0; y < sdf.height; ++y) {
         for (int x = 0; x < sdf.width; ++x) {
@@ -419,9 +419,9 @@ void MSDFErrorCorrection::findErrors(const BitmapConstRef<float, N> &sdf) {
 template <template <typename> class ContourCombiner, int N>
 void MSDFErrorCorrection::findErrors(const BitmapConstRef<float, N> &sdf, const Shape &shape) {
     // Compute the expected deltas between values of horizontally, vertically, and diagonally adjacent texels.
-    double hSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange, 0)).length();
-    double vSpan = minDeviationRatio*projection.unprojectVector(Vector2(0, invRange)).length();
-    double dSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange)).length();
+    real hSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange, 0)).length();
+    real vSpan = minDeviationRatio*projection.unprojectVector(Vector2(0, invRange)).length();
+    real dSpan = minDeviationRatio*projection.unprojectVector(Vector2(invRange)).length();
 #ifdef MSDFGEN_USE_OPENMP
     #pragma omp parallel
 #endif
@@ -439,8 +439,8 @@ void MSDFErrorCorrection::findErrors(const BitmapConstRef<float, N> &sdf, const 
                 if ((*stencil(x, row)&ERROR))
                     continue;
                 const float *c = sdf(x, row);
-                shapeDistanceChecker.shapeCoord = projection.unproject(Point2(x+.5, y+.5));
-                shapeDistanceChecker.sdfCoord = Point2(x+.5, row+.5);
+                shapeDistanceChecker.shapeCoord = projection.unproject(Point2(real(x)+real(.5), real(y)+real(.5)));
+                shapeDistanceChecker.sdfCoord = Point2(real(x)+real(.5), real(row)+real(.5));
                 shapeDistanceChecker.msd = c;
                 shapeDistanceChecker.protectedFlag = (*stencil(x, row)&PROTECTED) != 0;
                 float cm = median(c[0], c[1], c[2]);

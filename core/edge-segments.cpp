@@ -9,24 +9,24 @@
 
 namespace msdfgen {
 
-void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const {
-    if (param < 0) {
+void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, real param) const {
+    if (param < real(0)) {
         Vector2 dir = direction(0).normalize();
         Vector2 aq = origin-point(0);
-        double ts = dotProduct(aq, dir);
-        if (ts < 0) {
-            double pseudoDistance = crossProduct(aq, dir);
+        real ts = dotProduct(aq, dir);
+        if (ts < real(0)) {
+            real pseudoDistance = crossProduct(aq, dir);
             if (fabs(pseudoDistance) <= fabs(distance.distance)) {
                 distance.distance = pseudoDistance;
                 distance.dot = 0;
             }
         }
-    } else if (param > 1) {
+    } else if (param > real(1)) {
         Vector2 dir = direction(1).normalize();
         Vector2 bq = origin-point(1);
-        double ts = dotProduct(bq, dir);
-        if (ts > 0) {
-            double pseudoDistance = crossProduct(bq, dir);
+        real ts = dotProduct(bq, dir);
+        if (ts > real(0)) {
+            real pseudoDistance = crossProduct(bq, dir);
             if (fabs(pseudoDistance) <= fabs(distance.distance)) {
                 distance.distance = pseudoDistance;
                 distance.dot = 0;
@@ -42,7 +42,7 @@ LinearSegment::LinearSegment(Point2 p0, Point2 p1, EdgeColor edgeColor) : EdgeSe
 
 QuadraticSegment::QuadraticSegment(Point2 p0, Point2 p1, Point2 p2, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
     if (p1 == p0 || p1 == p2)
-        p1 = 0.5*(p0+p2);
+        p1 = real(.5)*(p0+p2);
     p[0] = p0;
     p[1] = p1;
     p[2] = p2;
@@ -50,8 +50,8 @@ QuadraticSegment::QuadraticSegment(Point2 p0, Point2 p1, Point2 p2, EdgeColor ed
 
 CubicSegment::CubicSegment(Point2 p0, Point2 p1, Point2 p2, Point2 p3, EdgeColor edgeColor) : EdgeSegment(edgeColor) {
     if ((p1 == p0 || p1 == p3) && (p2 == p0 || p2 == p3)) {
-        p1 = mix(p0, p3, 1/3.);
-        p2 = mix(p0, p3, 2/3.);
+        p1 = mix(p0, p3, real(1)/real(3));
+        p2 = mix(p0, p3, real(2)/real(3));
     }
     p[0] = p0;
     p[1] = p1;
@@ -95,31 +95,31 @@ const Point2 *CubicSegment::controlPoints() const {
     return p;
 }
 
-Point2 LinearSegment::point(double param) const {
+Point2 LinearSegment::point(real param) const {
     return mix(p[0], p[1], param);
 }
 
-Point2 QuadraticSegment::point(double param) const {
+Point2 QuadraticSegment::point(real param) const {
     return mix(mix(p[0], p[1], param), mix(p[1], p[2], param), param);
 }
 
-Point2 CubicSegment::point(double param) const {
+Point2 CubicSegment::point(real param) const {
     Vector2 p12 = mix(p[1], p[2], param);
     return mix(mix(mix(p[0], p[1], param), p12, param), mix(p12, mix(p[2], p[3], param), param), param);
 }
 
-Vector2 LinearSegment::direction(double param) const {
+Vector2 LinearSegment::direction(real param) const {
     return p[1]-p[0];
 }
 
-Vector2 QuadraticSegment::direction(double param) const {
+Vector2 QuadraticSegment::direction(real param) const {
     Vector2 tangent = mix(p[1]-p[0], p[2]-p[1], param);
     if (!tangent)
         return p[2]-p[0];
     return tangent;
 }
 
-Vector2 CubicSegment::direction(double param) const {
+Vector2 CubicSegment::direction(real param) const {
     Vector2 tangent = mix(mix(p[1]-p[0], p[2]-p[1], param), mix(p[2]-p[1], p[3]-p[2], param), param);
     if (!tangent) {
         if (param == 0) return p[2]-p[0];
@@ -128,195 +128,195 @@ Vector2 CubicSegment::direction(double param) const {
     return tangent;
 }
 
-Vector2 LinearSegment::directionChange(double param) const {
+Vector2 LinearSegment::directionChange(real param) const {
     return Vector2();
 }
 
-Vector2 QuadraticSegment::directionChange(double param) const {
+Vector2 QuadraticSegment::directionChange(real param) const {
     return (p[2]-p[1])-(p[1]-p[0]);
 }
 
-Vector2 CubicSegment::directionChange(double param) const {
+Vector2 CubicSegment::directionChange(real param) const {
     return mix((p[2]-p[1])-(p[1]-p[0]), (p[3]-p[2])-(p[2]-p[1]), param);
 }
 
-double LinearSegment::length() const {
+real LinearSegment::length() const {
     return (p[1]-p[0]).length();
 }
 
-double QuadraticSegment::length() const {
+real QuadraticSegment::length() const {
     Vector2 ab = p[1]-p[0];
     Vector2 br = p[2]-p[1]-ab;
-    double abab = dotProduct(ab, ab);
-    double abbr = dotProduct(ab, br);
-    double brbr = dotProduct(br, br);
-    double abLen = sqrt(abab);
-    double brLen = sqrt(brbr);
-    double crs = crossProduct(ab, br);
-    double h = sqrt(abab+abbr+abbr+brbr);
+    real abab = dotProduct(ab, ab);
+    real abbr = dotProduct(ab, br);
+    real brbr = dotProduct(br, br);
+    real abLen = sqrt(abab);
+    real brLen = sqrt(brbr);
+    real crs = crossProduct(ab, br);
+    real h = sqrt(abab+abbr+abbr+brbr);
     return (
         brLen*((abbr+brbr)*h-abbr*abLen)+
         crs*crs*log((brLen*h+abbr+brbr)/(brLen*abLen+abbr))
     )/(brbr*brLen);
 }
 
-SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const {
+SignedDistance LinearSegment::signedDistance(Point2 origin, real &param) const {
     Vector2 aq = origin-p[0];
     Vector2 ab = p[1]-p[0];
     param = dotProduct(aq, ab)/dotProduct(ab, ab);
-    Vector2 eq = p[param > .5]-origin;
-    double endpointDistance = eq.length();
-    if (param > 0 && param < 1) {
-        double orthoDistance = dotProduct(ab.getOrthonormal(false), aq);
+    Vector2 eq = p[param > real(.5)]-origin;
+    real endpointDistance = eq.length();
+    if (param > real(0) && param < real(1)) {
+        real orthoDistance = dotProduct(ab.getOrthonormal(false), aq);
         if (fabs(orthoDistance) < endpointDistance)
             return SignedDistance(orthoDistance, 0);
     }
-    return SignedDistance(nonZeroSign(crossProduct(aq, ab))*endpointDistance, fabs(dotProduct(ab.normalize(), eq.normalize())));
+    return SignedDistance(real(nonZeroSign(crossProduct(aq, ab)))*endpointDistance, fabs(dotProduct(ab.normalize(), eq.normalize())));
 }
 
 #ifdef MSDFGEN_USE_BEZIER_SOLVER
 
-SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
+SignedDistance QuadraticSegment::signedDistance(Point2 origin, real &param) const {
     Vector2 ap = origin-p[0];
     Vector2 bp = origin-p[2];
-    Vector2 q = 2*(p[1]-p[0]);
+    Vector2 q = real(2)*(p[1]-p[0]);
     Vector2 r = p[2]-2*p[1]+p[0];
-    double aSqD = ap.squaredLength();
-    double bSqD = bp.squaredLength();
-    double t = quadraticNearPoint(ap, q, r);
-    if (t > 0 && t < 1) {
+    real aSqD = ap.squaredLength();
+    real bSqD = bp.squaredLength();
+    real t = quadraticNearPoint(ap, q, r);
+    if (t > real(0) && t < real(1)) {
         Vector2 tp = ap-(q+r*t)*t;
-        double tSqD = tp.squaredLength();
+        real tSqD = tp.squaredLength();
         if (tSqD < aSqD && tSqD < bSqD) {
             param = t;
-            return SignedDistance(nonZeroSign(crossProduct(tp, q+2*r*t))*sqrt(tSqD), 0);
+            return SignedDistance(real(nonZeroSign(crossProduct(tp, q+real(2)*r*t)))*sqrt(tSqD), 0);
         }
     }
     if (bSqD < aSqD) {
         Vector2 d = q+r+r;
         if (!d)
             d = p[2]-p[0];
-        param = dotProduct(bp, d)/d.squaredLength()+1;
-        return SignedDistance(nonZeroSign(crossProduct(bp, d))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
+        param = dotProduct(bp, d)/d.squaredLength()+real(1);
+        return SignedDistance(real(nonZeroSign(crossProduct(bp, d)))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
     }
     if (!q)
         q = p[2]-p[0];
     param = dotProduct(ap, q)/q.squaredLength();
-    return SignedDistance(nonZeroSign(crossProduct(ap, q))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
+    return SignedDistance(real(nonZeroSign(crossProduct(ap, q)))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
 }
 
-SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
+SignedDistance CubicSegment::signedDistance(Point2 origin, real &param) const {
     Vector2 ap = origin-p[0];
     Vector2 bp = origin-p[3];
-    Vector2 q = 3*(p[1]-p[0]);
-    Vector2 r = 3*(p[2]-p[1])-q;
-    Vector2 s = p[3]-3*(p[2]-p[1])-p[0];
-    double aSqD = ap.squaredLength();
-    double bSqD = bp.squaredLength();
-    double tSqD;
-    double t = cubicNearPoint(ap, q, r, s, tSqD);
-    if (t > 0 && t < 1) {
+    Vector2 q = real(3)*(p[1]-p[0]);
+    Vector2 r = real(3)*(p[2]-p[1])-q;
+    Vector2 s = p[3]-real(3)*(p[2]-p[1])-p[0];
+    real aSqD = ap.squaredLength();
+    real bSqD = bp.squaredLength();
+    real tSqD;
+    real t = cubicNearPoint(ap, q, r, s, tSqD);
+    if (t > real(0) && t < real(1)) {
         if (tSqD < aSqD && tSqD < bSqD) {
             param = t;
-            return SignedDistance(nonZeroSign(crossProduct(ap-(q+(r+s*t)*t)*t, q+(r+r+3*s*t)*t))*sqrt(tSqD), 0);
+            return SignedDistance(real(nonZeroSign(crossProduct(ap-(q+(r+s*t)*t)*t, q+(r+r+real(3)*s*t)*t)))*sqrt(tSqD), 0);
         }
     }
     if (bSqD < aSqD) {
-        Vector2 d = q+r+r+3*s;
+        Vector2 d = q+r+r+real(3)*s;
         if (!d)
             d = p[3]-p[1];
-        param = dotProduct(bp, d)/d.squaredLength()+1;
-        return SignedDistance(nonZeroSign(crossProduct(bp, d))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
+        param = dotProduct(bp, d)/d.squaredLength()+real(1);
+        return SignedDistance(real(nonZeroSign(crossProduct(bp, d)))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
     }
     if (!q)
         q = p[2]-p[0];
     param = dotProduct(ap, q)/q.squaredLength();
-    return SignedDistance(nonZeroSign(crossProduct(ap, q))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
+    return SignedDistance(real(nonZeroSign(crossProduct(ap, q)))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
 }
 
 #else
 
-SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
+SignedDistance QuadraticSegment::signedDistance(Point2 origin, real &param) const {
     Vector2 qa = p[0]-origin;
     Vector2 ab = p[1]-p[0];
     Vector2 br = p[2]-p[1]-ab;
-    double a = dotProduct(br, br);
-    double b = 3*dotProduct(ab, br);
-    double c = 2*dotProduct(ab, ab)+dotProduct(qa, br);
-    double d = dotProduct(qa, ab);
-    double t[3];
+    real a = dotProduct(br, br);
+    real b = real(3)*dotProduct(ab, br);
+    real c = real(2)*dotProduct(ab, ab)+dotProduct(qa, br);
+    real d = dotProduct(qa, ab);
+    real t[3];
     int solutions = solveCubic(t, a, b, c, d);
 
     Vector2 epDir = direction(0);
-    double minDistance = nonZeroSign(crossProduct(epDir, qa))*qa.length(); // distance from A
+    real minDistance = real(nonZeroSign(crossProduct(epDir, qa)))*qa.length(); // distance from A
     param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
         epDir = direction(1);
-        double distance = (p[2]-origin).length(); // distance from B
+        real distance = (p[2]-origin).length(); // distance from B
         if (distance < fabs(minDistance)) {
-            minDistance = nonZeroSign(crossProduct(epDir, p[2]-origin))*distance;
+            minDistance = real(nonZeroSign(crossProduct(epDir, p[2]-origin)))*distance;
             param = dotProduct(origin-p[1], epDir)/dotProduct(epDir, epDir);
         }
     }
     for (int i = 0; i < solutions; ++i) {
-        if (t[i] > 0 && t[i] < 1) {
-            Point2 qe = qa+2*t[i]*ab+t[i]*t[i]*br;
-            double distance = qe.length();
+        if (t[i] > real(0) && t[i] < real(1)) {
+            Point2 qe = qa+real(2)*t[i]*ab+t[i]*t[i]*br;
+            real distance = qe.length();
             if (distance <= fabs(minDistance)) {
-                minDistance = nonZeroSign(crossProduct(ab+t[i]*br, qe))*distance;
+                minDistance = real(nonZeroSign(crossProduct(ab+t[i]*br, qe)))*distance;
                 param = t[i];
             }
         }
     }
 
-    if (param >= 0 && param <= 1)
+    if (param >= real(0) && param <= real(1))
         return SignedDistance(minDistance, 0);
-    if (param < .5)
+    if (param < real(.5))
         return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
     else
         return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[2]-origin).normalize())));
 }
 
-SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
+SignedDistance CubicSegment::signedDistance(Point2 origin, real &param) const {
     Vector2 qa = p[0]-origin;
     Vector2 ab = p[1]-p[0];
     Vector2 br = p[2]-p[1]-ab;
     Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
 
     Vector2 epDir = direction(0);
-    double minDistance = nonZeroSign(crossProduct(epDir, qa))*qa.length(); // distance from A
+    real minDistance = real(nonZeroSign(crossProduct(epDir, qa)))*qa.length(); // distance from A
     param = -dotProduct(qa, epDir)/dotProduct(epDir, epDir);
     {
         epDir = direction(1);
-        double distance = (p[3]-origin).length(); // distance from B
+        real distance = (p[3]-origin).length(); // distance from B
         if (distance < fabs(minDistance)) {
-            minDistance = nonZeroSign(crossProduct(epDir, p[3]-origin))*distance;
+            minDistance = real(nonZeroSign(crossProduct(epDir, p[3]-origin)))*distance;
             param = dotProduct(epDir-(p[3]-origin), epDir)/dotProduct(epDir, epDir);
         }
     }
     // Iterative minimum distance search
     for (int i = 0; i <= MSDFGEN_CUBIC_SEARCH_STARTS; ++i) {
-        double t = (double) i/MSDFGEN_CUBIC_SEARCH_STARTS;
-        Vector2 qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
+        real t = real(1)/real(MSDFGEN_CUBIC_SEARCH_STARTS)*real(i);
+        Vector2 qe = qa+real(3)*t*ab+real(3)*t*t*br+t*t*t*as;
         for (int step = 0; step < MSDFGEN_CUBIC_SEARCH_STEPS; ++step) {
             // Improve t
-            Vector2 d1 = 3*ab+6*t*br+3*t*t*as;
-            Vector2 d2 = 6*br+6*t*as;
+            Vector2 d1 = real(3)*ab+real(6)*t*br+real(3)*t*t*as;
+            Vector2 d2 = real(6)*br+real(6)*t*as;
             t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
-            if (t <= 0 || t >= 1)
+            if (t <= real(0) || t >= real(1))
                 break;
-            qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
-            double distance = qe.length();
+            qe = qa+real(3)*t*ab+real(3)*t*t*br+t*t*t*as;
+            real distance = qe.length();
             if (distance < fabs(minDistance)) {
-                minDistance = nonZeroSign(crossProduct(d1, qe))*distance;
+                minDistance = real(nonZeroSign(crossProduct(d1, qe)))*distance;
                 param = t;
             }
         }
     }
 
-    if (param >= 0 && param <= 1)
+    if (param >= real(0) && param <= real(1))
         return SignedDistance(minDistance, 0);
-    if (param < .5)
+    if (param < real(.5))
         return SignedDistance(minDistance, fabs(dotProduct(direction(0).normalize(), qa.normalize())));
     else
         return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[3]-origin).normalize())));
@@ -324,9 +324,9 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
 
 #endif
 
-int LinearSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+int LinearSegment::scanlineIntersections(real x[3], int dy[3], real y) const {
     if ((y >= p[0].y && y < p[1].y) || (y >= p[1].y && y < p[0].y)) {
-        double param = (y-p[0].y)/(p[1].y-p[0].y);
+        real param = (y-p[0].y)/(p[1].y-p[0].y);
         x[0] = mix(p[0].x, p[1].x, param);
         dy[0] = sign(p[1].y-p[0].y);
         return 1;
@@ -334,7 +334,7 @@ int LinearSegment::scanlineIntersections(double x[3], int dy[3], double y) const
     return 0;
 }
 
-int QuadraticSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+int QuadraticSegment::scanlineIntersections(real x[3], int dy[3], real y) const {
     int total = 0;
     int nextDY = y > p[0].y ? 1 : -1;
     x[total] = p[0].x;
@@ -347,16 +347,16 @@ int QuadraticSegment::scanlineIntersections(double x[3], int dy[3], double y) co
     {
         Vector2 ab = p[1]-p[0];
         Vector2 br = p[2]-p[1]-ab;
-        double t[2];
+        real t[2];
         int solutions = solveQuadratic(t, br.y, 2*ab.y, p[0].y-y);
         // Sort solutions
-        double tmp;
+        real tmp;
         if (solutions >= 2 && t[0] > t[1])
             tmp = t[0], t[0] = t[1], t[1] = tmp;
         for (int i = 0; i < solutions && total < 2; ++i) {
             if (t[i] >= 0 && t[i] <= 1) {
                 x[total] = p[0].x+2*t[i]*ab.x+t[i]*t[i]*br.x;
-                if (nextDY*(ab.y+t[i]*br.y) >= 0) {
+                if (real(nextDY)*(ab.y+t[i]*br.y) >= real(0)) {
                     dy[total++] = nextDY;
                     nextDY = -nextDY;
                 }
@@ -388,7 +388,7 @@ int QuadraticSegment::scanlineIntersections(double x[3], int dy[3], double y) co
     return total;
 }
 
-int CubicSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
+int CubicSegment::scanlineIntersections(real x[3], int dy[3], real y) const {
     int total = 0;
     int nextDY = y > p[0].y ? 1 : -1;
     x[total] = p[0].x;
@@ -402,10 +402,10 @@ int CubicSegment::scanlineIntersections(double x[3], int dy[3], double y) const 
         Vector2 ab = p[1]-p[0];
         Vector2 br = p[2]-p[1]-ab;
         Vector2 as = (p[3]-p[2])-(p[2]-p[1])-br;
-        double t[3];
+        real t[3];
         int solutions = solveCubic(t, as.y, 3*br.y, 3*ab.y, p[0].y-y);
         // Sort solutions
-        double tmp;
+        real tmp;
         if (solutions >= 2) {
             if (t[0] > t[1])
                 tmp = t[0], t[0] = t[1], t[1] = tmp;
@@ -417,8 +417,8 @@ int CubicSegment::scanlineIntersections(double x[3], int dy[3], double y) const 
         }
         for (int i = 0; i < solutions && total < 3; ++i) {
             if (t[i] >= 0 && t[i] <= 1) {
-                x[total] = p[0].x+3*t[i]*ab.x+3*t[i]*t[i]*br.x+t[i]*t[i]*t[i]*as.x;
-                if (nextDY*(ab.y+2*t[i]*br.y+t[i]*t[i]*as.y) >= 0) {
+                x[total] = p[0].x+real(3)*t[i]*ab.x+real(3)*t[i]*t[i]*br.x+t[i]*t[i]*t[i]*as.x;
+                if (real(nextDY)*(ab.y+real(2)*t[i]*br.y+t[i]*t[i]*as.y) >= real(0)) {
                     dy[total++] = nextDY;
                     nextDY = -nextDY;
                 }
@@ -450,49 +450,49 @@ int CubicSegment::scanlineIntersections(double x[3], int dy[3], double y) const 
     return total;
 }
 
-static void pointBounds(Point2 p, double &l, double &b, double &r, double &t) {
+static void pointBounds(Point2 p, real &l, real &b, real &r, real &t) {
     if (p.x < l) l = p.x;
     if (p.y < b) b = p.y;
     if (p.x > r) r = p.x;
     if (p.y > t) t = p.y;
 }
 
-void LinearSegment::bound(double &l, double &b, double &r, double &t) const {
+void LinearSegment::bound(real &l, real &b, real &r, real &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[1], l, b, r, t);
 }
 
-void QuadraticSegment::bound(double &l, double &b, double &r, double &t) const {
+void QuadraticSegment::bound(real &l, real &b, real &r, real &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[2], l, b, r, t);
     Vector2 bot = (p[1]-p[0])-(p[2]-p[1]);
     if (bot.x) {
-        double param = (p[1].x-p[0].x)/bot.x;
-        if (param > 0 && param < 1)
+        real param = (p[1].x-p[0].x)/bot.x;
+        if (param > real(0) && param < real(1))
             pointBounds(point(param), l, b, r, t);
     }
     if (bot.y) {
-        double param = (p[1].y-p[0].y)/bot.y;
-        if (param > 0 && param < 1)
+        real param = (p[1].y-p[0].y)/bot.y;
+        if (param > real(0) && param < real(1))
             pointBounds(point(param), l, b, r, t);
     }
 }
 
-void CubicSegment::bound(double &l, double &b, double &r, double &t) const {
+void CubicSegment::bound(real &l, real &b, real &r, real &t) const {
     pointBounds(p[0], l, b, r, t);
     pointBounds(p[3], l, b, r, t);
     Vector2 a0 = p[1]-p[0];
-    Vector2 a1 = 2*(p[2]-p[1]-a0);
-    Vector2 a2 = p[3]-3*p[2]+3*p[1]-p[0];
-    double params[2];
+    Vector2 a1 = real(2)*(p[2]-p[1]-a0);
+    Vector2 a2 = p[3]-real(3)*p[2]+real(3)*p[1]-p[0];
+    real params[2];
     int solutions;
     solutions = solveQuadratic(params, a2.x, a1.x, a0.x);
     for (int i = 0; i < solutions; ++i)
-        if (params[i] > 0 && params[i] < 1)
+        if (params[i] > real(0) && params[i] < real(1))
             pointBounds(point(params[i]), l, b, r, t);
     solutions = solveQuadratic(params, a2.y, a1.y, a0.y);
     for (int i = 0; i < solutions; ++i)
-        if (params[i] > 0 && params[i] < 1)
+        if (params[i] > real(0) && params[i] < real(1))
             pointBounds(point(params[i]), l, b, r, t);
 }
 
@@ -526,7 +526,7 @@ void QuadraticSegment::moveStartPoint(Point2 to) {
     Point2 origP1 = p[1];
     p[1] += crossProduct(p[0]-p[1], to-p[0])/crossProduct(p[0]-p[1], p[2]-p[1])*(p[2]-p[1]);
     p[0] = to;
-    if (dotProduct(origSDir, p[0]-p[1]) < 0)
+    if (dotProduct(origSDir, p[0]-p[1]) < real(0))
         p[1] = origP1;
 }
 
@@ -544,7 +544,7 @@ void QuadraticSegment::moveEndPoint(Point2 to) {
     Point2 origP1 = p[1];
     p[1] += crossProduct(p[2]-p[1], to-p[2])/crossProduct(p[2]-p[1], p[0]-p[1])*(p[0]-p[1]);
     p[2] = to;
-    if (dotProduct(origEDir, p[2]-p[1]) < 0)
+    if (dotProduct(origEDir, p[2]-p[1]) < real(0))
         p[1] = origP1;
 }
 
@@ -554,40 +554,40 @@ void CubicSegment::moveEndPoint(Point2 to) {
 }
 
 void LinearSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const {
-    part1 = new LinearSegment(p[0], point(1/3.), color);
-    part2 = new LinearSegment(point(1/3.), point(2/3.), color);
-    part3 = new LinearSegment(point(2/3.), p[1], color);
+    part1 = new LinearSegment(p[0], point(real(1)/real(3)), color);
+    part2 = new LinearSegment(point(real(1)/real(3)), point(real(2)/real(3)), color);
+    part3 = new LinearSegment(point(real(2)/real(3)), p[1], color);
 }
 
 void QuadraticSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const {
-    part1 = new QuadraticSegment(p[0], mix(p[0], p[1], 1/3.), point(1/3.), color);
-    part2 = new QuadraticSegment(point(1/3.), mix(mix(p[0], p[1], 5/9.), mix(p[1], p[2], 4/9.), .5), point(2/3.), color);
-    part3 = new QuadraticSegment(point(2/3.), mix(p[1], p[2], 2/3.), p[2], color);
+    part1 = new QuadraticSegment(p[0], mix(p[0], p[1], real(1)/real(3)), point(real(1)/real(3)), color);
+    part2 = new QuadraticSegment(point(real(1)/real(3)), mix(mix(p[0], p[1], real(5)/real(9)), mix(p[1], p[2], real(4)/real(9)), real(.5)), point(real(2)/real(3)), color);
+    part3 = new QuadraticSegment(point(real(2)/real(3)), mix(p[1], p[2], real(2)/real(3)), p[2], color);
 }
 
 void CubicSegment::splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const {
-    part1 = new CubicSegment(p[0], p[0] == p[1] ? p[0] : mix(p[0], p[1], 1/3.), mix(mix(p[0], p[1], 1/3.), mix(p[1], p[2], 1/3.), 1/3.), point(1/3.), color);
-    part2 = new CubicSegment(point(1/3.),
-        mix(mix(mix(p[0], p[1], 1/3.), mix(p[1], p[2], 1/3.), 1/3.), mix(mix(p[1], p[2], 1/3.), mix(p[2], p[3], 1/3.), 1/3.), 2/3.),
-        mix(mix(mix(p[0], p[1], 2/3.), mix(p[1], p[2], 2/3.), 2/3.), mix(mix(p[1], p[2], 2/3.), mix(p[2], p[3], 2/3.), 2/3.), 1/3.),
-        point(2/3.), color);
-    part3 = new CubicSegment(point(2/3.), mix(mix(p[1], p[2], 2/3.), mix(p[2], p[3], 2/3.), 2/3.), p[2] == p[3] ? p[3] : mix(p[2], p[3], 2/3.), p[3], color);
+    part1 = new CubicSegment(p[0], p[0] == p[1] ? p[0] : mix(p[0], p[1], real(1)/real(3)), mix(mix(p[0], p[1], real(1)/real(3)), mix(p[1], p[2], real(1)/real(3)), real(1)/real(3)), point(real(1)/real(3)), color);
+    part2 = new CubicSegment(point(real(1)/real(3)),
+        mix(mix(mix(p[0], p[1], real(1)/real(3)), mix(p[1], p[2], real(1)/real(3)), real(1)/real(3)), mix(mix(p[1], p[2], real(1)/real(3)), mix(p[2], p[3], real(1)/real(3)), real(1)/real(3)), real(2)/real(3)),
+        mix(mix(mix(p[0], p[1], real(2)/real(3)), mix(p[1], p[2], real(2)/real(3)), real(2)/real(3)), mix(mix(p[1], p[2], real(2)/real(3)), mix(p[2], p[3], real(2)/real(3)), real(2)/real(3)), real(1)/real(3)),
+        point(real(2)/real(3)), color);
+    part3 = new CubicSegment(point(real(2)/real(3)), mix(mix(p[1], p[2], real(2)/real(3)), mix(p[2], p[3], real(2)/real(3)), real(2)/real(3)), p[2] == p[3] ? p[3] : mix(p[2], p[3], real(2)/real(3)), p[3], color);
 }
 
 EdgeSegment *QuadraticSegment::convertToCubic() const {
-    return new CubicSegment(p[0], mix(p[0], p[1], 2/3.), mix(p[1], p[2], 1/3.), p[2], color);
+    return new CubicSegment(p[0], mix(p[0], p[1], real(2)/real(3)), mix(p[1], p[2], real(1)/real(3)), p[2], color);
 }
 
-void CubicSegment::deconverge(int param, double amount) {
+void CubicSegment::deconverge(int param, real amount) {
     Vector2 dir = direction(param);
     Vector2 normal = dir.getOrthonormal();
-    double h = dotProduct(directionChange(param)-dir, normal);
+    real h = dotProduct(directionChange(param)-dir, normal);
     switch (param) {
         case 0:
-            p[1] += amount*(dir+sign(h)*sqrt(fabs(h))*normal);
+            p[1] += amount*(dir+real(sign(h))*sqrt(fabs(h))*normal);
             break;
         case 1:
-            p[2] -= amount*(dir-sign(h)*sqrt(fabs(h))*normal);
+            p[2] -= amount*(dir-real(sign(h))*sqrt(fabs(h))*normal);
             break;
     }
 }

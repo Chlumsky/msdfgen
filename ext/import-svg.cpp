@@ -19,7 +19,7 @@
 #include "../core/arithmetics.hpp"
 
 #define ARC_SEGMENTS_PER_PI 2
-#define ENDPOINT_SNAP_RANGE_PROPORTION (1/16384.)
+#define ENDPOINT_SNAP_RANGE_PROPORTION (::msdfgen::real(1)/::msdfgen::real(16384))
 
 namespace msdfgen {
 
@@ -65,7 +65,7 @@ static bool readCoord(Point2 &output, const char *&pathDef) {
     return false;
 }
 
-static bool readDouble(double &output, const char *&pathDef) {
+static bool readReal(real &output, const char *&pathDef) {
     skipExtraChars(pathDef);
     int shift;
     double v;
@@ -89,51 +89,51 @@ static bool readBool(bool &output, const char *&pathDef) {
     return false;
 }
 
-static double arcAngle(Vector2 u, Vector2 v) {
-    return nonZeroSign(crossProduct(u, v))*acos(clamp(dotProduct(u, v)/(u.length()*v.length()), -1., +1.));
+static real arcAngle(Vector2 u, Vector2 v) {
+    return real(nonZeroSign(crossProduct(u, v)))*acos(clamp(dotProduct(u, v)/(u.length()*v.length()), real(-1), real(+1)));
 }
 
 static Vector2 rotateVector(Vector2 v, Vector2 direction) {
     return Vector2(direction.x*v.x-direction.y*v.y, direction.y*v.x+direction.x*v.y);
 }
 
-static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoint, Vector2 radius, double rotation, bool largeArc, bool sweep) {
+static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoint, Vector2 radius, real rotation, bool largeArc, bool sweep) {
     if (endPoint == startPoint)
         return;
-    if (radius.x == 0 || radius.y == 0)
+    if (radius.x == real(0) || radius.y == real(0))
         return contour.addEdge(new LinearSegment(startPoint, endPoint));
 
     radius.x = fabs(radius.x);
     radius.y = fabs(radius.y);
     Vector2 axis(cos(rotation), sin(rotation));
 
-    Vector2 rm = rotateVector(.5*(startPoint-endPoint), Vector2(axis.x, -axis.y));
+    Vector2 rm = rotateVector(real(.5)*(startPoint-endPoint), Vector2(axis.x, -axis.y));
     Vector2 rm2 = rm*rm;
     Vector2 radius2 = radius*radius;
-    double radiusGap = rm2.x/radius2.x+rm2.y/radius2.y;
-    if (radiusGap > 1) {
+    real radiusGap = rm2.x/radius2.x+rm2.y/radius2.y;
+    if (radiusGap > real(1)) {
         radius *= sqrt(radiusGap);
         radius2 = radius*radius;
     }
-    double dq = (radius2.x*rm2.y+radius2.y*rm2.x);
-    double pq = radius2.x*radius2.y/dq-1;
-    double q = (largeArc == sweep ? -1 : +1)*sqrt(max(pq, 0.));
+    real dq = (radius2.x*rm2.y+radius2.y*rm2.x);
+    real pq = radius2.x*radius2.y/dq-1;
+    real q = (largeArc == sweep ? real(-1) : real(+1))*sqrt(max(pq, real(0)));
     Vector2 rc(q*radius.x*rm.y/radius.y, -q*radius.y*rm.x/radius.x);
-    Point2 center = .5*(startPoint+endPoint)+rotateVector(rc, axis);
+    Point2 center = real(.5)*(startPoint+endPoint)+rotateVector(rc, axis);
 
-    double angleStart = arcAngle(Vector2(1, 0), (rm-rc)/radius);
-    double angleExtent = arcAngle((rm-rc)/radius, (-rm-rc)/radius);
-    if (!sweep && angleExtent > 0)
-        angleExtent -= 2*M_PI;
-    else if (sweep && angleExtent < 0)
-        angleExtent += 2*M_PI;
+    real angleStart = arcAngle(Vector2(1, 0), (rm-rc)/radius);
+    real angleExtent = arcAngle((rm-rc)/radius, (-rm-rc)/radius);
+    if (!sweep && angleExtent > real(0))
+        angleExtent -= real(2*M_PI);
+    else if (sweep && angleExtent < real(0))
+        angleExtent += real(2*M_PI);
 
-    int segments = (int) ceil(ARC_SEGMENTS_PER_PI/M_PI*fabs(angleExtent));
-    double angleIncrement = angleExtent/segments;
-    double cl = 4/3.*sin(.5*angleIncrement)/(1+cos(.5*angleIncrement));
+    int segments = (int) ceil(real(ARC_SEGMENTS_PER_PI)/real(M_PI)*fabs(angleExtent));
+    real angleIncrement = angleExtent/segments;
+    real cl = real(4)/real(3)*sin(real(.5)*angleIncrement)/(real(1)+cos(real(.5)*angleIncrement));
 
     Point2 prevNode = startPoint;
-    double angle = angleStart;
+    real angle = angleStart;
     for (int i = 0; i < segments; ++i) {
         Point2 controlPoint[2];
         Vector2 d(cos(angle), sin(angle));
@@ -187,7 +187,7 @@ static void findPathByBackwardIndex(tinyxml2::XMLElement *&path, int &flags, int
     }
 }
 
-bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSnapRange) {
+bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, real endpointSnapRange) {
     char nodeType = '\0';
     char prevNodeType = '\0';
     Point2 prevNode(0, 0);
@@ -224,13 +224,13 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                     contour.addEdge(new LinearSegment(prevNode, node));
                     break;
                 case 'H': case 'h':
-                    REQUIRE(readDouble(node.x, pathDef));
+                    REQUIRE(readReal(node.x, pathDef));
                     if (nodeType == 'h')
                         node.x += prevNode.x;
                     contour.addEdge(new LinearSegment(prevNode, node));
                     break;
                 case 'V': case 'v':
-                    REQUIRE(readDouble(node.y, pathDef));
+                    REQUIRE(readReal(node.y, pathDef));
                     if (nodeType == 'v')
                         node.y += prevNode.y;
                     contour.addEdge(new LinearSegment(prevNode, node));
@@ -281,17 +281,17 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                 case 'A': case 'a':
                     {
                         Vector2 radius;
-                        double angle;
+                        real angle;
                         bool largeArg;
                         bool sweep;
                         REQUIRE(readCoord(radius, pathDef));
-                        REQUIRE(readDouble(angle, pathDef));
+                        REQUIRE(readReal(angle, pathDef));
                         REQUIRE(readBool(largeArg, pathDef));
                         REQUIRE(readBool(sweep, pathDef));
                         REQUIRE(readCoord(node, pathDef));
                         if (nodeType == 'a')
                             node += prevNode;
-                        angle *= M_PI/180.0;
+                        angle *= real(M_PI)/real(180);
                         addArcApproximate(contour, prevNode, node, radius, angle, largeArg, sweep);
                     }
                     break;
@@ -338,16 +338,16 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     if (!pd)
         return false;
 
-    Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
-    double left, top;
+    double left, bottom;
+    double width = root->DoubleAttribute("width"), height = root->DoubleAttribute("height");
     const char *viewBox = root->Attribute("viewBox");
     if (viewBox)
-        sscanf(viewBox, "%lf %lf %lf %lf", &left, &top, &dims.x, &dims.y);
+        (void) sscanf(viewBox, "%lf %lf %lf %lf", &left, &bottom, &width, &height);
     if (dimensions)
-        *dimensions = dims;
+        *dimensions = Vector2(width, height);
     output.contours.clear();
     output.inverseYAxis = true;
-    return buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
+    return buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*Vector2(width, height).length());
 }
 
 #ifndef MSDFGEN_USE_SKIA
@@ -370,16 +370,18 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     if (!pd)
         return SVG_IMPORT_FAILURE;
 
-    viewBox.l = 0, viewBox.b = 0;
-    Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
+    double left = 0, bottom = 0;
+    double width = root->DoubleAttribute("width"), height = root->DoubleAttribute("height");
     const char *viewBoxStr = root->Attribute("viewBox");
     if (viewBoxStr)
-        sscanf(viewBoxStr, "%lf %lf %lf %lf", &viewBox.l, &viewBox.b, &dims.x, &dims.y);
-    viewBox.r = viewBox.l+dims.x;
-    viewBox.t = viewBox.b+dims.y;
+        (void) sscanf(viewBoxStr, "%lf %lf %lf %lf", &left, &bottom, &width, &height);
+    viewBox.l = left;
+    viewBox.b = bottom;
+    viewBox.r = left+width;
+    viewBox.t = bottom+height;
     output.contours.clear();
     output.inverseYAxis = true;
-    if (!buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length()))
+    if (!buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*Vector2(width, height).length()))
         return SVG_IMPORT_FAILURE;
     return flags;
 }
@@ -397,8 +399,8 @@ static bool readTransformationOp(SkScalar dst[6], int &count, const char *&str, 
             skipExtraChars(++curStr);
             count = 0;
             while (*curStr && *curStr != ')') {
-                double x;
-                if (!(count < 6 && readDouble(x, curStr)))
+                real x;
+                if (!(count < 6 && readReal(x, curStr)))
                     return false;
                 dst[count++] = SkScalar(x);
                 skipExtraChars(curStr);
@@ -435,9 +437,9 @@ static SkMatrix parseTransformation(int &flags, const char *str) {
             else
                 partial.setRotate(values[0]);
         } else if (readTransformationOp(values, count, str, "skewX") && count == 1) {
-            partial.setSkewX(SkScalar(tan(M_PI/180*values[0])));
+            partial.setSkewX(tan(SkScalar(M_PI)/SkScalar(180)*values[0]));
         } else if (readTransformationOp(values, count, str, "skewY") && count == 1) {
-            partial.setSkewY(SkScalar(tan(M_PI/180*values[0])));
+            partial.setSkewY(tan(SkScalar(M_PI)/SkScalar(180)*values[0]));
         } else {
             flags |= SVG_IMPORT_PARTIAL_FAILURE_FLAG;
             break;
@@ -545,13 +547,15 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     output.inverseYAxis = true;
     output.orientContours();
 
-    viewBox.l = 0, viewBox.b = 0;
-    Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
+    double left = 0, bottom = 0;
+    double width = root->DoubleAttribute("width"), height = root->DoubleAttribute("height");
     const char *viewBoxStr = root->Attribute("viewBox");
     if (viewBoxStr)
-        sscanf(viewBoxStr, "%lf %lf %lf %lf", &viewBox.l, &viewBox.b, &dims.x, &dims.y);
-    viewBox.r = viewBox.l+dims.x;
-    viewBox.t = viewBox.b+dims.y;
+        (void) sscanf(viewBoxStr, "%lf %lf %lf %lf", &left, &bottom, &width, &height);
+    viewBox.l = left;
+    viewBox.b = bottom;
+    viewBox.r = left+width;
+    viewBox.t = bottom+height;
     return flags;
 }
 

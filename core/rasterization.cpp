@@ -10,9 +10,9 @@ void rasterize(const BitmapRef<float, 1> &output, const Shape &shape, const Proj
     Scanline scanline;
     for (int y = 0; y < output.height; ++y) {
         int row = shape.inverseYAxis ? output.height-y-1 : y;
-        shape.scanline(scanline, projection.unprojectY(y+.5));
+        shape.scanline(scanline, projection.unprojectY(real(y)+real(.5)));
         for (int x = 0; x < output.width; ++x)
-            *output(x, row) = (float) scanline.filled(projection.unprojectX(x+.5), fillRule);
+            *output(x, row) = (float) scanline.filled(projection.unprojectX(real(x)+real(.5)), fillRule);
     }
 }
 
@@ -20,9 +20,9 @@ void distanceSignCorrection(const BitmapRef<float, 1> &sdf, const Shape &shape, 
     Scanline scanline;
     for (int y = 0; y < sdf.height; ++y) {
         int row = shape.inverseYAxis ? sdf.height-y-1 : y;
-        shape.scanline(scanline, projection.unprojectY(y+.5));
+        shape.scanline(scanline, projection.unprojectY(real(y)+real(.5)));
         for (int x = 0; x < sdf.width; ++x) {
-            bool fill = scanline.filled(projection.unprojectX(x+.5), fillRule);
+            bool fill = scanline.filled(projection.unprojectX(real(x)+real(.5)), fillRule);
             float &sd = *sdf(x, row);
             if ((sd > .5f) != fill)
                 sd = 1.f-sd;
@@ -42,9 +42,9 @@ static void multiDistanceSignCorrection(const BitmapRef<float, N> &sdf, const Sh
     char *match = &matchMap[0];
     for (int y = 0; y < h; ++y) {
         int row = shape.inverseYAxis ? h-y-1 : y;
-        shape.scanline(scanline, projection.unprojectY(y+.5));
+        shape.scanline(scanline, projection.unprojectY(real(y)+real(.5)));
         for (int x = 0; x < w; ++x) {
-            bool fill = scanline.filled(projection.unprojectX(x+.5), fillRule);
+            bool fill = scanline.filled(projection.unprojectX(real(x)+real(.5)), fillRule);
             float *msd = sdf(x, row);
             float sd = median(msd[0], msd[1], msd[2]);
             if (sd == .5f)

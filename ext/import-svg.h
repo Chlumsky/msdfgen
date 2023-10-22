@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstddef>
+#include "../core/types.h"
 #include "../core/Shape.h"
 
 #ifndef MSDFGEN_DISABLE_SVG
@@ -20,7 +21,7 @@ extern MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
 extern MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
 
 /// Builds a shape from an SVG path string
-bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSnapRange = 0);
+bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, real endpointSnapRange = 0);
 
 /// Reads a single <path> element found in the specified SVG file and converts it to output Shape
 bool loadSvgShape(Shape &output, const char *filename, int pathIndex = 0, Vector2 *dimensions = NULL);

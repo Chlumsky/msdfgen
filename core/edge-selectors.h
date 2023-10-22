@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "types.h"
 #include "Vector2.hpp"
 #include "SignedDistance.hpp"
 #include "edge-segments.h"
@@ -8,21 +9,21 @@
 namespace msdfgen {
 
 struct MultiDistance {
-    double r, g, b;
+    real r, g, b;
 };
 struct MultiAndTrueDistance : MultiDistance {
-    double a;
+    real a;
 };
 
 /// Selects the nearest edge by its true distance.
 class TrueDistanceSelector {
 
 public:
-    typedef double DistanceType;
+    typedef real DistanceType;
 
     struct EdgeCache {
         Point2 point;
-        double absDistance;
+        real absDistance;
 
         EdgeCache();
     };
@@ -43,30 +44,30 @@ class PseudoDistanceSelectorBase {
 public:
     struct EdgeCache {
         Point2 point;
-        double absDistance;
-        double aDomainDistance, bDomainDistance;
-        double aPseudoDistance, bPseudoDistance;
+        real absDistance;
+        real aDomainDistance, bDomainDistance;
+        real aPseudoDistance, bPseudoDistance;
 
         EdgeCache();
     };
 
-    static bool getPseudoDistance(double &distance, const Vector2 &ep, const Vector2 &edgeDir);
+    static bool getPseudoDistance(real &distance, const Vector2 &ep, const Vector2 &edgeDir);
 
     PseudoDistanceSelectorBase();
-    void reset(double delta);
+    void reset(real delta);
     bool isEdgeRelevant(const EdgeCache &cache, const EdgeSegment *edge, const Point2 &p) const;
-    void addEdgeTrueDistance(const EdgeSegment *edge, const SignedDistance &distance, double param);
-    void addEdgePseudoDistance(double distance);
+    void addEdgeTrueDistance(const EdgeSegment *edge, const SignedDistance &distance, real param);
+    void addEdgePseudoDistance(real distance);
     void merge(const PseudoDistanceSelectorBase &other);
-    double computeDistance(const Point2 &p) const;
+    real computeDistance(const Point2 &p) const;
     SignedDistance trueDistance() const;
 
 private:
     SignedDistance minTrueDistance;
-    double minNegativePseudoDistance;
-    double minPositivePseudoDistance;
+    real minNegativePseudoDistance;
+    real minPositivePseudoDistance;
     const EdgeSegment *nearEdge;
-    double nearEdgeParam;
+    real nearEdgeParam;
 
 };
 
@@ -74,7 +75,7 @@ private:
 class PseudoDistanceSelector : public PseudoDistanceSelectorBase {
 
 public:
-    typedef double DistanceType;
+    typedef real DistanceType;
 
     void reset(const Point2 &p);
     void addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);

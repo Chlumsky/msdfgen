@@ -11,15 +11,15 @@
 
 namespace msdfgen {
 
-static bool isCorner(const Vector2 &aDir, const Vector2 &bDir, double crossThreshold) {
+static bool isCorner(const Vector2 &aDir, const Vector2 &bDir, real crossThreshold) {
     return dotProduct(aDir, bDir) <= 0 || fabs(crossProduct(aDir, bDir)) > crossThreshold;
 }
 
-static double estimateEdgeLength(const EdgeSegment *edge) {
-    double len = 0;
+static real estimateEdgeLength(const EdgeSegment *edge) {
+    real len = 0;
     Point2 prev = edge->point(0);
     for (int i = 1; i <= MSDFGEN_EDGE_LENGTH_PRECISION; ++i) {
-        Point2 cur = edge->point(1./MSDFGEN_EDGE_LENGTH_PRECISION*i);
+        Point2 cur = edge->point(real(1)/real(MSDFGEN_EDGE_LENGTH_PRECISION)*real(i));
         len += (cur-prev).length();
         prev = cur;
     }
@@ -43,8 +43,8 @@ static void switchColor(EdgeColor &color, unsigned long long &seed, EdgeColor ba
     seed >>= 1;
 }
 
-void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long seed) {
-    double crossThreshold = sin(angleThreshold);
+void edgeColoringSimple(Shape &shape, real angleThreshold, unsigned long long seed) {
+    real crossThreshold = sin(angleThreshold);
     std::vector<int> corners;
     for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
         // Identify corners
@@ -115,18 +115,18 @@ void edgeColoringSimple(Shape &shape, double angleThreshold, unsigned long long 
 
 struct EdgeColoringInkTrapCorner {
     int index;
-    double prevEdgeLengthEstimate;
+    real prevEdgeLengthEstimate;
     bool minor;
     EdgeColor color;
 };
 
-void edgeColoringInkTrap(Shape &shape, double angleThreshold, unsigned long long seed) {
+void edgeColoringInkTrap(Shape &shape, real angleThreshold, unsigned long long seed) {
     typedef EdgeColoringInkTrapCorner Corner;
-    double crossThreshold = sin(angleThreshold);
+    real crossThreshold = sin(angleThreshold);
     std::vector<Corner> corners;
     for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
         // Identify corners
-        double splineLength = 0;
+        real splineLength = 0;
         corners.clear();
         if (!contour->edges.empty()) {
             Vector2 prevDirection = contour->edges.back()->direction(1);
@@ -227,29 +227,29 @@ void edgeColoringInkTrap(Shape &shape, double angleThreshold, unsigned long long
 #define MAX_RECOLOR_STEPS 16
 #define EDGE_DISTANCE_PRECISION 16
 
-static double edgeToEdgeDistance(const EdgeSegment &a, const EdgeSegment &b, int precision) {
+static real edgeToEdgeDistance(const EdgeSegment &a, const EdgeSegment &b, int precision) {
     if (a.point(0) == b.point(0) || a.point(0) == b.point(1) || a.point(1) == b.point(0) || a.point(1) == b.point(1))
         return 0;
-    double iFac = 1./precision;
-    double minDistance = (b.point(0)-a.point(0)).length();
+    real iFac = real(1)/real(precision);
+    real minDistance = (b.point(0)-a.point(0)).length();
     for (int i = 0; i <= precision; ++i) {
-        double t = iFac*i;
-        double d = fabs(a.signedDistance(b.point(t), t).distance);
+        real t = iFac*i;
+        real d = fabs(a.signedDistance(b.point(t), t).distance);
         minDistance = min(minDistance, d);
     }
     for (int i = 0; i <= precision; ++i) {
-        double t = iFac*i;
-        double d = fabs(b.signedDistance(a.point(t), t).distance);
+        real t = iFac*i;
+        real d = fabs(b.signedDistance(a.point(t), t).distance);
         minDistance = min(minDistance, d);
     }
     return minDistance;
 }
 
-static double splineToSplineDistance(EdgeSegment *const *edgeSegments, int aStart, int aEnd, int bStart, int bEnd, int precision) {
-    double minDistance = DBL_MAX;
+static real splineToSplineDistance(EdgeSegment *const *edgeSegments, int aStart, int aEnd, int bStart, int bEnd, int precision) {
+    real minDistance = FLT_MAX;
     for (int ai = aStart; ai < aEnd; ++ai)
         for (int bi = bStart; bi < bEnd && minDistance; ++bi) {
-            double d = edgeToEdgeDistance(*edgeSegments[ai], *edgeSegments[bi], precision);
+            real d = edgeToEdgeDistance(*edgeSegments[ai], *edgeSegments[bi], precision);
             minDistance = min(minDistance, d);
         }
     return minDistance;
@@ -358,16 +358,16 @@ static bool tryAddEdge(int *coloring, int *const *edgeMatrix, int vertexCount, i
     return true;
 }
 
-static int cmpDoublePtr(const void *a, const void *b) {
-    return sign(**reinterpret_cast<const double *const *>(a)-**reinterpret_cast<const double *const *>(b));
+static int cmpRealPtr(const void *a, const void *b) {
+    return sign(**reinterpret_cast<const real *const *>(a)-**reinterpret_cast<const real *const *>(b));
 }
 
-void edgeColoringByDistance(Shape &shape, double angleThreshold, unsigned long long seed) {
+void edgeColoringByDistance(Shape &shape, real angleThreshold, unsigned long long seed) {
 
     std::vector<EdgeSegment *> edgeSegments;
     std::vector<int> splineStarts;
 
-    double crossThreshold = sin(angleThreshold);
+    real crossThreshold = sin(angleThreshold);
     std::vector<int> corners;
     for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
         if (!contour->edges.empty()) {
@@ -445,29 +445,29 @@ void edgeColoringByDistance(Shape &shape, double angleThreshold, unsigned long l
     if (!splineCount)
         return;
 
-    std::vector<double> distanceMatrixStorage(splineCount*splineCount);
-    std::vector<double *> distanceMatrix(splineCount);
+    std::vector<real> distanceMatrixStorage(splineCount*splineCount);
+    std::vector<real *> distanceMatrix(splineCount);
     for (int i = 0; i < splineCount; ++i)
         distanceMatrix[i] = &distanceMatrixStorage[i*splineCount];
-    const double *distanceMatrixBase = &distanceMatrixStorage[0];
+    const real *distanceMatrixBase = &distanceMatrixStorage[0];
 
     for (int i = 0; i < splineCount; ++i) {
         distanceMatrix[i][i] = -1;
         for (int j = i+1; j < splineCount; ++j) {
-            double dist = splineToSplineDistance(&edgeSegments[0], splineStarts[i], splineStarts[i+1], splineStarts[j], splineStarts[j+1], EDGE_DISTANCE_PRECISION);
+            real dist = splineToSplineDistance(&edgeSegments[0], splineStarts[i], splineStarts[i+1], splineStarts[j], splineStarts[j+1], EDGE_DISTANCE_PRECISION);
             distanceMatrix[i][j] = dist;
             distanceMatrix[j][i] = dist;
         }
     }
 
-    std::vector<const double *> graphEdgeDistances;
+    std::vector<const real *> graphEdgeDistances;
     graphEdgeDistances.reserve(splineCount*(splineCount-1)/2);
     for (int i = 0; i < splineCount; ++i)
         for (int j = i+1; j < splineCount; ++j)
             graphEdgeDistances.push_back(&distanceMatrix[i][j]);
     int graphEdgeCount = (int) graphEdgeDistances.size();
     if (!graphEdgeDistances.empty())
-        qsort(&graphEdgeDistances[0], graphEdgeDistances.size(), sizeof(const double *), &cmpDoublePtr);
+        qsort(&graphEdgeDistances[0], graphEdgeDistances.size(), sizeof(const real *), &cmpRealPtr);
 
     std::vector<int> edgeMatrixStorage(splineCount*splineCount);
     std::vector<int *> edgeMatrix(splineCount);

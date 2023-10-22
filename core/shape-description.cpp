@@ -25,18 +25,23 @@ int readCharS(const char **input) {
 }
 
 int readCoordF(FILE *input, Point2 &coord) {
-    return fscanf(input, "%lf,%lf", &coord.x, &coord.y);
+    double x = 0, y = 0;
+    int n = fscanf(input, "%lf,%lf", &x, &y);
+    coord = Point2(x, y);
+    return n;
 }
 
 int readCoordS(const char **input, Point2 &coord) {
+    double x = 0, y = 0;
     int read = 0;
-    int result = sscanf(*input, "%lf,%lf%n", &coord.x, &coord.y, &read);
+    int n = sscanf(*input, "%lf,%lf%n", &x, &y, &read);
+    coord = Point2(x, y);
     *input += read;
-    return result;
+    return n;
 }
 
 static bool writeCoord(FILE *output, Point2 coord) {
-    fprintf(output, "%.12g, %.12g", coord.x, coord.y);
+    fprintf(output, "%.12g, %.12g", double(coord.x), double(coord.y));
     return true;
 }
 

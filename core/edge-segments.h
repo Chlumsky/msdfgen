@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "types.h"
 #include "Vector2.hpp"
 #include "SignedDistance.hpp"
 #include "EdgeColor.h"
@@ -22,19 +23,19 @@ public:
     /// Returns the array of control points.
     virtual const Point2 *controlPoints() const = 0;
     /// Returns the point on the edge specified by the parameter (between 0 and 1).
-    virtual Point2 point(double param) const = 0;
+    virtual Point2 point(real param) const = 0;
     /// Returns the direction the edge has at the point specified by the parameter.
-    virtual Vector2 direction(double param) const = 0;
+    virtual Vector2 direction(real param) const = 0;
     /// Returns the change of direction (second derivative) at the point specified by the parameter.
-    virtual Vector2 directionChange(double param) const = 0;
+    virtual Vector2 directionChange(real param) const = 0;
     /// Returns the minimum signed distance between origin and the edge.
-    virtual SignedDistance signedDistance(Point2 origin, double &param) const = 0;
+    virtual SignedDistance signedDistance(Point2 origin, real &param) const = 0;
     /// Converts a previously retrieved signed distance from origin to pseudo-distance.
-    virtual void distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const;
+    virtual void distanceToPseudoDistance(SignedDistance &distance, Point2 origin, real param) const;
     /// Outputs a list of (at most three) intersections (their X coordinates) with an infinite horizontal scanline at y and returns how many there are.
-    virtual int scanlineIntersections(double x[3], int dy[3], double y) const = 0;
+    virtual int scanlineIntersections(real x[3], int dy[3], real y) const = 0;
     /// Adjusts the bounding box to fit the edge segment.
-    virtual void bound(double &l, double &b, double &r, double &t) const = 0;
+    virtual void bound(real &l, real &b, real &r, real &t) const = 0;
 
     /// Reverses the edge (swaps its start point and end point).
     virtual void reverse() = 0;
@@ -61,13 +62,13 @@ public:
     LinearSegment *clone() const;
     int type() const;
     const Point2 *controlPoints() const;
-    Point2 point(double param) const;
-    Vector2 direction(double param) const;
-    Vector2 directionChange(double param) const;
-    double length() const;
-    SignedDistance signedDistance(Point2 origin, double &param) const;
-    int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bound(double &l, double &b, double &r, double &t) const;
+    Point2 point(real param) const;
+    Vector2 direction(real param) const;
+    Vector2 directionChange(real param) const;
+    real length() const;
+    SignedDistance signedDistance(Point2 origin, real &param) const;
+    int scanlineIntersections(real x[3], int dy[3], real y) const;
+    void bound(real &l, real &b, real &r, real &t) const;
 
     void reverse();
     void moveStartPoint(Point2 to);
@@ -90,13 +91,13 @@ public:
     QuadraticSegment *clone() const;
     int type() const;
     const Point2 *controlPoints() const;
-    Point2 point(double param) const;
-    Vector2 direction(double param) const;
-    Vector2 directionChange(double param) const;
-    double length() const;
-    SignedDistance signedDistance(Point2 origin, double &param) const;
-    int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bound(double &l, double &b, double &r, double &t) const;
+    Point2 point(real param) const;
+    Vector2 direction(real param) const;
+    Vector2 directionChange(real param) const;
+    real length() const;
+    SignedDistance signedDistance(Point2 origin, real &param) const;
+    int scanlineIntersections(real x[3], int dy[3], real y) const;
+    void bound(real &l, real &b, real &r, real &t) const;
 
     void reverse();
     void moveStartPoint(Point2 to);
@@ -121,19 +122,19 @@ public:
     CubicSegment *clone() const;
     int type() const;
     const Point2 *controlPoints() const;
-    Point2 point(double param) const;
-    Vector2 direction(double param) const;
-    Vector2 directionChange(double param) const;
-    SignedDistance signedDistance(Point2 origin, double &param) const;
-    int scanlineIntersections(double x[3], int dy[3], double y) const;
-    void bound(double &l, double &b, double &r, double &t) const;
+    Point2 point(real param) const;
+    Vector2 direction(real param) const;
+    Vector2 directionChange(real param) const;
+    SignedDistance signedDistance(Point2 origin, real &param) const;
+    int scanlineIntersections(real x[3], int dy[3], real y) const;
+    void bound(real &l, real &b, real &r, real &t) const;
 
     void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
     void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
 
-    void deconverge(int param, double amount);
+    void deconverge(int param, real amount);
 
 };
 

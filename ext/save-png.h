@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "../core/types.h"
 #include "../core/BitmapRef.hpp"
 
 #ifndef MSDFGEN_DISABLE_PNG

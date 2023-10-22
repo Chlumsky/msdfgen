@@ -1,11 +1,10 @@
 
 #pragma once
 
+#include "types.h"
 #include "arithmetics.hpp"
 
 namespace msdfgen {
-
-typedef unsigned char byte;
 
 inline byte pixelFloatToByte(float x) {
     return byte(clamp(256.f*x, 255.f));

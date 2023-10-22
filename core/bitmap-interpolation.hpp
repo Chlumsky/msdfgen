@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "types.h"
 #include "arithmetics.hpp"
 #include "Vector2.hpp"
 #include "BitmapRef.hpp"
@@ -9,13 +10,13 @@ namespace msdfgen {
 
 template <typename T, int N>
 static void interpolate(T *output, const BitmapConstRef<T, N> &bitmap, Point2 pos) {
-    pos -= .5;
+    pos -= real(.5);
     int l = (int) floor(pos.x);
     int b = (int) floor(pos.y);
     int r = l+1;
     int t = b+1;
-    double lr = pos.x-l;
-    double bt = pos.y-b;
+    real lr = pos.x-real(l);
+    real bt = pos.y-real(b);
     l = clamp(l, bitmap.width-1), r = clamp(r, bitmap.width-1);
     b = clamp(b, bitmap.height-1), t = clamp(t, bitmap.height-1);
     for (int i = 0; i < N; ++i)

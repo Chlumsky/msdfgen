@@ -2,10 +2,9 @@
 #pragma once
 
 #include <cstddef>
+#include "types.h"
 
 namespace msdfgen {
-
-typedef unsigned char byte;
 
 /// Reference to a 2D image bitmap or a buffer acting as one. Pixel storage not owned or managed by the object.
 template <typename T, int N = 1>

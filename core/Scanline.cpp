@@ -24,14 +24,14 @@ bool interpretFillRule(int intersections, FillRule fillRule) {
     return false;
 }
 
-double Scanline::overlap(const Scanline &a, const Scanline &b, double xFrom, double xTo, FillRule fillRule) {
-    double total = 0;
+real Scanline::overlap(const Scanline &a, const Scanline &b, real xFrom, real xTo, FillRule fillRule) {
+    real total = 0;
     bool aInside = false, bInside = false;
     int ai = 0, bi = 0;
-    double ax = !a.intersections.empty() ? a.intersections[ai].x : xTo;
-    double bx = !b.intersections.empty() ? b.intersections[bi].x : xTo;
+    real ax = !a.intersections.empty() ? a.intersections[ai].x : xTo;
+    real bx = !b.intersections.empty() ? b.intersections[bi].x : xTo;
     while (ax < xFrom || bx < xFrom) {
-        double xNext = min(ax, bx);
+        real xNext = min(ax, bx);
         if (ax == xNext && ai < (int) a.intersections.size()) {
             aInside = interpretFillRule(a.intersections[ai].direction, fillRule);
             ax = ++ai < (int) a.intersections.size() ? a.intersections[ai].x : xTo;
@@ -41,9 +41,9 @@ double Scanline::overlap(const Scanline &a, const Scanline &b, double xFrom, dou
             bx = ++bi < (int) b.intersections.size() ? b.intersections[bi].x : xTo;
         }
     }
-    double x = xFrom;
+    real x = xFrom;
     while (ax < xTo || bx < xTo) {
-        double xNext = min(ax, bx);
+        real xNext = min(ax, bx);
         if (aInside == bInside)
             total += xNext-x;
         if (ax == xNext && ai < (int) a.intersections.size()) {
@@ -87,7 +87,7 @@ void Scanline::setIntersections(std::vector<Intersection> &&intersections) {
 }
 #endif
 
-int Scanline::moveTo(double x) const {
+int Scanline::moveTo(real x) const {
     if (intersections.empty())
         return -1;
     int index = lastIndex;
@@ -107,18 +107,18 @@ int Scanline::moveTo(double x) const {
     return index;
 }
 
-int Scanline::countIntersections(double x) const {
+int Scanline::countIntersections(real x) const {
     return moveTo(x)+1;
 }
 
-int Scanline::sumIntersections(double x) const {
+int Scanline::sumIntersections(real x) const {
     int index = moveTo(x);
     if (index >= 0)
         return intersections[index].direction;
     return 0;
 }
 
-bool Scanline::filled(double x, FillRule fillRule) const {
+bool Scanline::filled(real x, FillRule fillRule) const {
     return interpretFillRule(sumIntersections(x), fillRule);
 }
 

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cmath>
+#include "types.h"
 
 namespace msdfgen {
 
@@ -12,11 +13,11 @@ namespace msdfgen {
  */
 struct Vector2 {
 
-    double x, y;
+    real x, y;
 
-    inline Vector2(double val = 0) : x(val), y(val) { }
+    inline Vector2(real val = 0) : x(val), y(val) { }
 
-    inline Vector2(double x, double y) : x(x), y(y) { }
+    inline Vector2(real x, real y) : x(x), y(y) { }
 
     /// Sets the vector to zero.
     inline void reset() {
@@ -24,23 +25,23 @@ struct Vector2 {
     }
 
     /// Sets individual elements of the vector.
-    inline void set(double x, double y) {
+    inline void set(real x, real y) {
         this->x = x, this->y = y;
     }
 
     /// Returns the vector's squared length.
-    inline double squaredLength() const {
+    inline real squaredLength() const {
         return x*x+y*y;
     }
 
     /// Returns the vector's length.
-    inline double length() const {
+    inline real length() const {
         return sqrt(x*x+y*y);
     }
 
     /// Returns the normalized vector - one that has the same direction but unit length.
     inline Vector2 normalize(bool allowZero = false) const {
-        if (double len = length())
+        if (real len = length())
             return Vector2(x/len, y/len);
         return Vector2(0, !allowZero);
     }
@@ -52,7 +53,7 @@ struct Vector2 {
 
     /// Returns a vector with unit length that is orthogonal to this one.
     inline Vector2 getOrthonormal(bool polarity = true, bool allowZero = false) const {
-        if (double len = length())
+        if (real len = length())
             return polarity ? Vector2(-y/len, x/len) : Vector2(y/len, -x/len);
         return polarity ? Vector2(0, !allowZero) : Vector2(0, -!allowZero);
     }
@@ -87,12 +88,12 @@ struct Vector2 {
         return *this;
     }
 
-    inline Vector2 &operator*=(double value) {
+    inline Vector2 &operator*=(real value) {
         x *= value, y *= value;
         return *this;
     }
 
-    inline Vector2 &operator/=(double value) {
+    inline Vector2 &operator/=(real value) {
         x /= value, y /= value;
         return *this;
     }
@@ -103,12 +104,12 @@ struct Vector2 {
 typedef Vector2 Point2;
 
 /// Dot product of two vectors.
-inline double dotProduct(const Vector2 a, const Vector2 b) {
+inline real dotProduct(const Vector2 a, const Vector2 b) {
     return a.x*b.x+a.y*b.y;
 }
 
 /// A special version of the cross product for 2D vectors (returns scalar value).
-inline double crossProduct(const Vector2 a, const Vector2 b) {
+inline real crossProduct(const Vector2 a, const Vector2 b) {
     return a.x*b.y-a.y*b.x;
 }
 
@@ -148,19 +149,19 @@ inline Vector2 operator/(const Vector2 a, const Vector2 b) {
     return Vector2(a.x/b.x, a.y/b.y);
 }
 
-inline Vector2 operator*(double a, const Vector2 b) {
+inline Vector2 operator*(real a, const Vector2 b) {
     return Vector2(a*b.x, a*b.y);
 }
 
-inline Vector2 operator/(double a, const Vector2 b) {
+inline Vector2 operator/(real a, const Vector2 b) {
     return Vector2(a/b.x, a/b.y);
 }
 
-inline Vector2 operator*(const Vector2 a, double b) {
+inline Vector2 operator*(const Vector2 a, real b) {
     return Vector2(a.x*b, a.y*b);
 }
 
-inline Vector2 operator/(const Vector2 a, double b) {
+inline Vector2 operator/(const Vector2 a, real b) {
     return Vector2(a.x/b, a.y/b);
 }
 

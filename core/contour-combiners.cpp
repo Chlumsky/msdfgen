@@ -6,21 +6,21 @@
 
 namespace msdfgen {
 
-static void initDistance(double &distance) {
-    distance = -DBL_MAX;
+static void initDistance(real &distance) {
+    distance = -FLT_MAX;
 }
 
 static void initDistance(MultiDistance &distance) {
-    distance.r = -DBL_MAX;
-    distance.g = -DBL_MAX;
-    distance.b = -DBL_MAX;
+    distance.r = -FLT_MAX;
+    distance.g = -FLT_MAX;
+    distance.b = -FLT_MAX;
 }
 
-static double resolveDistance(double distance) {
+static real resolveDistance(real distance) {
     return distance;
 }
 
-static double resolveDistance(const MultiDistance &distance) {
+static real resolveDistance(const MultiDistance &distance) {
     return median(distance.r, distance.g, distance.b);
 }
 
@@ -79,22 +79,22 @@ typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingConto
     for (int i = 0; i < contourCount; ++i) {
         DistanceType edgeDistance = edgeSelectors[i].distance();
         shapeEdgeSelector.merge(edgeSelectors[i]);
-        if (windings[i] > 0 && resolveDistance(edgeDistance) >= 0)
+        if (windings[i] > 0 && resolveDistance(edgeDistance) >= real(0))
             innerEdgeSelector.merge(edgeSelectors[i]);
-        if (windings[i] < 0 && resolveDistance(edgeDistance) <= 0)
+        if (windings[i] < 0 && resolveDistance(edgeDistance) <= real(0))
             outerEdgeSelector.merge(edgeSelectors[i]);
     }
 
     DistanceType shapeDistance = shapeEdgeSelector.distance();
     DistanceType innerDistance = innerEdgeSelector.distance();
     DistanceType outerDistance = outerEdgeSelector.distance();
-    double innerScalarDistance = resolveDistance(innerDistance);
-    double outerScalarDistance = resolveDistance(outerDistance);
+    real innerScalarDistance = resolveDistance(innerDistance);
+    real outerScalarDistance = resolveDistance(outerDistance);
     DistanceType distance;
     initDistance(distance);
 
     int winding = 0;
-    if (innerScalarDistance >= 0 && fabs(innerScalarDistance) <= fabs(outerScalarDistance)) {
+    if (innerScalarDistance >= real(0) && fabs(innerScalarDistance) <= fabs(outerScalarDistance)) {
         distance = innerDistance;
         winding = 1;
         for (int i = 0; i < contourCount; ++i)
@@ -103,7 +103,7 @@ typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingConto
                 if (fabs(resolveDistance(contourDistance)) < fabs(outerScalarDistance) && resolveDistance(contourDistance) > resolveDistance(distance))
                     distance = contourDistance;
             }
-    } else if (outerScalarDistance <= 0 && fabs(outerScalarDistance) < fabs(innerScalarDistance)) {
+    } else if (outerScalarDistance <= real(0) && fabs(outerScalarDistance) < fabs(innerScalarDistance)) {
         distance = outerDistance;
         winding = -1;
         for (int i = 0; i < contourCount; ++i)
@@ -118,7 +118,7 @@ typename OverlappingContourCombiner<EdgeSelector>::DistanceType OverlappingConto
     for (int i = 0; i < contourCount; ++i)
         if (windings[i] != winding) {
             DistanceType contourDistance = edgeSelectors[i].distance();
-            if (resolveDistance(contourDistance)*resolveDistance(distance) >= 0 && fabs(resolveDistance(contourDistance)) < fabs(resolveDistance(distance)))
+            if (resolveDistance(contourDistance)*resolveDistance(distance) >= real(0) && fabs(resolveDistance(contourDistance)) < fabs(resolveDistance(distance)))
                 distance = contourDistance;
         }
     if (resolveDistance(distance) == resolveDistance(shapeDistance))

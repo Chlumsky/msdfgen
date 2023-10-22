@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "types.h"
 #include "Projection.h"
 #include "Shape.h"
 #include "BitmapRef.hpp"
@@ -20,11 +21,11 @@ public:
     };
 
     MSDFErrorCorrection();
-    explicit MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil, const Projection &projection, double range);
+    explicit MSDFErrorCorrection(const BitmapRef<byte, 1> &stencil, const Projection &projection, real range);
     /// Sets the minimum ratio between the actual and maximum expected distance delta to be considered an error.
-    void setMinDeviationRatio(double minDeviationRatio);
+    void setMinDeviationRatio(real minDeviationRatio);
     /// Sets the minimum ratio between the pre-correction distance error and the post-correction distance error.
-    void setMinImproveRatio(double minImproveRatio);
+    void setMinImproveRatio(real minImproveRatio);
     /// Flags all texels that are interpolated at corners as protected.
     void protectCorners(const Shape &shape);
     /// Flags all texels that contribute to edges as protected.
@@ -47,9 +48,9 @@ public:
 private:
     BitmapRef<byte, 1> stencil;
     Projection projection;
-    double invRange;
-    double minDeviationRatio;
-    double minImproveRatio;
+    real invRange;
+    real minDeviationRatio;
+    real minImproveRatio;
 
 };
 

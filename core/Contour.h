@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include "types.h"
 #include "EdgeHolder.h"
 
 namespace msdfgen {
@@ -21,9 +22,9 @@ public:
     /// Creates a new edge in the contour and returns its reference.
     EdgeHolder &addEdge();
     /// Adjusts the bounding box to fit the contour.
-    void bound(double &l, double &b, double &r, double &t) const;
+    void bound(real &l, real &b, real &r, real &t) const;
     /// Adjusts the bounding box to fit the contour border's mitered corners.
-    void boundMiters(double &l, double &b, double &r, double &t, double border, double miterLimit, int polarity) const;
+    void boundMiters(real &l, real &b, real &r, real &t, real border, real miterLimit, int polarity) const;
     /// Computes the winding of the contour. Returns 1 if positive, -1 if negative.
     int winding() const;
     /// Reverses the sequence of edges on the contour.

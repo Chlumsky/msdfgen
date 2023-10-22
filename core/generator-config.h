@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cstddef>
-#include "BitmapRef.hpp"
+#include "types.h"
 
 #ifndef MSDFGEN_PUBLIC
 #define MSDFGEN_PUBLIC // for DLL import/export
@@ -13,9 +13,9 @@ namespace msdfgen {
 /// The configuration of the MSDF error correction pass.
 struct ErrorCorrectionConfig {
     /// The default value of minDeviationRatio.
-    static MSDFGEN_PUBLIC const double defaultMinDeviationRatio;
+    static MSDFGEN_PUBLIC const real defaultMinDeviationRatio;
     /// The default value of minImproveRatio.
-    static MSDFGEN_PUBLIC const double defaultMinImproveRatio;
+    static MSDFGEN_PUBLIC const real defaultMinImproveRatio;
 
     /// Mode of operation.
     enum Mode {
@@ -38,13 +38,13 @@ struct ErrorCorrectionConfig {
         ALWAYS_CHECK_DISTANCE
     } distanceCheckMode;
     /// The minimum ratio between the actual and maximum expected distance delta to be considered an error.
-    double minDeviationRatio;
+    real minDeviationRatio;
     /// The minimum ratio between the pre-correction distance error and the post-correction distance error. Has no effect for DO_NOT_CHECK_DISTANCE.
-    double minImproveRatio;
+    real minImproveRatio;
     /// An optional buffer to avoid dynamic allocation. Must have at least as many bytes as the MSDF has pixels.
     byte *buffer;
 
-    inline explicit ErrorCorrectionConfig(Mode mode = EDGE_PRIORITY, DistanceCheckMode distanceCheckMode = CHECK_DISTANCE_AT_EDGE, double minDeviationRatio = defaultMinDeviationRatio, double minImproveRatio = defaultMinImproveRatio, byte *buffer = NULL) : mode(mode), distanceCheckMode(distanceCheckMode), minDeviationRatio(minDeviationRatio), minImproveRatio(minImproveRatio), buffer(buffer) { }
+    inline explicit ErrorCorrectionConfig(Mode mode = EDGE_PRIORITY, DistanceCheckMode distanceCheckMode = CHECK_DISTANCE_AT_EDGE, real minDeviationRatio = defaultMinDeviationRatio, real minImproveRatio = defaultMinImproveRatio, byte *buffer = NULL) : mode(mode), distanceCheckMode(distanceCheckMode), minDeviationRatio(minDeviationRatio), minImproveRatio(minImproveRatio), buffer(buffer) { }
 };
 
 /// The configuration of the distance field generator algorithm.

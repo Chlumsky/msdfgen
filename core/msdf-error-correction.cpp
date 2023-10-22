@@ -10,7 +10,7 @@
 namespace msdfgen {
 
 template <int N>
-static void msdfErrorCorrectionInner(const BitmapRef<float, N> &sdf, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
+static void msdfErrorCorrectionInner(const BitmapRef<float, N> &sdf, const Shape &shape, const Projection &projection, real range, const MSDFGeneratorConfig &config) {
     if (config.errorCorrection.mode == ErrorCorrectionConfig::DISABLED)
         return;
     Bitmap<byte, 1> stencilBuffer;
@@ -49,7 +49,7 @@ static void msdfErrorCorrectionInner(const BitmapRef<float, N> &sdf, const Shape
 }
 
 template <int N>
-static void msdfErrorCorrectionShapeless(const BitmapRef<float, N> &sdf, const Projection &projection, double range, double minDeviationRatio, bool protectAll) {
+static void msdfErrorCorrectionShapeless(const BitmapRef<float, N> &sdf, const Projection &projection, real range, real minDeviationRatio, bool protectAll) {
     Bitmap<byte, 1> stencilBuffer(sdf.width, sdf.height);
     MSDFErrorCorrection ec(stencilBuffer, projection, range);
     ec.setMinDeviationRatio(minDeviationRatio);
@@ -59,31 +59,31 @@ static void msdfErrorCorrectionShapeless(const BitmapRef<float, N> &sdf, const P
     ec.apply(sdf);
 }
 
-void msdfErrorCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
+void msdfErrorCorrection(const BitmapRef<float, 3> &sdf, const Shape &shape, const Projection &projection, real range, const MSDFGeneratorConfig &config) {
     msdfErrorCorrectionInner(sdf, shape, projection, range, config);
 }
-void msdfErrorCorrection(const BitmapRef<float, 4> &sdf, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
+void msdfErrorCorrection(const BitmapRef<float, 4> &sdf, const Shape &shape, const Projection &projection, real range, const MSDFGeneratorConfig &config) {
     msdfErrorCorrectionInner(sdf, shape, projection, range, config);
 }
 
-void msdfFastDistanceErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, double range, double minDeviationRatio) {
+void msdfFastDistanceErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, real range, real minDeviationRatio) {
     msdfErrorCorrectionShapeless(sdf, projection, range, minDeviationRatio, false);
 }
-void msdfFastDistanceErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, double range, double minDeviationRatio) {
+void msdfFastDistanceErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, real range, real minDeviationRatio) {
     msdfErrorCorrectionShapeless(sdf, projection, range, minDeviationRatio, false);
 }
 
-void msdfFastEdgeErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, double range, double minDeviationRatio) {
+void msdfFastEdgeErrorCorrection(const BitmapRef<float, 3> &sdf, const Projection &projection, real range, real minDeviationRatio) {
     msdfErrorCorrectionShapeless(sdf, projection, range, minDeviationRatio, true);
 }
-void msdfFastEdgeErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, double range, double minDeviationRatio) {
+void msdfFastEdgeErrorCorrection(const BitmapRef<float, 4> &sdf, const Projection &projection, real range, real minDeviationRatio) {
     msdfErrorCorrectionShapeless(sdf, projection, range, minDeviationRatio, true);
 }
 
 
 // Legacy version
 
-inline static bool detectClash(const float *a, const float *b, double threshold) {
+inline static bool detectClash(const float *a, const float *b, real threshold) {
     // Sort channels so that pairs (a0, b0), (a1, b1), (a2, b2) go from biggest to smallest absolute difference
     float a0 = a[0], a1 = a[1], a2 = a[2];
     float b0 = b[0], b1 = b[1], b2 = b[2];

@@ -12,9 +12,9 @@
 
 namespace msdfgen {
 
-#define F26DOT6_TO_DOUBLE(x) (1/64.*double(x))
-#define F16DOT16_TO_DOUBLE(x) (1/65536.*double(x))
-#define DOUBLE_TO_F16DOT16(x) FT_Fixed(65536.*x)
+#define F26DOT6_TO_REAL(x) (::msdfgen::real(1)/::msdfgen::real(64)*::msdfgen::real(x))
+#define F16DOT16_TO_REAL(x) (::msdfgen::real(1)/::msdfgen::real(65536)*::msdfgen::real(x))
+#define REAL_TO_F16DOT16(x) FT_Fixed(::msdfgen::real(65536)*::msdfgen::real(x))
 
 class FreetypeHandle {
     friend FreetypeHandle *initializeFreetype();
@@ -22,7 +22,7 @@ class FreetypeHandle {
     friend FontHandle *loadFont(FreetypeHandle *library, const char *filename);
     friend FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
-    friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
+    friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, real coordinate);
     friend bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
 #endif
 
@@ -36,14 +36,14 @@ class FontHandle {
     friend FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
     friend void destroyFont(FontHandle *font);
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
-    friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
+    friend bool getFontWhitespaceWidth(real &spaceAdvance, real &tabAdvance, FontHandle *font);
     friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
-    friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance);
-    friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
-    friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
-    friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+    friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, real *advance);
+    friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, real *advance);
+    friend bool getKerning(real &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
+    friend bool getKerning(real &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
-    friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
+    friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, real coordinate);
     friend bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
 #endif
 
@@ -59,7 +59,7 @@ struct FtContext {
 };
 
 static Point2 ftPoint2(const FT_Vector &vector) {
-    return Point2(F26DOT6_TO_DOUBLE(vector.x), F26DOT6_TO_DOUBLE(vector.y));
+    return Point2(F26DOT6_TO_REAL(vector.x), F26DOT6_TO_REAL(vector.y));
 }
 
 static int ftMoveTo(const FT_Vector *to, void *user) {
@@ -173,24 +173,24 @@ void destroyFont(FontHandle *font) {
 }
 
 bool getFontMetrics(FontMetrics &metrics, FontHandle *font) {
-    metrics.emSize = F26DOT6_TO_DOUBLE(font->face->units_per_EM);
-    metrics.ascenderY = F26DOT6_TO_DOUBLE(font->face->ascender);
-    metrics.descenderY = F26DOT6_TO_DOUBLE(font->face->descender);
-    metrics.lineHeight = F26DOT6_TO_DOUBLE(font->face->height);
-    metrics.underlineY = F26DOT6_TO_DOUBLE(font->face->underline_position);
-    metrics.underlineThickness = F26DOT6_TO_DOUBLE(font->face->underline_thickness);
+    metrics.emSize = F26DOT6_TO_REAL(font->face->units_per_EM);
+    metrics.ascenderY = F26DOT6_TO_REAL(font->face->ascender);
+    metrics.descenderY = F26DOT6_TO_REAL(font->face->descender);
+    metrics.lineHeight = F26DOT6_TO_REAL(font->face->height);
+    metrics.underlineY = F26DOT6_TO_REAL(font->face->underline_position);
+    metrics.underlineThickness = F26DOT6_TO_REAL(font->face->underline_thickness);
     return true;
 }
 
-bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font) {
+bool getFontWhitespaceWidth(real &spaceAdvance, real &tabAdvance, FontHandle *font) {
     FT_Error error = FT_Load_Char(font->face, ' ', FT_LOAD_NO_SCALE);
     if (error)
         return false;
-    spaceAdvance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
+    spaceAdvance = F26DOT6_TO_REAL(font->face->glyph->advance.x);
     error = FT_Load_Char(font->face, '\t', FT_LOAD_NO_SCALE);
     if (error)
         return false;
-    tabAdvance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
+    tabAdvance = F26DOT6_TO_REAL(font->face->glyph->advance.x);
     return true;
 }
 
@@ -199,38 +199,38 @@ bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) 
     return glyphIndex.getIndex() != 0;
 }
 
-bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance) {
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, real *advance) {
     if (!font)
         return false;
     FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), FT_LOAD_NO_SCALE);
     if (error)
         return false;
     if (advance)
-        *advance = F26DOT6_TO_DOUBLE(font->face->glyph->advance.x);
+        *advance = F26DOT6_TO_REAL(font->face->glyph->advance.x);
     return !readFreetypeOutline(output, &font->face->glyph->outline);
 }
 
-bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance) {
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, real *advance) {
     return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), advance);
 }
 
-bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2) {
+bool getKerning(real &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2) {
     FT_Vector kerning;
     if (FT_Get_Kerning(font->face, glyphIndex1.getIndex(), glyphIndex2.getIndex(), FT_KERNING_UNSCALED, &kerning)) {
         output = 0;
         return false;
     }
-    output = F26DOT6_TO_DOUBLE(kerning.x);
+    output = F26DOT6_TO_REAL(kerning.x);
     return true;
 }
 
-bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
+bool getKerning(real &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
     return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode1)), GlyphIndex(FT_Get_Char_Index(font->face, unicode2)));
 }
 
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 
-bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate) {
+bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, real coordinate) {
     bool success = false;
     if (font->face->face_flags&FT_FACE_FLAG_MULTIPLE_MASTERS) {
         FT_MM_Var *master = NULL;
@@ -241,7 +241,7 @@ bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char 
             if (!FT_Get_Var_Design_Coordinates(font->face, FT_UInt(coords.size()), &coords[0])) {
                 for (FT_UInt i = 0; i < master->num_axis; ++i) {
                     if (!strcmp(name, master->axis[i].name)) {
-                        coords[i] = DOUBLE_TO_F16DOT16(coordinate);
+                        coords[i] = REAL_TO_F16DOT16(coordinate);
                         success = true;
                         break;
                     }
@@ -264,9 +264,9 @@ bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle 
         for (FT_UInt i = 0; i < master->num_axis; ++i) {
             FontVariationAxis &axis = axes[i];
             axis.name = master->axis[i].name;
-            axis.minValue = F16DOT16_TO_DOUBLE(master->axis[i].minimum);
-            axis.maxValue = F16DOT16_TO_DOUBLE(master->axis[i].maximum);
-            axis.defaultValue = F16DOT16_TO_DOUBLE(master->axis[i].def);
+            axis.minValue = F16DOT16_TO_REAL(master->axis[i].minimum);
+            axis.maxValue = F16DOT16_TO_REAL(master->axis[i].maximum);
+            axis.defaultValue = F16DOT16_TO_REAL(master->axis[i].def);
         }
         FT_Done_MM_Var(library->library, master);
         return true;

@@ -2,6 +2,7 @@
 #include "Shape.h"
 
 #include <cstdlib>
+#include <cfloat>
 #include "arithmetics.hpp"
 
 namespace msdfgen {
@@ -63,7 +64,7 @@ void Shape::normalize() {
             for (std::vector<EdgeHolder>::iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                 Vector2 prevDir = (*prevEdge)->direction(1).normalize();
                 Vector2 curDir = (*edge)->direction(0).normalize();
-                if (dotProduct(prevDir, curDir) < MSDFGEN_CORNER_DOT_EPSILON-1) {
+                if (dotProduct(prevDir, curDir) < MSDFGEN_CORNER_DOT_EPSILON-real(1)) {
                     deconvergeEdge(*prevEdge, 1);
                     deconvergeEdge(*edge, 0);
                 }
@@ -73,32 +74,31 @@ void Shape::normalize() {
     }
 }
 
-void Shape::bound(double &l, double &b, double &r, double &t) const {
+void Shape::bound(real &l, real &b, real &r, real &t) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->bound(l, b, r, t);
 }
 
-void Shape::boundMiters(double &l, double &b, double &r, double &t, double border, double miterLimit, int polarity) const {
+void Shape::boundMiters(real &l, real &b, real &r, real &t, real border, real miterLimit, int polarity) const {
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour)
         contour->boundMiters(l, b, r, t, border, miterLimit, polarity);
 }
 
-Shape::Bounds Shape::getBounds(double border, double miterLimit, int polarity) const {
-    static const double LARGE_VALUE = 1e240;
-    Shape::Bounds bounds = { +LARGE_VALUE, +LARGE_VALUE, -LARGE_VALUE, -LARGE_VALUE };
+Shape::Bounds Shape::getBounds(real border, real miterLimit, int polarity) const {
+    Shape::Bounds bounds = { +FLT_MAX, +FLT_MAX, -FLT_MAX, -FLT_MAX };
     bound(bounds.l, bounds.b, bounds.r, bounds.t);
-    if (border > 0) {
+    if (border > real(0)) {
         bounds.l -= border, bounds.b -= border;
         bounds.r += border, bounds.t += border;
-        if (miterLimit > 0)
+        if (miterLimit > real(0))
             boundMiters(bounds.l, bounds.b, bounds.r, bounds.t, border, miterLimit, polarity);
     }
     return bounds;
 }
 
-void Shape::scanline(Scanline &line, double y) const {
+void Shape::scanline(Scanline &line, real y) const {
     std::vector<Scanline::Intersection> intersections;
-    double x[3];
+    real x[3];
     int dy[3];
     for (std::vector<Contour>::const_iterator contour = contours.begin(); contour != contours.end(); ++contour) {
         for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
@@ -125,7 +125,7 @@ int Shape::edgeCount() const {
 
 void Shape::orientContours() {
     struct Intersection {
-        double x;
+        real x;
         int direction;
         int contourIndex;
 
@@ -134,21 +134,21 @@ void Shape::orientContours() {
         }
     };
 
-    const double ratio = .5*(sqrt(5)-1); // an irrational number to minimize chance of intersecting a corner or other point of interest
+    const real ratio = real(.5)*(sqrt(5)-real(1)); // an irrational number to minimize chance of intersecting a corner or other point of interest
     std::vector<int> orientations(contours.size());
     std::vector<Intersection> intersections;
     for (int i = 0; i < (int) contours.size(); ++i) {
         if (!orientations[i] && !contours[i].edges.empty()) {
             // Find an Y that crosses the contour
-            double y0 = contours[i].edges.front()->point(0).y;
-            double y1 = y0;
+            real y0 = contours[i].edges.front()->point(0).y;
+            real y1 = y0;
             for (std::vector<EdgeHolder>::const_iterator edge = contours[i].edges.begin(); edge != contours[i].edges.end() && y0 == y1; ++edge)
                 y1 = (*edge)->point(1).y;
             for (std::vector<EdgeHolder>::const_iterator edge = contours[i].edges.begin(); edge != contours[i].edges.end() && y0 == y1; ++edge)
                 y1 = (*edge)->point(ratio).y; // in case all endpoints are in a horizontal line
-            double y = mix(y0, y1, ratio);
+            real y = mix(y0, y1, ratio);
             // Scanline through whole shape at Y
-            double x[3];
+            real x[3];
             int dy[3];
             for (int j = 0; j < (int) contours.size(); ++j) {
                 for (std::vector<EdgeHolder>::const_iterator edge = contours[j].edges.begin(); edge != contours[j].edges.end(); ++edge) {

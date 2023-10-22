@@ -10,11 +10,11 @@ namespace msdfgen {
 class SignedDistance {
 
 public:
-    double distance;
-    double dot;
+    real distance;
+    real dot;
 
-    inline SignedDistance() : distance(-DBL_MAX), dot(0) { }
-    inline SignedDistance(double dist, double d) : distance(dist), dot(d) { }
+    inline SignedDistance() : distance(-FLT_MAX), dot(0) { }
+    inline SignedDistance(real dist, real d) : distance(dist), dot(d) { }
 
 };
 

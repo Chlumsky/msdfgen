@@ -5,6 +5,7 @@
 
 #include <skia/core/SkPath.h>
 #include <skia/pathops/SkPathOps.h>
+#include "../core/types.h"
 #include "../core/Vector2.hpp"
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"
@@ -16,7 +17,7 @@ SkPoint pointToSkiaPoint(Point2 p) {
 }
 
 Point2 pointFromSkiaPoint(const SkPoint p) {
-    return Point2((double) p.x(), (double) p.y());
+    return Point2((real) p.x(), (real) p.y());
 }
 
 void shapeToSkiaPath(SkPath &skPath, const Shape &shape) {

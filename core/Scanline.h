@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include "types.h"
 
 namespace msdfgen {
 
@@ -23,12 +24,12 @@ public:
     /// An intersection with the scanline.
     struct Intersection {
         /// X coordinate.
-        double x;
+        real x;
         /// Normalized Y direction of the oriented edge at the point of intersection.
         int direction;
     };
 
-    static double overlap(const Scanline &a, const Scanline &b, double xFrom, double xTo, FillRule fillRule);
+    static real overlap(const Scanline &a, const Scanline &b, real xFrom, real xTo, FillRule fillRule);
 
     Scanline();
     /// Populates the intersection list.
@@ -37,18 +38,18 @@ public:
     void setIntersections(std::vector<Intersection> &&intersections);
 #endif
     /// Returns the number of intersections left of x.
-    int countIntersections(double x) const;
+    int countIntersections(real x) const;
     /// Returns the total sign of intersections left of x.
-    int sumIntersections(double x) const;
+    int sumIntersections(real x) const;
     /// Decides whether the scanline is filled at x based on fill rule.
-    bool filled(double x, FillRule fillRule) const;
+    bool filled(real x, FillRule fillRule) const;
 
 private:
     std::vector<Intersection> intersections;
     mutable int lastIndex;
 
     void preprocess();
-    int moveTo(double x) const;
+    int moveTo(real x) const;
 
 };
 

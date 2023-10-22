@@ -23,7 +23,7 @@
 #include "core/ShapeDistanceFinder.h"
 
 #define SDF_ERROR_ESTIMATE_PRECISION 19
-#define DEFAULT_ANGLE_THRESHOLD 3.
+#define DEFAULT_ANGLE_THRESHOLD ::msdfgen::real(3)
 
 #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
 #define DEFAULT_IMAGE_EXTENSION "png"
@@ -73,18 +73,26 @@ static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
     return sscanf(arg, "%llu%c", &value, &c) == 1;
 }
 
-static bool parseDouble(double &value, const char *arg) {
+static bool parseReal(real &value, const char *arg) {
     char c;
-    return sscanf(arg, "%lf%c", &value, &c) == 1;
+    double dblValue;
+    if (sscanf(arg, "%lf%c", &dblValue, &c) == 1) {
+        value = dblValue;
+        return true;
+    }
+    return false;
 }
 
-static bool parseAngle(double &value, const char *arg) {
+static bool parseAngle(real &value, const char *arg) {
     char c1, c2;
-    int result = sscanf(arg, "%lf%c%c", &value, &c1, &c2);
-    if (result == 1)
+    double dblValue;
+    int result = sscanf(arg, "%lf%c%c", &dblValue, &c1, &c2);
+    if (result == 1) {
+        value = real(dblValue);
         return true;
+    }
     if (result == 2 && (c1 == 'd' || c1 == 'D')) {
-        value *= M_PI/180;
+        value = real(M_PI)/real(180)*real(dblValue);
         return true;
     }
     return false;
@@ -162,7 +170,7 @@ static FontHandle *loadVarFont(FreetypeHandle *library, const char *filename) {
                 double value = 0;
                 int skip = 0;
                 if (sscanf(++filename, "%lf%n", &value, &skip) == 1) {
-                    setFontVariationAxis(library, font, buffer.c_str(), value);
+                    setFontVariationAxis(library, font, buffer.c_str(), real(value));
                     filename += skip;
                 }
             }
@@ -542,12 +550,12 @@ int main(int argc, const char *const *argv) {
         RANGE_UNIT,
         RANGE_PX
     } rangeMode = RANGE_PX;
-    double range = 1;
-    double pxRange = 2;
+    real range = 1;
+    real pxRange = 2;
     Vector2 translate;
     Vector2 scale = 1;
     bool scaleSpecified = false;
-    double angleThreshold = DEFAULT_ANGLE_THRESHOLD;
+    real angleThreshold = DEFAULT_ANGLE_THRESHOLD;
     float outputDistanceShift = 0.f;
     const char *edgeAssignment = NULL;
     bool yFlip = false;
@@ -560,7 +568,7 @@ int main(int argc, const char *const *argv) {
         GUESS
     } orientation = KEEP;
     unsigned long long coloringSeed = 0;
-    void (*edgeColoring)(Shape &, double, unsigned long long) = edgeColoringSimple;
+    void (*edgeColoring)(Shape &, real, unsigned long long) = edgeColoringSimple;
     bool explicitErrorCorrectionMode = false;
 
     int argPos = 1;
@@ -741,8 +749,8 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-range", 1) {
-            double r;
-            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
+            real r;
+            if (!(parseReal(r, argv[argPos+1]) && r > real(0)))
                 ABORT("Invalid range argument. Use -range <range> with a positive real number.");
             rangeMode = RANGE_UNIT;
             range = r;
@@ -750,8 +758,8 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-pxrange", 1) {
-            double r;
-            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
+            real r;
+            if (!(parseReal(r, argv[argPos+1]) && r > real(0)))
                 ABORT("Invalid range argument. Use -pxrange <range> with a positive real number.");
             rangeMode = RANGE_PX;
             pxRange = r;
@@ -759,8 +767,8 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-scale", 1) {
-            double s;
-            if (!(parseDouble(s, argv[argPos+1]) && s > 0))
+            real s;
+            if (!(parseReal(s, argv[argPos+1]) && s > real(0)))
                 ABORT("Invalid scale argument. Use -scale <scale> with a positive real number.");
             scale = s;
             scaleSpecified = true;
@@ -768,8 +776,8 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-ascale", 2) {
-            double sx, sy;
-            if (!(parseDouble(sx, argv[argPos+1]) && parseDouble(sy, argv[argPos+2]) && sx > 0 && sy > 0))
+            real sx, sy;
+            if (!(parseReal(sx, argv[argPos+1]) && parseReal(sy, argv[argPos+2]) && sx > real(0) && sy > real(0)))
                 ABORT("Invalid scale arguments. Use -ascale <x> <y> with two positive real numbers.");
             scale.set(sx, sy);
             scaleSpecified = true;
@@ -777,15 +785,15 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-translate", 2) {
-            double tx, ty;
-            if (!(parseDouble(tx, argv[argPos+1]) && parseDouble(ty, argv[argPos+2])))
+            real tx, ty;
+            if (!(parseReal(tx, argv[argPos+1]) && parseReal(ty, argv[argPos+2])))
                 ABORT("Invalid translate arguments. Use -translate <x> <y> with two real numbers.");
             translate.set(tx, ty);
             argPos += 3;
             continue;
         }
         ARG_CASE("-angle", 1) {
-            double at;
+            real at;
             if (!parseAngle(at, argv[argPos+1]))
                 ABORT("Invalid angle threshold. Use -angle <min angle> with a positive real number less than PI or a value in degrees followed by 'd' below 180d.");
             angleThreshold = at;
@@ -827,16 +835,16 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-errordeviationratio", 1) {
-            double edr;
-            if (!(parseDouble(edr, argv[argPos+1]) && edr > 0))
+            real edr;
+            if (!(parseReal(edr, argv[argPos+1]) && edr > real(0)))
                 ABORT("Invalid error deviation ratio. Use -errordeviationratio <ratio> with a positive real number.");
             generatorConfig.errorCorrection.minDeviationRatio = edr;
             argPos += 2;
             continue;
         }
         ARG_CASE("-errorimproveratio", 1) {
-            double eir;
-            if (!(parseDouble(eir, argv[argPos+1]) && eir > 0))
+            real eir;
+            if (!(parseReal(eir, argv[argPos+1]) && eir > real(0)))
                 ABORT("Invalid error improvement ratio. Use -errorimproveratio <ratio> with a positive real number.");
             generatorConfig.errorCorrection.minImproveRatio = eir;
             argPos += 2;
@@ -865,8 +873,8 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-distanceshift", 1) {
-            double ds;
-            if (!parseDouble(ds, argv[argPos+1]))
+            real ds;
+            if (!parseReal(ds, argv[argPos+1]))
                 ABORT("Invalid distance shift. Use -distanceshift <shift> with a real value.");
             outputDistanceShift = (float) ds;
             argPos += 2;
@@ -948,7 +956,7 @@ int main(int argc, const char *const *argv) {
 
     // Load input
     Shape::Bounds svgViewBox = { };
-    double glyphAdvance = 0;
+    real glyphAdvance = 0;
     if (!inputType || !input) {
         #ifdef MSDFGEN_EXTENSIONS
             #ifdef MSDFGEN_DISABLE_SVG
@@ -1057,35 +1065,35 @@ int main(int argc, const char *const *argv) {
     if (yFlip)
         shape.inverseYAxis = !shape.inverseYAxis;
 
-    double avgScale = .5*(scale.x+scale.y);
+    real avgScale = real(.5)*(scale.x+scale.y);
     Shape::Bounds bounds = { };
     if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS)
         bounds = shape.getBounds();
 
     // Auto-frame
     if (autoFrame) {
-        double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
+        real l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         Vector2 frame(width, height);
-        double m = .5+(double) outputDistanceShift;
+        real m = real(.5)+real(outputDistanceShift);
         if (!scaleSpecified) {
             if (rangeMode == RANGE_UNIT)
                 l -= m*range, b -= m*range, r += m*range, t += m*range;
             else
-                frame -= 2*m*pxRange;
+                frame -= real(2)*m*pxRange;
         }
         if (l >= r || b >= t)
             l = 0, b = 0, r = 1, t = 1;
-        if (frame.x <= 0 || frame.y <= 0)
+        if (frame.x <= real(0) || frame.y <= real(0))
             ABORT("Cannot fit the specified pixel range.");
         Vector2 dims(r-l, t-b);
         if (scaleSpecified)
-            translate = .5*(frame/scale-dims)-Vector2(l, b);
+            translate = real(.5)*(frame/scale-dims)-Vector2(l, b);
         else {
             if (dims.x*frame.y < dims.y*frame.x) {
-                translate.set(.5*(frame.x/frame.y*dims.y-dims.x)-l, -b);
+                translate.set(real(.5)*(frame.x/frame.y*dims.y-dims.x)-l, -b);
                 scale = avgScale = frame.y/dims.y;
             } else {
-                translate.set(-l, .5*(frame.y/frame.x*dims.x-dims.y)-b);
+                translate.set(-l, real(.5)*(frame.y/frame.x*dims.x-dims.y)-b);
                 scale = avgScale = frame.x/dims.x;
             }
         }
@@ -1106,18 +1114,18 @@ int main(int argc, const char *const *argv) {
         if (shape.inverseYAxis)
             fprintf(out, "inverseY = true\n");
         if (svgViewBox.l < svgViewBox.r && svgViewBox.b < svgViewBox.t)
-            fprintf(out, "view box = %.17g, %.17g, %.17g, %.17g\n", svgViewBox.l, svgViewBox.b, svgViewBox.r, svgViewBox.t);
+            fprintf(out, "view box = %.17g, %.17g, %.17g, %.17g\n", double(svgViewBox.l), double(svgViewBox.b), double(svgViewBox.r), double(svgViewBox.t));
         if (bounds.l < bounds.r && bounds.b < bounds.t)
-            fprintf(out, "bounds = %.17g, %.17g, %.17g, %.17g\n", bounds.l, bounds.b, bounds.r, bounds.t);
+            fprintf(out, "bounds = %.17g, %.17g, %.17g, %.17g\n", double(bounds.l), double(bounds.b), double(bounds.r), double(bounds.t));
         if (glyphAdvance != 0)
-            fprintf(out, "advance = %.17g\n", glyphAdvance);
+            fprintf(out, "advance = %.17g\n", double(glyphAdvance));
         if (autoFrame) {
             if (!scaleSpecified)
-                fprintf(out, "scale = %.17g\n", avgScale);
-            fprintf(out, "translate = %.17g, %.17g\n", translate.x, translate.y);
+                fprintf(out, "scale = %.17g\n", double(avgScale));
+            fprintf(out, "translate = %.17g, %.17g\n", double(translate.x), double(translate.y));
         }
         if (rangeMode == RANGE_PX)
-            fprintf(out, "range = %.17g\n", range);
+            fprintf(out, "range = %.17g\n", double(range));
         if (mode == METRICS && outputSpecified)
             fclose(out);
     }
@@ -1188,9 +1196,9 @@ int main(int argc, const char *const *argv) {
 
     if (orientation == GUESS) {
         // Get sign of signed distance outside bounds
-        Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
-        double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
-        orientation = distance <= 0 ? KEEP : REVERSE;
+        Point2 p(bounds.l-(bounds.r-bounds.l)-real(1), bounds.b-(bounds.t-bounds.b)-real(1));
+        real distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
+        orientation = distance <= real(0) ? KEEP : REVERSE;
     }
     if (orientation == REVERSE) {
         switch (mode) {
