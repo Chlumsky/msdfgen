@@ -3,6 +3,9 @@
 
 #include "arithmetics.hpp"
 #include "equation-solver.h"
+#include "bezier-solver.hpp"
+
+#define MSDFGEN_USE_BEZIER_SOLVER
 
 namespace msdfgen {
 
@@ -171,6 +174,68 @@ SignedDistance LinearSegment::signedDistance(Point2 origin, double &param) const
     return SignedDistance(nonZeroSign(crossProduct(aq, ab))*endpointDistance, fabs(dotProduct(ab.normalize(), eq.normalize())));
 }
 
+#ifdef MSDFGEN_USE_BEZIER_SOLVER
+
+SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
+    Vector2 ap = origin-p[0];
+    Vector2 bp = origin-p[2];
+    Vector2 q = 2*(p[1]-p[0]);
+    Vector2 r = p[2]-2*p[1]+p[0];
+    double aSqD = ap.squaredLength();
+    double bSqD = bp.squaredLength();
+    double t = quadraticNearPoint(ap, q, r);
+    if (t > 0 && t < 1) {
+        Vector2 tp = ap-(q+r*t)*t;
+        double tSqD = tp.squaredLength();
+        if (tSqD < aSqD && tSqD < bSqD) {
+            param = t;
+            return SignedDistance(nonZeroSign(crossProduct(tp, q+2*r*t))*sqrt(tSqD), 0);
+        }
+    }
+    if (bSqD < aSqD) {
+        Vector2 d = q+r+r;
+        if (!d)
+            d = p[2]-p[0];
+        param = dotProduct(bp, d)/d.squaredLength()+1;
+        return SignedDistance(nonZeroSign(crossProduct(bp, d))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
+    }
+    if (!q)
+        q = p[2]-p[0];
+    param = dotProduct(ap, q)/q.squaredLength();
+    return SignedDistance(nonZeroSign(crossProduct(ap, q))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
+}
+
+SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const {
+    Vector2 ap = origin-p[0];
+    Vector2 bp = origin-p[3];
+    Vector2 q = 3*(p[1]-p[0]);
+    Vector2 r = 3*(p[2]-p[1])-q;
+    Vector2 s = p[3]-3*(p[2]-p[1])-p[0];
+    double aSqD = ap.squaredLength();
+    double bSqD = bp.squaredLength();
+    double tSqD;
+    double t = cubicNearPoint(ap, q, r, s, tSqD);
+    if (t > 0 && t < 1) {
+        if (tSqD < aSqD && tSqD < bSqD) {
+            param = t;
+            return SignedDistance(nonZeroSign(crossProduct(ap-(q+(r+s*t)*t)*t, q+(r+r+3*s*t)*t))*sqrt(tSqD), 0);
+        }
+    }
+    if (bSqD < aSqD) {
+        Vector2 d = q+r+r+3*s;
+        if (!d)
+            d = p[3]-p[1];
+        param = dotProduct(bp, d)/d.squaredLength()+1;
+        return SignedDistance(nonZeroSign(crossProduct(bp, d))*sqrt(bSqD), dotProduct(bp.normalize(), d.normalize()));
+    }
+    if (!q)
+        q = p[2]-p[0];
+    param = dotProduct(ap, q)/q.squaredLength();
+    return SignedDistance(nonZeroSign(crossProduct(ap, q))*sqrt(aSqD), -dotProduct(ap.normalize(), q.normalize()));
+}
+
+#else
+
 SignedDistance QuadraticSegment::signedDistance(Point2 origin, double &param) const {
     Vector2 qa = p[0]-origin;
     Vector2 ab = p[1]-p[0];
@@ -256,6 +321,8 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     else
         return SignedDistance(minDistance, fabs(dotProduct(direction(1).normalize(), (p[3]-origin).normalize())));
 }
+
+#endif
 
 int LinearSegment::scanlineIntersections(double x[3], int dy[3], double y) const {
     if ((y >= p[0].y && y < p[1].y) || (y >= p[1].y && y < p[0].y)) {
