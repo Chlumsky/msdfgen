@@ -33,6 +33,7 @@
 #include "core/msdf-error-correction.h"
 #include "core/render-sdf.h"
 #include "core/rasterization.h"
+#include "core/approximate-sdf.h"
 #include "core/sdf-error-estimation.h"
 #include "core/save-bmp.h"
 #include "core/save-tiff.h"
