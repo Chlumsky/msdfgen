@@ -33,6 +33,9 @@ public:
     virtual void distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const;
     /// Outputs a list of (at most three) intersections (their X coordinates) with an infinite horizontal scanline at y and returns how many there are.
     virtual int scanlineIntersections(double x[3], int dy[3], double y) const = 0;
+    virtual int horizontalScanlineIntersections(double x[3], int dy[3], double y) const = 0;
+    /// Outputs a list of (at most three) intersections (their Y coordinates) with an infinite vertical scanline at x and returns how many there are.
+    virtual int verticalScanlineIntersections(double y[3], int dx[3], double x) const = 0;
     /// Adjusts the bounding box to fit the edge segment.
     virtual void bound(double &l, double &b, double &r, double &t) const = 0;
 
@@ -67,6 +70,8 @@ public:
     double length() const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
+    int horizontalScanlineIntersections(double x[3], int dy[3], double y) const;
+    int verticalScanlineIntersections(double y[3], int dx[3], double x) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
     void reverse();
@@ -96,6 +101,8 @@ public:
     double length() const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
+    int horizontalScanlineIntersections(double x[3], int dy[3], double y) const;
+    int verticalScanlineIntersections(double y[3], int dx[3], double x) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
     void reverse();
@@ -126,6 +133,8 @@ public:
     Vector2 directionChange(double param) const;
     SignedDistance signedDistance(Point2 origin, double &param) const;
     int scanlineIntersections(double x[3], int dy[3], double y) const;
+    int horizontalScanlineIntersections(double x[3], int dy[3], double y) const;
+    int verticalScanlineIntersections(double y[3], int dx[3], double x) const;
     void bound(double &l, double &b, double &r, double &t) const;
 
     void reverse();
