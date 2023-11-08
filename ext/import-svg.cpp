@@ -519,6 +519,9 @@ static void gatherPaths(SkPath &fullPath, int &flags, tinyxml2::XMLElement *pare
                 curPath.close();
             } else
                 continue;
+            const char *fillRule = cur->Attribute("fill-rule");
+            if (fillRule && !strcmp(fillRule, "evenodd"))
+                curPath.setFillType(SkPathFillType::kEvenOdd);
             curPath.transform(combineTransformation(flags, transformation, cur->Attribute("transform"), cur->Attribute("transform-origin")));
             if (Op(fullPath, curPath, kUnion_SkPathOp, &fullPath))
                 flags |= SVG_IMPORT_SUCCESS_FLAG;
