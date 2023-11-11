@@ -224,7 +224,38 @@ if(MSDFGEN_INSTALL)
     include(CMakePackageConfigHelpers)
     set(MSDFGEN_CONFIG_PATH "lib/cmake/msdfgen")
 
-    # install tree package config
+    # Generate msdfgen-config.h
+    if(BUILD_SHARED_LIBS AND WIN32)
+        set(MSDFGEN_PUBLIC_MACRO_VALUE " __declspec(dllimport)")
+    else()
+        set(MSDFGEN_PUBLIC_MACRO_VALUE "")
+    endif()
+    set(MSDFGEN_ADDITIONAL_DEFINES "")
+    if(MSDFGEN_USE_CPP11)
+        set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_USE_CPP11")
+    endif()
+    if(MSDFGEN_USE_OPENMP)
+        set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_USE_OPENMP")
+    endif()
+    if(NOT MSDFGEN_CORE_ONLY)
+        set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_EXTENSIONS")
+        if(MSDFGEN_USE_SKIA)
+            set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_USE_SKIA")
+        endif()
+        if(MSDFGEN_DISABLE_SVG)
+            set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_DISABLE_SVG")
+        endif()
+        if(NOT MSDFGEN_DISABLE_PNG)
+            set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_USE_LIBPNG")
+        else()
+            set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_DISABLE_PNG")
+        endif()
+        if(MSDFGEN_DISABLE_VARIABLE_FONTS)
+            set(MSDFGEN_ADDITIONAL_DEFINES "${MSDFGEN_ADDITIONAL_DEFINES}\n#define MSDFGEN_DISABLE_VARIABLE_FONTS")
+        endif()
+    endif()
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/msdfgen-config.h.in" msdfgen-config.h)
+
     write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
         VERSION ${PROJECT_VERSION}
@@ -232,19 +263,20 @@ if(MSDFGEN_INSTALL)
     )
 
     configure_package_config_file(
-        cmake/msdfgenConfig.cmake.in
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msdfgenConfig.cmake.in"
         ${MSDFGEN_CONFIG_PATH}/msdfgenConfig.cmake
         INSTALL_DESTINATION ${MSDFGEN_CONFIG_PATH}
         NO_CHECK_REQUIRED_COMPONENTS_MACRO
     )
 
-    # build tree package config
     configure_file(
-        cmake/msdfgenConfig.cmake.in
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msdfgenConfig.cmake.in"
         msdfgenConfig.cmake
         @ONLY
     )
 
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION include/msdfgen)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION include/msdfgen/msdfgen)
     install(TARGETS msdfgen-core EXPORT msdfgenTargets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

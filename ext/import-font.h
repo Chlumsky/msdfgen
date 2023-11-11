@@ -1,12 +1,10 @@
 
 #pragma once
 
-#include <cstddef>
 #include "../core/Shape.h"
 
 namespace msdfgen {
 
-typedef unsigned char byte;
 typedef unsigned unicode_t;
 
 class FreetypeHandle;

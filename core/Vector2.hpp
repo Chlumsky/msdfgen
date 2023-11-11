@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <cstddef>
 #include <cmath>
+#include "base.h"
 
 namespace msdfgen {
 

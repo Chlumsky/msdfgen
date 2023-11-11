@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include "../core/Shape.h"
 
 #ifndef MSDFGEN_DISABLE_SVG
