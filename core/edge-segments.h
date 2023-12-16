@@ -17,6 +17,10 @@ class EdgeSegment {
 public:
     EdgeColor color;
 
+    static EdgeSegment *create(Point2 p0, Point2 p1, EdgeColor edgeColor = WHITE);
+    static EdgeSegment *create(Point2 p0, Point2 p1, Point2 p2, EdgeColor edgeColor = WHITE);
+    static EdgeSegment *create(Point2 p0, Point2 p1, Point2 p2, Point2 p3, EdgeColor edgeColor = WHITE);
+
     EdgeSegment(EdgeColor edgeColor = WHITE) : color(edgeColor) { }
     virtual ~EdgeSegment() { }
     /// Creates a copy of the edge segment.
@@ -47,7 +51,7 @@ public:
     /// Moves the end point of the edge segment.
     virtual void moveEndPoint(Point2 to) = 0;
     /// Splits the edge segments into thirds which together represent the original edge.
-    virtual void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const = 0;
+    virtual void splitInThirds(EdgeSegment *&part0, EdgeSegment *&part1, EdgeSegment *&part2) const = 0;
 
 };
 
@@ -76,7 +80,7 @@ public:
     void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
-    void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    void splitInThirds(EdgeSegment *&part0, EdgeSegment *&part1, EdgeSegment *&part2) const;
 
 };
 
@@ -105,7 +109,7 @@ public:
     void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
-    void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    void splitInThirds(EdgeSegment *&part0, EdgeSegment *&part1, EdgeSegment *&part2) const;
 
     EdgeSegment *convertToCubic() const;
 
@@ -135,7 +139,7 @@ public:
     void reverse();
     void moveStartPoint(Point2 to);
     void moveEndPoint(Point2 to);
-    void splitInThirds(EdgeSegment *&part1, EdgeSegment *&part2, EdgeSegment *&part3) const;
+    void splitInThirds(EdgeSegment *&part0, EdgeSegment *&part1, EdgeSegment *&part2) const;
 
     void deconverge(int param, double amount);
 

@@ -101,7 +101,7 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
     if (endPoint == startPoint)
         return;
     if (radius.x == 0 || radius.y == 0)
-        return contour.addEdge(new LinearSegment(startPoint, endPoint));
+        return contour.addEdge(EdgeHolder(startPoint, endPoint));
 
     radius.x = fabs(radius.x);
     radius.y = fabs(radius.y);
@@ -142,7 +142,7 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
         d.set(cos(angle), sin(angle));
         controlPoint[1] = center+rotateVector(Vector2(d.x+cl*d.y, d.y-cl*d.x)*radius, axis);
         Point2 node = i == segments-1 ? endPoint : center+rotateVector(d*radius, axis);
-        contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
+        contour.addEdge(EdgeHolder(prevNode, controlPoint[0], controlPoint[1], node));
         prevNode = node;
     }
 }
@@ -221,19 +221,19 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 'l')
                         node += prevNode;
-                    contour.addEdge(new LinearSegment(prevNode, node));
+                    contour.addEdge(EdgeHolder(prevNode, node));
                     break;
                 case 'H': case 'h':
                     REQUIRE(readDouble(node.x, pathDef));
                     if (nodeType == 'h')
                         node.x += prevNode.x;
-                    contour.addEdge(new LinearSegment(prevNode, node));
+                    contour.addEdge(EdgeHolder(prevNode, node));
                     break;
                 case 'V': case 'v':
                     REQUIRE(readDouble(node.y, pathDef));
                     if (nodeType == 'v')
                         node.y += prevNode.y;
-                    contour.addEdge(new LinearSegment(prevNode, node));
+                    contour.addEdge(EdgeHolder(prevNode, node));
                     break;
                 case 'Q': case 'q':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
@@ -242,7 +242,7 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                         controlPoint[0] += prevNode;
                         node += prevNode;
                     }
-                    contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
+                    contour.addEdge(EdgeHolder(prevNode, controlPoint[0], node));
                     break;
                 case 'T': case 't':
                     if (prevNodeType == 'Q' || prevNodeType == 'q' || prevNodeType == 'T' || prevNodeType == 't')
@@ -252,7 +252,7 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                     REQUIRE(readCoord(node, pathDef));
                     if (nodeType == 't')
                         node += prevNode;
-                    contour.addEdge(new QuadraticSegment(prevNode, controlPoint[0], node));
+                    contour.addEdge(EdgeHolder(prevNode, controlPoint[0], node));
                     break;
                 case 'C': case 'c':
                     REQUIRE(readCoord(controlPoint[0], pathDef));
@@ -263,7 +263,7 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                         controlPoint[1] += prevNode;
                         node += prevNode;
                     }
-                    contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
+                    contour.addEdge(EdgeHolder(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
                 case 'S': case 's':
                     if (prevNodeType == 'C' || prevNodeType == 'c' || prevNodeType == 'S' || prevNodeType == 's')
@@ -276,7 +276,7 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
                         controlPoint[1] += prevNode;
                         node += prevNode;
                     }
-                    contour.addEdge(new CubicSegment(prevNode, controlPoint[0], controlPoint[1], node));
+                    contour.addEdge(EdgeHolder(prevNode, controlPoint[0], controlPoint[1], node));
                     break;
                 case 'A': case 'a':
                     {
@@ -309,7 +309,7 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
             if ((contour.edges.back()->point(1)-contour.edges[0]->point(0)).length() < endpointSnapRange)
                 contour.edges.back()->moveEndPoint(contour.edges[0]->point(0));
             else
-                contour.addEdge(new LinearSegment(prevNode, startPoint));
+                contour.addEdge(EdgeHolder(prevNode, startPoint));
         }
         prevNode = startPoint;
         prevNodeType = '\0';

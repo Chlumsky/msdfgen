@@ -74,7 +74,7 @@ static int ftLineTo(const FT_Vector *to, void *user) {
     FtContext *context = reinterpret_cast<FtContext *>(user);
     Point2 endpoint = ftPoint2(*to);
     if (endpoint != context->position) {
-        context->contour->addEdge(new LinearSegment(context->position, endpoint));
+        context->contour->addEdge(EdgeHolder(context->position, endpoint));
         context->position = endpoint;
     }
     return 0;
@@ -82,15 +82,21 @@ static int ftLineTo(const FT_Vector *to, void *user) {
 
 static int ftConicTo(const FT_Vector *control, const FT_Vector *to, void *user) {
     FtContext *context = reinterpret_cast<FtContext *>(user);
-    context->contour->addEdge(new QuadraticSegment(context->position, ftPoint2(*control), ftPoint2(*to)));
-    context->position = ftPoint2(*to);
+    Point2 endpoint = ftPoint2(*to);
+    if (endpoint != context->position) {
+        context->contour->addEdge(EdgeHolder(context->position, ftPoint2(*control), endpoint));
+        context->position = endpoint;
+    }
     return 0;
 }
 
 static int ftCubicTo(const FT_Vector *control1, const FT_Vector *control2, const FT_Vector *to, void *user) {
     FtContext *context = reinterpret_cast<FtContext *>(user);
-    context->contour->addEdge(new CubicSegment(context->position, ftPoint2(*control1), ftPoint2(*control2), ftPoint2(*to)));
-    context->position = ftPoint2(*to);
+    Point2 endpoint = ftPoint2(*to);
+    if (endpoint != context->position || crossProduct(ftPoint2(*control1)-endpoint, ftPoint2(*control2)-endpoint)) {
+        context->contour->addEdge(EdgeHolder(context->position, ftPoint2(*control1), ftPoint2(*control2), endpoint));
+        context->position = endpoint;
+    }
     return 0;
 }
 

@@ -53,20 +53,20 @@ void shapeFromSkiaPath(Shape &shape, const SkPath &skPath) {
                     contour = &shape.addContour();
                 break;
             case SkPath::kLine_Verb:
-                contour->addEdge(new LinearSegment(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1])));
+                contour->addEdge(EdgeHolder(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1])));
                 break;
             case SkPath::kQuad_Verb:
-                contour->addEdge(new QuadraticSegment(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1]), pointFromSkiaPoint(edgePoints[2])));
+                contour->addEdge(EdgeHolder(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1]), pointFromSkiaPoint(edgePoints[2])));
                 break;
             case SkPath::kCubic_Verb:
-                contour->addEdge(new CubicSegment(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1]), pointFromSkiaPoint(edgePoints[2]), pointFromSkiaPoint(edgePoints[3])));
+                contour->addEdge(EdgeHolder(pointFromSkiaPoint(edgePoints[0]), pointFromSkiaPoint(edgePoints[1]), pointFromSkiaPoint(edgePoints[2]), pointFromSkiaPoint(edgePoints[3])));
                 break;
             case SkPath::kConic_Verb:
                 {
                     SkPoint quadPoints[5];
                     SkPath::ConvertConicToQuads(edgePoints[0], edgePoints[1], edgePoints[2], pathIterator.conicWeight(), quadPoints, 1);
-                    contour->addEdge(new QuadraticSegment(pointFromSkiaPoint(quadPoints[0]), pointFromSkiaPoint(quadPoints[1]), pointFromSkiaPoint(quadPoints[2])));
-                    contour->addEdge(new QuadraticSegment(pointFromSkiaPoint(quadPoints[2]), pointFromSkiaPoint(quadPoints[3]), pointFromSkiaPoint(quadPoints[4])));
+                    contour->addEdge(EdgeHolder(pointFromSkiaPoint(quadPoints[0]), pointFromSkiaPoint(quadPoints[1]), pointFromSkiaPoint(quadPoints[2])));
+                    contour->addEdge(EdgeHolder(pointFromSkiaPoint(quadPoints[2]), pointFromSkiaPoint(quadPoints[3]), pointFromSkiaPoint(quadPoints[4])));
                 }
                 break;
             case SkPath::kClose_Verb:
