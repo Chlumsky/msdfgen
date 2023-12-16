@@ -23,16 +23,6 @@ if(NOT MULTI_CONFIG AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if(MSDFGEN_DYNAMIC_RUNTIME)
-    set(MSDFGEN_MSVC_RUNTIME "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-else()
-    set(MSDFGEN_MSVC_RUNTIME "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
-if(BUILD_SHARED_LIBS)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
-
 if(MSDFGEN_USE_VCPKG)
     # Make sure that vcpkg toolchain file is set
     if(NOT CMAKE_TOOLCHAIN_FILE)
@@ -76,6 +66,16 @@ endif()
 
 # Version is specified in vcpkg.json
 project(msdfgen VERSION ${MSDFGEN_VERSION} LANGUAGES CXX)
+
+if(MSDFGEN_DYNAMIC_RUNTIME)
+    set(MSDFGEN_MSVC_RUNTIME "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+else()
+    set(MSDFGEN_MSVC_RUNTIME "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+if(BUILD_SHARED_LIBS)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 if(MAX_WARNING_LEVEL)
     if (MSVC)
