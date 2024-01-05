@@ -10,6 +10,7 @@
 
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
+#include <cstdlib>
 #include <cstdio>
 #include <cmath>
 #include <cstring>
@@ -56,36 +57,48 @@ static char toupper(char c) {
 }
 
 static bool parseUnsigned(unsigned &value, const char *arg) {
-    char c;
-    return sscanf(arg, "%u%c", &value, &c) == 1;
+    char *end = NULL;
+    value = (unsigned) strtoul(arg, &end, 10);
+    return end > arg && !*end;
 }
 
 static bool parseUnsignedDecOrHex(unsigned &value, const char *arg) {
+    char *end = NULL;
     if (arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) {
-        char c;
-        return sscanf(arg+2, "%x%c", &value, &c) == 1;
+        arg += 2;
+        value = (unsigned) strtoul(arg, &end, 16);
+    } else
+        value = (unsigned) strtoul(arg, &end, 10);
+    return end > arg && !*end;
     }
-    return parseUnsigned(value, arg);
-}
 
 static bool parseUnsignedLL(unsigned long long &value, const char *arg) {
-    char c;
-    return sscanf(arg, "%llu%c", &value, &c) == 1;
+    if (*arg >= '0' && *arg <= '9') {
+        value = 0;
+        do {
+            value = 10*value+(*arg++-'0');
+        } while (*arg >= '0' && *arg <= '9');
+        return !*arg;
+}
+    return false;
 }
 
 static bool parseDouble(double &value, const char *arg) {
-    char c;
-    return sscanf(arg, "%lf%c", &value, &c) == 1;
+    char *end = NULL;
+    value = strtod(arg, &end);
+    return end > arg && !*end;
 }
 
 static bool parseAngle(double &value, const char *arg) {
-    char c1, c2;
-    int result = sscanf(arg, "%lf%c%c", &value, &c1, &c2);
-    if (result == 1)
-        return true;
-    if (result == 2 && (c1 == 'd' || c1 == 'D')) {
+    char *end = NULL;
+    value = strtod(arg, &end);
+    if (end > arg) {
+        arg = end;
+        if (*arg == 'd' || *arg == 'D') {
+            ++arg;
         value *= M_PI/180;
-        return true;
+    }
+        return !*arg;
     }
     return false;
 }
@@ -159,11 +172,11 @@ static FontHandle *loadVarFont(FreetypeHandle *library, const char *filename) {
             while (*filename && *filename != '=')
                 buffer.push_back(*filename++);
             if (*filename == '=') {
-                double value = 0;
-                int skip = 0;
-                if (sscanf(++filename, "%lf%n", &value, &skip) == 1) {
+                char *end = NULL;
+                double value = strtod(++filename, &end);
+                if (end > filename) {
+                    filename = end;
                     setFontVariationAxis(library, font, buffer.c_str(), value);
-                    filename += skip;
                 }
             }
         } while (*filename++ == '&');

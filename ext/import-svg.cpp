@@ -52,37 +52,27 @@ static bool readNodeType(char &output, const char *&pathDef) {
     return false;
 }
 
-static bool readCoord(Point2 &output, const char *&pathDef) {
-    skipExtraChars(pathDef);
-    int shift;
-    double x, y;
-    if (sscanf(pathDef, "%lf%lf%n", &x, &y, &shift) == 2 || sscanf(pathDef, "%lf , %lf%n", &x, &y, &shift) == 2) {
-        output.x = x;
-        output.y = y;
-        pathDef += shift;
+static bool readDouble(double &output, const char *&pathDef) {
+    char *end = NULL;
+    output = strtod(pathDef, &end);
+    if (end > pathDef) {
+        pathDef = end;
         return true;
     }
     return false;
 }
 
-static bool readDouble(double &output, const char *&pathDef) {
+static bool readCoord(Point2 &output, const char *&pathDef) {
     skipExtraChars(pathDef);
-    int shift;
-    double v;
-    if (sscanf(pathDef, "%lf%n", &v, &shift) == 1) {
-        pathDef += shift;
-        output = v;
-        return true;
-    }
-    return false;
+    return readDouble(output.x, pathDef) && (skipExtraChars(pathDef), readDouble(output.y, pathDef));
 }
 
 static bool readBool(bool &output, const char *&pathDef) {
     skipExtraChars(pathDef);
-    int shift;
-    int v;
-    if (sscanf(pathDef, "%d%n", &v, &shift) == 1) {
-        pathDef += shift;
+    char *end = NULL;
+    long v = strtol(pathDef, &end, 10);
+    if (end > pathDef) {
+        pathDef = end;
         output = v != 0;
         return true;
     }
@@ -339,10 +329,10 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
         return false;
 
     Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
-    double left, top;
-    const char *viewBox = root->Attribute("viewBox");
-    if (viewBox)
-        sscanf(viewBox, "%lf %lf %lf %lf", &left, &top, &dims.x, &dims.y);
+    if (const char *viewBox = root->Attribute("viewBox")) {
+        double left = 0, top = 0;
+        readDouble(left, viewBox) && readDouble(top, viewBox) && readDouble(dims.x, viewBox) && readDouble(dims.y, viewBox);
+    }
     if (dimensions)
         *dimensions = dims;
     output.contours.clear();
@@ -372,9 +362,8 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
 
     viewBox.l = 0, viewBox.b = 0;
     Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
-    const char *viewBoxStr = root->Attribute("viewBox");
-    if (viewBoxStr)
-        sscanf(viewBoxStr, "%lf %lf %lf %lf", &viewBox.l, &viewBox.b, &dims.x, &dims.y);
+    if (const char *viewBoxStr = root->Attribute("viewBox"))
+        readDouble(viewBox.l, viewBoxStr) && readDouble(viewBox.b, viewBoxStr) && readDouble(dims.x, viewBoxStr) && readDouble(dims.y, viewBoxStr);
     viewBox.r = viewBox.l+dims.x;
     viewBox.t = viewBox.b+dims.y;
     output.contours.clear();
@@ -550,9 +539,8 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
 
     viewBox.l = 0, viewBox.b = 0;
     Vector2 dims(root->DoubleAttribute("width"), root->DoubleAttribute("height"));
-    const char *viewBoxStr = root->Attribute("viewBox");
-    if (viewBoxStr)
-        sscanf(viewBoxStr, "%lf %lf %lf %lf", &viewBox.l, &viewBox.b, &dims.x, &dims.y);
+    if (const char *viewBoxStr = root->Attribute("viewBox"))
+        readDouble(viewBox.l, viewBoxStr) && readDouble(viewBox.b, viewBoxStr) && readDouble(dims.x, viewBoxStr) && readDouble(dims.y, viewBoxStr);
     viewBox.r = viewBox.l+dims.x;
     viewBox.t = viewBox.b+dims.y;
     return flags;
