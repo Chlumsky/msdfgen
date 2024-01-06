@@ -53,6 +53,7 @@ static bool readNodeType(char &output, const char *&pathDef) {
 }
 
 static bool readDouble(double &output, const char *&pathDef) {
+    skipExtraChars(pathDef);
     char *end = NULL;
     output = strtod(pathDef, &end);
     if (end > pathDef) {
@@ -63,8 +64,7 @@ static bool readDouble(double &output, const char *&pathDef) {
 }
 
 static bool readCoord(Point2 &output, const char *&pathDef) {
-    skipExtraChars(pathDef);
-    return readDouble(output.x, pathDef) && (skipExtraChars(pathDef), readDouble(output.y, pathDef));
+    return readDouble(output.x, pathDef) && readDouble(output.y, pathDef);
 }
 
 static bool readBool(bool &output, const char *&pathDef) {
