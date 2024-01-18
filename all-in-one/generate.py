@@ -58,8 +58,10 @@ header = """
 #pragma once
 
 #define MSDFGEN_USE_CPP11
+#ifndef MSDFGEN_NO_FREETYPE
 #define MSDFGEN_USE_FREETYPE
 #define MSDFGEN_DISABLE_VARIABLE_FONTS
+#endif
 
 #include <cstddef>
 #include <cstdlib>
@@ -84,7 +86,7 @@ source = """
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable : 4456 4457 4458)
+#pragma warning(disable : 4456 4457 4458 6246)
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
