@@ -84,12 +84,12 @@ source = """
 #endif
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4456 4457 4458 6246)
-#elif defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4456 4457 4458 6246)
 #endif
 
 #ifndef M_PI
@@ -98,10 +98,10 @@ source = """
 """
 
 sourceAppendix = """
-#ifdef _MSC_VER
-#pragma warning(pop)
-#elif defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
 #endif
 """
 
