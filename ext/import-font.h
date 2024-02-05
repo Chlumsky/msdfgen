@@ -61,20 +61,22 @@ FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline);
 FontHandle *loadFont(FreetypeHandle *library, const char *filename);
 /// Loads a font from binary data and returns its handle.
 FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
-/// Unloads a font file.
+/// Unloads a font.
 void destroyFont(FontHandle *font);
-/// Outputs the metrics of a font file.
+/// Outputs the metrics of a font.
 bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
 /// Outputs the width of the space and tab characters.
 bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
+/// Outputs the total number of glyphs available in the font.
+bool getGlyphCount(unsigned &output, FontHandle *font);
 /// Outputs the glyph index corresponding to the specified Unicode character.
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
-/// Loads the geometry of a glyph from a font file.
+/// Loads the geometry of a glyph from a font.
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance = NULL);
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance = NULL);
 /// Outputs the kerning distance adjustment between two specific glyphs.
-bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
-bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1);
+bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1);
 
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 /// Sets a single variation axis of a variable font.

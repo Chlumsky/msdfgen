@@ -37,11 +37,12 @@ class FontHandle {
     friend void destroyFont(FontHandle *font);
     friend bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
     friend bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
+    friend bool getGlyphCount(unsigned &output, FontHandle *font);
     friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
     friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance);
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance);
-    friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2);
-    friend bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2);
+    friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1);
+    friend bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1);
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
     friend bool setFontVariationAxis(FreetypeHandle *library, FontHandle *font, const char *name, double coordinate);
     friend bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle *library, FontHandle *font);
@@ -200,6 +201,11 @@ bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle
     return true;
 }
 
+bool getGlyphCount(unsigned &output, FontHandle *font) {
+    output = (unsigned) font->face->num_glyphs;
+    return true;
+}
+
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) {
     glyphIndex = GlyphIndex(FT_Get_Char_Index(font->face, unicode));
     return glyphIndex.getIndex() != 0;
@@ -220,9 +226,9 @@ bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advan
     return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), advance);
 }
 
-bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphIndex glyphIndex2) {
+bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1) {
     FT_Vector kerning;
-    if (FT_Get_Kerning(font->face, glyphIndex1.getIndex(), glyphIndex2.getIndex(), FT_KERNING_UNSCALED, &kerning)) {
+    if (FT_Get_Kerning(font->face, glyphIndex0.getIndex(), glyphIndex1.getIndex(), FT_KERNING_UNSCALED, &kerning)) {
         output = 0;
         return false;
     }
@@ -230,8 +236,8 @@ bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex1, GlyphI
     return true;
 }
 
-bool getKerning(double &output, FontHandle *font, unicode_t unicode1, unicode_t unicode2) {
-    return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode1)), GlyphIndex(FT_Get_Char_Index(font->face, unicode2)));
+bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1) {
+    return getKerning(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode0)), GlyphIndex(FT_Get_Char_Index(font->face, unicode1)));
 }
 
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
