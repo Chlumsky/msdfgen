@@ -97,6 +97,18 @@ source = """
 #endif
 """
 
+namespaceStart = """
+#ifdef MSDFGEN_PARENT_NAMESPACE
+namespace MSDFGEN_PARENT_NAMESPACE {
+#endif
+"""
+
+namespaceEnd = """
+#ifdef MSDFGEN_PARENT_NAMESPACE
+} // namespace MSDFGEN_PARENT_NAMESPACE
+#endif
+"""
+
 sourceAppendix = """
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
@@ -104,6 +116,9 @@ sourceAppendix = """
 #pragma warning(pop)
 #endif
 """
+
+header += namespaceStart
+source += namespaceStart
 
 with open(os.path.join(rootDir, 'LICENSE.txt'), 'r') as file:
     license = file.read()
@@ -122,6 +137,8 @@ for filename in sourceList:
 
 header = '\n'+re.sub(r'\n{3,}', '\n\n', re.sub(r'}\s*namespace\s+msdfgen\s*{', '', re.sub(r'\/\*[^\*].*?\*\/', '', header, flags=re.DOTALL))).strip()+'\n'
 source = '\n'+re.sub(r'\n{3,}', '\n\n', re.sub(r'}\s*namespace\s+msdfgen\s*{', '', re.sub(r'\/\*[^\*].*?\*\/', '', source, flags=re.DOTALL))).strip()+'\n'
+header += namespaceEnd
+source += namespaceEnd
 
 header = """
 /*
