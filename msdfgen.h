@@ -49,6 +49,9 @@ void generateMSDF(const BitmapRef<float, 3> &output, const Shape &shape, const P
 /// Generates a multi-channel signed distance field with true distance in the alpha channel. Edge colors must be assigned first.
 void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config = MSDFGeneratorConfig());
 
+/// Generates a 7+1 channel signed distance field with true distance in the last channel. Edge colors must be assigned first.
+void generate7TSDF(const BitmapRef<float, 8> &output, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config = MSDFGeneratorConfig());
+
 // Old version of the function API's kept for backwards compatibility
 void generateSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);
 void generatePseudoSDF(const BitmapRef<float, 1> &output, const Shape &shape, double range, const Vector2 &scale, const Vector2 &translate, bool overlapSupport = true);

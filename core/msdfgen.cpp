@@ -49,6 +49,24 @@ public:
     }
 };
 
+template <>
+class DistancePixelConversion<M7AndTrueDistanceSelector::DistanceType> {
+    double invRange;
+public:
+    typedef BitmapRef<float, 8> BitmapRefType;
+    inline explicit DistancePixelConversion(double range) : invRange(1/range) { }
+    inline void operator()(float *pixels, const M7AndTrueDistanceSelector::DistanceType &distance) const {
+        pixels[0] = float(invRange*distance.p[0]+.5);
+        pixels[1] = float(invRange*distance.p[1]+.5);
+        pixels[2] = float(invRange*distance.p[2]+.5);
+        pixels[3] = float(invRange*distance.p[3]+.5);
+        pixels[4] = float(invRange*distance.p[4]+.5);
+        pixels[5] = float(invRange*distance.p[5]+.5);
+        pixels[6] = float(invRange*distance.p[6]+.5);
+        pixels[7] = float(invRange*distance.t+.5);
+    }
+};
+
 template <class ContourCombiner>
 void generateDistanceField(const typename DistancePixelConversion<typename ContourCombiner::DistanceType>::BitmapRefType &output, const Shape &shape, const Projection &projection, double range) {
     DistancePixelConversion<typename ContourCombiner::DistanceType> distancePixelConversion(range);
@@ -102,6 +120,13 @@ void generateMTSDF(const BitmapRef<float, 4> &output, const Shape &shape, const 
     else
         generateDistanceField<SimpleContourCombiner<MultiAndTrueDistanceSelector> >(output, shape, projection, range);
     msdfErrorCorrection(output, shape, projection, range, config);
+}
+
+void generate7TSDF(const BitmapRef<float, 8> &output, const Shape &shape, const Projection &projection, double range, const MSDFGeneratorConfig &config) {
+    if (config.overlapSupport)
+        generateDistanceField<OverlappingContourCombiner<M7AndTrueDistanceSelector> >(output, shape, projection, range);
+    else
+        generateDistanceField<SimpleContourCombiner<M7AndTrueDistanceSelector> >(output, shape, projection, range);
 }
 
 // Legacy API

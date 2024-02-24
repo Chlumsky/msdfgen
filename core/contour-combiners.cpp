@@ -16,12 +16,32 @@ static void initDistance(MultiDistance &distance) {
     distance.b = -DBL_MAX;
 }
 
+static void initDistance(M7AndTrueDistanceSelector::DistanceType &distance) {
+    distance.p[0] = -DBL_MAX;
+    distance.p[1] = -DBL_MAX;
+    distance.p[2] = -DBL_MAX;
+    distance.p[3] = -DBL_MAX;
+    distance.p[4] = -DBL_MAX;
+    distance.p[5] = -DBL_MAX;
+    distance.p[6] = -DBL_MAX;
+    distance.t = -DBL_MAX;
+}
+
 static double resolveDistance(double distance) {
     return distance;
 }
 
 static double resolveDistance(const MultiDistance &distance) {
     return median(distance.r, distance.g, distance.b);
+}
+
+static int cmpDbl(const void *a, const void *b) {
+    return *reinterpret_cast<const double *>(a) < *reinterpret_cast<const double *>(b);
+}
+
+static double resolveDistance(M7AndTrueDistanceSelector::DistanceType distance) {
+    qsort(distance.p, 7, sizeof(*distance.p), &cmpDbl);
+    return distance.p[3];
 }
 
 template <class EdgeSelector>
@@ -46,6 +66,7 @@ template class SimpleContourCombiner<TrueDistanceSelector>;
 template class SimpleContourCombiner<PseudoDistanceSelector>;
 template class SimpleContourCombiner<MultiDistanceSelector>;
 template class SimpleContourCombiner<MultiAndTrueDistanceSelector>;
+template class SimpleContourCombiner<M7AndTrueDistanceSelector>;
 
 template <class EdgeSelector>
 OverlappingContourCombiner<EdgeSelector>::OverlappingContourCombiner(const Shape &shape) {
@@ -130,5 +151,6 @@ template class OverlappingContourCombiner<TrueDistanceSelector>;
 template class OverlappingContourCombiner<PseudoDistanceSelector>;
 template class OverlappingContourCombiner<MultiDistanceSelector>;
 template class OverlappingContourCombiner<MultiAndTrueDistanceSelector>;
+template class OverlappingContourCombiner<M7AndTrueDistanceSelector>;
 
 }

@@ -258,4 +258,139 @@ MultiAndTrueDistanceSelector::DistanceType MultiAndTrueDistanceSelector::distanc
     return mtd;
 }
 
+void M7AndTrueDistanceSelector::reset(const Point2 &p) {
+    double delta = DISTANCE_DELTA_FACTOR*(p-this->p).length();
+    b[0].reset(delta);
+    b[1].reset(delta);
+    b[2].reset(delta);
+    b[3].reset(delta);
+    b[4].reset(delta);
+    b[5].reset(delta);
+    b[6].reset(delta);
+    this->p = p;
+}
+
+void M7AndTrueDistanceSelector::addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge) {
+    if (
+        (edge->color&1<<0 && b[0].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<1 && b[1].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<2 && b[2].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<3 && b[3].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<4 && b[4].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<5 && b[5].isEdgeRelevant(cache, edge, p)) ||
+        (edge->color&1<<6 && b[6].isEdgeRelevant(cache, edge, p))
+    ) {
+        double param;
+        SignedDistance distance = edge->signedDistance(p, param);
+        if (edge->color&1<<0)
+            b[0].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<1)
+            b[1].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<2)
+            b[2].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<3)
+            b[3].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<4)
+            b[4].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<5)
+            b[5].addEdgeTrueDistance(edge, distance, param);
+        if (edge->color&1<<6)
+            b[6].addEdgeTrueDistance(edge, distance, param);
+        cache.point = p;
+        cache.absDistance = fabs(distance.distance);
+
+        Vector2 ap = p-edge->point(0);
+        Vector2 bp = p-edge->point(1);
+        Vector2 aDir = edge->direction(0).normalize(true);
+        Vector2 bDir = edge->direction(1).normalize(true);
+        Vector2 prevDir = prevEdge->direction(1).normalize(true);
+        Vector2 nextDir = nextEdge->direction(0).normalize(true);
+        double add = dotProduct(ap, (prevDir+aDir).normalize(true));
+        double bdd = -dotProduct(bp, (bDir+nextDir).normalize(true));
+        if (add > 0) {
+            double pd = distance.distance;
+            if (PseudoDistanceSelectorBase::getPseudoDistance(pd, ap, -aDir)) {
+                pd = -pd;
+                if (edge->color&1<<0)
+                    b[0].addEdgePseudoDistance(pd);
+                if (edge->color&1<<1)
+                    b[1].addEdgePseudoDistance(pd);
+                if (edge->color&1<<2)
+                    b[2].addEdgePseudoDistance(pd);
+                if (edge->color&1<<3)
+                    b[3].addEdgePseudoDistance(pd);
+                if (edge->color&1<<4)
+                    b[4].addEdgePseudoDistance(pd);
+                if (edge->color&1<<5)
+                    b[5].addEdgePseudoDistance(pd);
+                if (edge->color&1<<6)
+                    b[6].addEdgePseudoDistance(pd);
+            }
+            cache.aPseudoDistance = pd;
+        }
+        if (bdd > 0) {
+            double pd = distance.distance;
+            if (PseudoDistanceSelectorBase::getPseudoDistance(pd, bp, bDir)) {
+                if (edge->color&1<<0)
+                    b[0].addEdgePseudoDistance(pd);
+                if (edge->color&1<<1)
+                    b[1].addEdgePseudoDistance(pd);
+                if (edge->color&1<<2)
+                    b[2].addEdgePseudoDistance(pd);
+                if (edge->color&1<<3)
+                    b[3].addEdgePseudoDistance(pd);
+                if (edge->color&1<<4)
+                    b[4].addEdgePseudoDistance(pd);
+                if (edge->color&1<<5)
+                    b[5].addEdgePseudoDistance(pd);
+                if (edge->color&1<<6)
+                    b[6].addEdgePseudoDistance(pd);
+            }
+            cache.bPseudoDistance = pd;
+        }
+        cache.aDomainDistance = add;
+        cache.bDomainDistance = bdd;
+    }
+}
+
+void M7AndTrueDistanceSelector::merge(const M7AndTrueDistanceSelector &other) {
+    b[0].merge(other.b[0]);
+    b[1].merge(other.b[1]);
+    b[2].merge(other.b[2]);
+    b[3].merge(other.b[3]);
+    b[4].merge(other.b[4]);
+    b[5].merge(other.b[5]);
+    b[6].merge(other.b[6]);
+}
+
+M7AndTrueDistanceSelector::DistanceType M7AndTrueDistanceSelector::distance() const {
+    DistanceType multiDistance;
+    multiDistance.p[0] = b[0].computeDistance(p);
+    multiDistance.p[1] = b[1].computeDistance(p);
+    multiDistance.p[2] = b[2].computeDistance(p);
+    multiDistance.p[3] = b[3].computeDistance(p);
+    multiDistance.p[4] = b[4].computeDistance(p);
+    multiDistance.p[5] = b[5].computeDistance(p);
+    multiDistance.p[6] = b[6].computeDistance(p);
+    multiDistance.t = trueDistance().distance;
+    return multiDistance;
+}
+
+SignedDistance M7AndTrueDistanceSelector::trueDistance() const {
+    SignedDistance distance = b[0].trueDistance();
+    if (b[1].trueDistance() < distance)
+        distance = b[1].trueDistance();
+    if (b[2].trueDistance() < distance)
+        distance = b[2].trueDistance();
+    if (b[3].trueDistance() < distance)
+        distance = b[3].trueDistance();
+    if (b[4].trueDistance() < distance)
+        distance = b[4].trueDistance();
+    if (b[5].trueDistance() < distance)
+        distance = b[5].trueDistance();
+    if (b[6].trueDistance() < distance)
+        distance = b[6].trueDistance();
+    return distance;
+}
+
 }

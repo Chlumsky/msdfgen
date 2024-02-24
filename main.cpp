@@ -516,6 +516,7 @@ int main(int argc, const char *const *argv) {
         PSEUDO,
         MULTI,
         MULTI_AND_TRUE,
+        MULTI7_AND_TRUE,
         METRICS
     } mode = MULTI;
     enum {
@@ -592,6 +593,7 @@ int main(int argc, const char *const *argv) {
         ARG_MODE("psdf", PSEUDO)
         ARG_MODE("msdf", MULTI)
         ARG_MODE("mtsdf", MULTI_AND_TRUE)
+        ARG_MODE("7tsdf", MULTI7_AND_TRUE)
         ARG_MODE("metrics", METRICS)
 
     #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
@@ -1140,6 +1142,7 @@ int main(int argc, const char *const *argv) {
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
+    Bitmap<float, 8> m7tsdf;
     MSDFGeneratorConfig postErrorCorrectionConfig(generatorConfig);
     if (scanlinePass) {
         if (explicitErrorCorrectionMode && generatorConfig.errorCorrection.distanceCheckMode != ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE) {
@@ -1196,6 +1199,27 @@ int main(int argc, const char *const *argv) {
                 generateMTSDF(mtsdf, shape, projection, range, generatorConfig);
             break;
         }
+        case MULTI7_AND_TRUE:
+            edgeColoring7Random(shape, angleThreshold, coloringSeed);
+            m7tsdf = Bitmap<float, 8>(width, height);
+            generate7TSDF(m7tsdf, shape, projection, range, generatorConfig);
+            mtsdf = Bitmap<float, 4>(width, 2*height);
+            for (float
+                *dstLow = mtsdf(0, 0),
+                *dstHigh = mtsdf(0, height),
+                *src = m7tsdf(0, 0),
+                *srcEnd = m7tsdf(0, height);
+                src < srcEnd; dstLow += 4, dstHigh += 4, src += 8
+            ) {
+                dstLow[0] = src[0];
+                dstLow[1] = src[1];
+                dstLow[2] = src[2];
+                dstLow[3] = src[3];
+                dstHigh[0] = src[4];
+                dstHigh[1] = src[5];
+                dstHigh[2] = src[6];
+                dstHigh[3] = src[7];
+            }
         default:;
     }
 
@@ -1343,6 +1367,11 @@ int main(int argc, const char *const *argv) {
                     fputs("Failed to write test render file.\n", stderr);
             }
             break;
+        case MULTI7_AND_TRUE:
+            if ((error = writeOutput<4>(mtsdf, output, format))) {
+                fprintf(stderr, "%s\n", error);
+                return 1;
+            }
         default:;
     }
 

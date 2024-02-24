@@ -498,4 +498,140 @@ void edgeColoringByDistance(Shape &shape, double angleThreshold, unsigned long l
     }
 }
 
+void edgeColoring7Random(Shape &shape, double angleThreshold, unsigned long long seed) {
+    /*int colorPool[] = {
+        0b00001111,
+        0b00010111,
+        0b00011011,
+        0b00011101,
+        0b00011110,
+        0b00100111,
+        0b00101011,
+        0b00101101,
+        0b00101110,
+        0b00110011,
+        0b00110101,
+        0b00110110,
+        0b00111001,
+        0b00111010,
+        0b00111100,
+        0b01000111,
+        0b01001011,
+        0b01001101,
+        0b01001110,
+        0b01010011,
+        0b01010101,
+        0b01010110,
+        0b01011001,
+        0b01011010,
+        0b01011100,
+        0b01100011,
+        0b01100101,
+        0b01100110,
+        0b01101001,
+        0b01101010,
+        0b01101100,
+        0b01110001,
+        0b01110010,
+        0b01110100,
+        0b01111000,
+    };
+    static_assert(sizeof(colorPool) == 35*sizeof(*colorPool), "Expected 35 colors in color pool");*/
+    int colorPool[] = {
+        // All pairs share exactly 2 set bits
+        0b00001111,
+        0b00111100,
+        0b00110011,
+        0b01010101,
+        0b01011010,
+        0b01100110,
+        0b01101001,
+    };
+    
+    int colorI = 0;
+    #define NEXT_COLOR() EdgeColor(colorPool[colorI++%(int(sizeof(colorPool)/sizeof(*colorPool)))])
+
+    double crossThreshold = sin(angleThreshold);
+    std::vector<int> corners;
+    for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
+        if (seed) {
+            // Shuffle colorPool
+            for (int i = int(sizeof(colorPool)/sizeof(*colorPool))-1; i; --i) {
+                seed = 6364136223846793005ll*seed+1442695040888963407ll; // LCG
+                int j = int(seed%(i+1));
+                int tmp = colorPool[i];
+                colorPool[i] = colorPool[j];
+                colorPool[j] = tmp;
+            }
+        }
+        // Identify corners
+        corners.clear();
+        if (!contour->edges.empty()) {
+            Vector2 prevDirection = contour->edges.back()->direction(1);
+            int index = 0;
+            for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge, ++index) {
+                if (isCorner(prevDirection.normalize(), (*edge)->direction(0).normalize(), crossThreshold))
+                    corners.push_back(index);
+                prevDirection = (*edge)->direction(1);
+            }
+        }
+
+        // Smooth contour
+        if (corners.empty()) {
+            EdgeColor color = NEXT_COLOR();
+            for (std::vector<EdgeHolder>::iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge)
+                (*edge)->color = color;
+        }
+        // "Teardrop" case
+        else if (corners.size() == 1) {
+            EdgeColor colors[3];
+            colors[0] = NEXT_COLOR();
+            colors[2] = NEXT_COLOR();
+            colors[1] = EdgeColor(colors[0]|colors[2]);
+            int corner = corners[0];
+            if (contour->edges.size() >= 3) {
+                int m = (int) contour->edges.size();
+                for (int i = 0; i < m; ++i)
+                    contour->edges[(corner+i)%m]->color = (colors+1)[int(3+2.875*i/(m-1)-1.4375+.5)-3];
+            } else if (contour->edges.size() >= 1) {
+                // Less than three edge segments for three colors => edges must be split
+                EdgeSegment *parts[7] = { };
+                contour->edges[0]->splitInThirds(parts[0+3*corner], parts[1+3*corner], parts[2+3*corner]);
+                if (contour->edges.size() >= 2) {
+                    contour->edges[1]->splitInThirds(parts[3-3*corner], parts[4-3*corner], parts[5-3*corner]);
+                    parts[0]->color = parts[1]->color = colors[0];
+                    parts[2]->color = parts[3]->color = colors[1];
+                    parts[4]->color = parts[5]->color = colors[2];
+                } else {
+                    parts[0]->color = colors[0];
+                    parts[1]->color = colors[1];
+                    parts[2]->color = colors[2];
+                }
+                contour->edges.clear();
+                for (int i = 0; parts[i]; ++i)
+                    contour->edges.push_back(EdgeHolder(parts[i]));
+            }
+        }
+        // Multiple corners
+        else {
+            int cornerCount = (int) corners.size();
+            int spline = 0;
+            int start = corners[0];
+            int m = (int) contour->edges.size();
+            EdgeColor color = NEXT_COLOR();
+            EdgeColor initialColor = color;
+            for (int i = 0; i < m; ++i) {
+                int index = (start+i)%m;
+                if (spline+1 < cornerCount && corners[spline+1] == index) {
+                    ++spline;
+                    color = NEXT_COLOR();
+                    if (spline == cornerCount-1 && color == initialColor)
+                        color = NEXT_COLOR();
+                }
+                contour->edges[index]->color = color;
+            }
+        }
+    }
+}
+
 }

@@ -114,4 +114,25 @@ public:
 
 };
 
+class M7AndTrueDistanceSelector {
+
+public:
+    typedef PseudoDistanceSelectorBase::EdgeCache EdgeCache;
+    struct DistanceType {
+        double p[7];
+        double t;
+    };
+
+    void reset(const Point2 &p);
+    void addEdge(EdgeCache &cache, const EdgeSegment *prevEdge, const EdgeSegment *edge, const EdgeSegment *nextEdge);
+    void merge(const M7AndTrueDistanceSelector &other);
+    DistanceType distance() const;
+    SignedDistance trueDistance() const;
+
+private:
+    Point2 p;
+    PseudoDistanceSelectorBase b[7];
+
+};
+
 }

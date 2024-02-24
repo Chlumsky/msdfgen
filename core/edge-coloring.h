@@ -26,4 +26,6 @@ void edgeColoringInkTrap(Shape &shape, double angleThreshold, unsigned long long
  */
 void edgeColoringByDistance(Shape &shape, double angleThreshold, unsigned long long seed = 0);
 
+void edgeColoring7Random(Shape &shape, double angleThreshold, unsigned long long seed = 0);
+
 }
