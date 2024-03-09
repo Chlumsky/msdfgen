@@ -4,7 +4,7 @@
 /*
  * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR
  * ---------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2023
+ * A utility by Viktor Chlumsky, (c) 2014 - 2024
  *
  * The extension module provides ways to easily load input and save output using popular formats.
  *

@@ -16,6 +16,13 @@ static void initDistance(MultiDistance &distance) {
     distance.b = -DBL_MAX;
 }
 
+static void initDistance(MultiAndTrueDistance &distance) {
+    distance.r = -DBL_MAX;
+    distance.g = -DBL_MAX;
+    distance.b = -DBL_MAX;
+    distance.a = -DBL_MAX;
+}
+
 static double resolveDistance(double distance) {
     return distance;
 }
