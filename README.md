@@ -15,7 +15,7 @@ The following comparison demonstrates the improvement in image quality.
 ![demo-sdf32](https://user-images.githubusercontent.com/18639794/106391906-e7aadc00-63ef-11eb-8f84-d402d0dd9174.png)
 
 - To learn more about this method, you can read my [Master's thesis](https://github.com/Chlumsky/msdfgen/files/3050967/thesis.pdf).
-- Check out my [MSDF-Atlas-Gen](https://github.com/Chlumsky/msdf-atlas-gen) if you want to generate entire glyph atlases for text rendering.
+- Check out my [MSDF-Atlas-Gen](https://github.com/Chlumsky/msdf-atlas-gen) if you want to generate entire font atlases for text rendering.
 - See what's new in the [changelog](CHANGELOG.md).
 
 ## Getting started
@@ -68,7 +68,7 @@ The complete list of available options can be printed with **-help**.
 Some of the important ones are:
  - **-o \<filename\>** &ndash; specifies the output file name. The desired format will be deduced from the extension
    (png, bmp, tif, txt, bin). Otherwise, use -format.
- - **-size \<width\> \<height\>** &ndash; specifies the dimensions of the output distance field (in pixels).
+ - **-dimensions \<width\> \<height\>** &ndash; specifies the dimensions of the output distance field (in pixels).
  - **-range \<range\>**, **-pxrange \<range\>** &ndash; specifies the width of the range around the shape
    between the minimum and maximum representable signed distance in shape units or distance field pixels, respectivelly.
  - **-scale \<scale\>** &ndash; sets the scale used to convert shape units to distance field pixels.
@@ -87,7 +87,7 @@ Some of the important ones are:
 
 For example,
 ```
-msdfgen.exe msdf -font C:\Windows\Fonts\arialbd.ttf 'M' -o msdf.png -size 32 32 -pxrange 4 -autoframe -testrender render.png 1024 1024
+msdfgen.exe msdf -font C:\Windows\Fonts\arialbd.ttf 'M' -o msdf.png -dimensions 32 32 -pxrange 4 -autoframe -testrender render.png 1024 1024
 ```
 
 will take the glyph capital M from the Arial Bold typeface, generate a 32&times;32 multi-channel distance field

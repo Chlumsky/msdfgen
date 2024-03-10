@@ -394,6 +394,8 @@ static const char *const helpText =
         "\tAutomatically scales (unless specified) and translates the shape to fit.\n"
     "  -coloringstrategy <simple / inktrap / distance>\n"
         "\tSelects the strategy of the edge coloring heuristic.\n"
+    "  -dimensions <width> <height>\n"
+        "\tSets the dimensions of the output image.\n"
     "  -distanceshift <shift>\n"
         "\tShifts all normalized distances in the output distance field by this value.\n"
     "  -edgecolors <sequence>\n"
@@ -453,8 +455,6 @@ static const char *const helpText =
 #endif
     "  -seed <n>\n"
         "\tSets the random seed for edge coloring heuristic.\n"
-    "  -size <width> <height>\n"
-        "\tSets the dimensions of the output image.\n"
     "  -stdout\n"
         "\tPrints the output instead of storing it in a file. Only text formats are supported.\n"
     "  -testrender <filename." DEFAULT_IMAGE_EXTENSION "> <width> <height>\n"
@@ -580,8 +580,10 @@ int main(int argc, const char *const *argv) {
     bool suggestHelp = false;
     while (argPos < argc) {
         const char *arg = argv[argPos];
-        #define ARG_CASE(s, p) if (!strcmp(arg, s) && argPos+(p) < argc)
+        #define ARG_CASE(s, p) if ((!strcmp(arg, s)) && argPos+(p) < argc && (++argPos, true))
+        #define ARG_CASE_OR ) || !strcmp(arg,
         #define ARG_MODE(s, m) if (!strcmp(arg, s)) { mode = m; ++argPos; continue; }
+        #define ARG_IS(s) (!strcmp(argv[argPos], s))
         #define SET_FORMAT(fmt, ext) do { format = fmt; if (!outputSpecified) output = "output." ext; } while (false)
 
         // Accept arguments prefixed with -- instead of -
@@ -597,8 +599,7 @@ int main(int argc, const char *const *argv) {
     #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
         ARG_CASE("-svg", 1) {
             inputType = SVG;
-            input = argv[argPos+1];
-            argPos += 2;
+            input = argv[argPos++];
             continue;
         }
     #endif
@@ -609,9 +610,9 @@ int main(int argc, const char *const *argv) {
             #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
                 || (!strcmp(arg, "-varfont") && (inputType = VAR_FONT, true))
             #endif
-        )) {
-            input = argv[argPos+1];
-            const char *charArg = argv[argPos+2];
+        ) && (++argPos, true)) {
+            input = argv[argPos++];
+            const char *charArg = argv[argPos++];
             unsigned gi;
             switch (charArg[0]) {
                 case 'G': case 'g':
@@ -626,7 +627,6 @@ int main(int argc, const char *const *argv) {
                 default:
                     parseUnicode(unicode, charArg);
             }
-            argPos += 3;
             continue;
         }
     #else
@@ -642,309 +642,271 @@ int main(int argc, const char *const *argv) {
     #endif
         ARG_CASE("-defineshape", 1) {
             inputType = DESCRIPTION_ARG;
-            input = argv[argPos+1];
-            argPos += 2;
+            input = argv[argPos++];
             continue;
         }
         ARG_CASE("-stdin", 0) {
             inputType = DESCRIPTION_STDIN;
             input = "stdin";
-            argPos += 1;
             continue;
         }
         ARG_CASE("-shapedesc", 1) {
             inputType = DESCRIPTION_FILE;
-            input = argv[argPos+1];
-            argPos += 2;
+            input = argv[argPos++];
             continue;
         }
-        ARG_CASE("-o", 1) {
-            output = argv[argPos+1];
+        ARG_CASE("-o" ARG_CASE_OR "-out" ARG_CASE_OR "-output" ARG_CASE_OR "-imageout", 1) {
+            output = argv[argPos++];
             outputSpecified = true;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-stdout", 0) {
             output = NULL;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-legacy", 0) {
             legacyMode = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-nopreprocess", 0) {
             geometryPreproc = NO_PREPROCESS;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-windingpreprocess", 0) {
             geometryPreproc = WINDING_PREPROCESS;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-preprocess", 0) {
             geometryPreproc = FULL_PREPROCESS;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-nooverlap", 0) {
             generatorConfig.overlapSupport = false;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-overlap", 0) {
             generatorConfig.overlapSupport = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-noscanline", 0) {
             scanlinePass = false;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-scanline", 0) {
             scanlinePass = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-fillrule", 1) {
             scanlinePass = true;
-            if (!strcmp(argv[argPos+1], "nonzero")) fillRule = FILL_NONZERO;
-            else if (!strcmp(argv[argPos+1], "evenodd") || !strcmp(argv[argPos+1], "odd")) fillRule = FILL_ODD;
-            else if (!strcmp(argv[argPos+1], "positive")) fillRule = FILL_POSITIVE;
-            else if (!strcmp(argv[argPos+1], "negative")) fillRule = FILL_NEGATIVE;
+            if (ARG_IS("nonzero")) fillRule = FILL_NONZERO;
+            else if (ARG_IS("evenodd") || ARG_IS("odd")) fillRule = FILL_ODD;
+            else if (ARG_IS("positive")) fillRule = FILL_POSITIVE;
+            else if (ARG_IS("negative")) fillRule = FILL_NEGATIVE;
             else
                 fputs("Unknown fill rule specified.\n", stderr);
-            argPos += 2;
+            ++argPos;
             continue;
         }
         ARG_CASE("-format", 1) {
-            if (!strcmp(argv[argPos+1], "auto")) format = AUTO;
+            if (ARG_IS("auto")) format = AUTO;
         #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
-            else if (!strcmp(argv[argPos+1], "png")) SET_FORMAT(PNG, "png");
+            else if (ARG_IS("png")) SET_FORMAT(PNG, "png");
         #else
-            else if (!strcmp(argv[argPos+1], "png"))
+            else if (ARG_IS("png"))
                 fputs("PNG format is not available in core-only version.\n", stderr);
         #endif
-            else if (!strcmp(argv[argPos+1], "bmp")) SET_FORMAT(BMP, "bmp");
-            else if (!strcmp(argv[argPos+1], "tiff") || !strcmp(argv[argPos+1], "tif")) SET_FORMAT(TIFF, "tif");
-            else if (!strcmp(argv[argPos+1], "text") || !strcmp(argv[argPos+1], "txt")) SET_FORMAT(TEXT, "txt");
-            else if (!strcmp(argv[argPos+1], "textfloat") || !strcmp(argv[argPos+1], "txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
-            else if (!strcmp(argv[argPos+1], "bin") || !strcmp(argv[argPos+1], "binary")) SET_FORMAT(BINARY, "bin");
-            else if (!strcmp(argv[argPos+1], "binfloat") || !strcmp(argv[argPos+1], "binfloatle")) SET_FORMAT(BINARY_FLOAT, "bin");
-            else if (!strcmp(argv[argPos+1], "binfloatbe")) SET_FORMAT(BINARY_FLOAT_BE, "bin");
+            else if (ARG_IS("bmp")) SET_FORMAT(BMP, "bmp");
+            else if (ARG_IS("tiff") || ARG_IS("tif")) SET_FORMAT(TIFF, "tif");
+            else if (ARG_IS("text") || ARG_IS("txt")) SET_FORMAT(TEXT, "txt");
+            else if (ARG_IS("textfloat") || ARG_IS("txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
+            else if (ARG_IS("bin") || ARG_IS("binary")) SET_FORMAT(BINARY, "bin");
+            else if (ARG_IS("binfloat") || ARG_IS("binfloatle")) SET_FORMAT(BINARY_FLOAT, "bin");
+            else if (ARG_IS("binfloatbe")) SET_FORMAT(BINARY_FLOAT_BE, "bin");
             else
                 fputs("Unknown format specified.\n", stderr);
-            argPos += 2;
+            ++argPos;
             continue;
         }
-        ARG_CASE("-size", 2) {
+        ARG_CASE("-dimensions" ARG_CASE_OR "-size", 2) {
             unsigned w, h;
-            if (!(parseUnsigned(w, argv[argPos+1]) && parseUnsigned(h, argv[argPos+2]) && w && h))
-                ABORT("Invalid size arguments. Use -size <width> <height> with two positive integers.");
+            if (!(parseUnsigned(w, argv[argPos++]) && parseUnsigned(h, argv[argPos++]) && w && h))
+                ABORT("Invalid dimensions. Use -dimensions <width> <height> with two positive integers.");
             width = w, height = h;
-            argPos += 3;
             continue;
         }
         ARG_CASE("-autoframe", 0) {
             autoFrame = true;
-            argPos += 1;
             continue;
         }
-        ARG_CASE("-range", 1) {
+        ARG_CASE("-range" ARG_CASE_OR "-unitrange", 1) {
             double r;
-            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
+            if (!(parseDouble(r, argv[argPos++]) && r > 0))
                 ABORT("Invalid range argument. Use -range <range> with a positive real number.");
             rangeMode = RANGE_UNIT;
             range = r;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-pxrange", 1) {
             double r;
-            if (!(parseDouble(r, argv[argPos+1]) && r > 0))
+            if (!(parseDouble(r, argv[argPos++]) && r > 0))
                 ABORT("Invalid range argument. Use -pxrange <range> with a positive real number.");
             rangeMode = RANGE_PX;
             pxRange = r;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-scale", 1) {
             double s;
-            if (!(parseDouble(s, argv[argPos+1]) && s > 0))
+            if (!(parseDouble(s, argv[argPos++]) && s > 0))
                 ABORT("Invalid scale argument. Use -scale <scale> with a positive real number.");
             scale = s;
             scaleSpecified = true;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-ascale", 2) {
             double sx, sy;
-            if (!(parseDouble(sx, argv[argPos+1]) && parseDouble(sy, argv[argPos+2]) && sx > 0 && sy > 0))
+            if (!(parseDouble(sx, argv[argPos++]) && parseDouble(sy, argv[argPos++]) && sx > 0 && sy > 0))
                 ABORT("Invalid scale arguments. Use -ascale <x> <y> with two positive real numbers.");
             scale.set(sx, sy);
             scaleSpecified = true;
-            argPos += 3;
             continue;
         }
         ARG_CASE("-translate", 2) {
             double tx, ty;
-            if (!(parseDouble(tx, argv[argPos+1]) && parseDouble(ty, argv[argPos+2])))
+            if (!(parseDouble(tx, argv[argPos++]) && parseDouble(ty, argv[argPos++])))
                 ABORT("Invalid translate arguments. Use -translate <x> <y> with two real numbers.");
             translate.set(tx, ty);
-            argPos += 3;
             continue;
         }
         ARG_CASE("-angle", 1) {
             double at;
-            if (!parseAngle(at, argv[argPos+1]))
+            if (!parseAngle(at, argv[argPos++]))
                 ABORT("Invalid angle threshold. Use -angle <min angle> with a positive real number less than PI or a value in degrees followed by 'd' below 180d.");
             angleThreshold = at;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-errorcorrection", 1) {
-            if (!strcmp(argv[argPos+1], "disabled") || !strcmp(argv[argPos+1], "0") || !strcmp(argv[argPos+1], "none")) {
+            if (ARG_IS("disable") || ARG_IS("disabled") || ARG_IS("0") || ARG_IS("none") || ARG_IS("false")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::DISABLED;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "default") || !strcmp(argv[argPos+1], "auto") || !strcmp(argv[argPos+1], "auto-mixed") || !strcmp(argv[argPos+1], "mixed")) {
+            } else if (ARG_IS("default") || ARG_IS("auto") || ARG_IS("auto-mixed") || ARG_IS("mixed")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::CHECK_DISTANCE_AT_EDGE;
-            } else if (!strcmp(argv[argPos+1], "auto-fast") || !strcmp(argv[argPos+1], "fast")) {
+            } else if (ARG_IS("auto-fast") || ARG_IS("fast")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "auto-full") || !strcmp(argv[argPos+1], "full")) {
+            } else if (ARG_IS("auto-full") || ARG_IS("full")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_PRIORITY;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "distance") || !strcmp(argv[argPos+1], "distance-fast") || !strcmp(argv[argPos+1], "indiscriminate") || !strcmp(argv[argPos+1], "indiscriminate-fast")) {
+            } else if (ARG_IS("distance") || ARG_IS("distance-fast") || ARG_IS("indiscriminate") || ARG_IS("indiscriminate-fast")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::INDISCRIMINATE;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "distance-full") || !strcmp(argv[argPos+1], "indiscriminate-full")) {
+            } else if (ARG_IS("distance-full") || ARG_IS("indiscriminate-full")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::INDISCRIMINATE;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "edge-fast")) {
+            } else if (ARG_IS("edge-fast")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_ONLY;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "edge") || !strcmp(argv[argPos+1], "edge-full")) {
+            } else if (ARG_IS("edge") || ARG_IS("edge-full")) {
                 generatorConfig.errorCorrection.mode = ErrorCorrectionConfig::EDGE_ONLY;
                 generatorConfig.errorCorrection.distanceCheckMode = ErrorCorrectionConfig::ALWAYS_CHECK_DISTANCE;
-            } else if (!strcmp(argv[argPos+1], "help")) {
+            } else if (ARG_IS("help")) {
                 puts(errorCorrectionHelpText);
                 return 0;
             } else
                 fputs("Unknown error correction mode. Use -errorcorrection help for more information.\n", stderr);
+            ++argPos;
             explicitErrorCorrectionMode = true;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-errordeviationratio", 1) {
             double edr;
-            if (!(parseDouble(edr, argv[argPos+1]) && edr > 0))
+            if (!(parseDouble(edr, argv[argPos++]) && edr > 0))
                 ABORT("Invalid error deviation ratio. Use -errordeviationratio <ratio> with a positive real number.");
             generatorConfig.errorCorrection.minDeviationRatio = edr;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-errorimproveratio", 1) {
             double eir;
-            if (!(parseDouble(eir, argv[argPos+1]) && eir > 0))
+            if (!(parseDouble(eir, argv[argPos++]) && eir > 0))
                 ABORT("Invalid error improvement ratio. Use -errorimproveratio <ratio> with a positive real number.");
             generatorConfig.errorCorrection.minImproveRatio = eir;
-            argPos += 2;
             continue;
         }
-        ARG_CASE("-coloringstrategy", 1) {
-            if (!strcmp(argv[argPos+1], "simple"))
-                edgeColoring = &edgeColoringSimple;
-            else if (!strcmp(argv[argPos+1], "inktrap"))
-                edgeColoring = &edgeColoringInkTrap;
-            else if (!strcmp(argv[argPos+1], "distance"))
-                edgeColoring = &edgeColoringByDistance;
+        ARG_CASE("-coloringstrategy" ARG_CASE_OR "-edgecoloring", 1) {
+            if (ARG_IS("simple")) edgeColoring = &edgeColoringSimple;
+            else if (ARG_IS("inktrap")) edgeColoring = &edgeColoringInkTrap;
+            else if (ARG_IS("distance")) edgeColoring = &edgeColoringByDistance;
             else
                 fputs("Unknown coloring strategy specified.\n", stderr);
-            argPos += 2;
+            ++argPos;
             continue;
         }
         ARG_CASE("-edgecolors", 1) {
             static const char *allowed = " ?,cmwyCMWY";
-            for (int i = 0; argv[argPos+1][i]; ++i) {
+            for (int i = 0; argv[argPos][i]; ++i) {
                 for (int j = 0; allowed[j]; ++j)
-                    if (argv[argPos+1][i] == allowed[j])
+                    if (argv[argPos][i] == allowed[j])
                         goto EDGE_COLOR_VERIFIED;
                 ABORT("Invalid edge coloring sequence. Use -edgecolors <color sequence> with only the colors C, M, Y, and W. Separate contours by commas and use ? to keep the default assigment for a contour.");
             EDGE_COLOR_VERIFIED:;
             }
-            edgeAssignment = argv[argPos+1];
-            argPos += 2;
+            edgeAssignment = argv[argPos++];
             continue;
         }
         ARG_CASE("-distanceshift", 1) {
             double ds;
-            if (!parseDouble(ds, argv[argPos+1]))
+            if (!parseDouble(ds, argv[argPos++]))
                 ABORT("Invalid distance shift. Use -distanceshift <shift> with a real value.");
             outputDistanceShift = (float) ds;
-            argPos += 2;
             continue;
         }
         ARG_CASE("-exportshape", 1) {
-            shapeExport = argv[argPos+1];
-            argPos += 2;
+            shapeExport = argv[argPos++];
             continue;
         }
         ARG_CASE("-testrender", 3) {
             unsigned w, h;
-            if (!parseUnsigned(w, argv[argPos+2]) || !parseUnsigned(h, argv[argPos+3]) || !w || !h)
+            testRender = argv[argPos++];
+            if (!(parseUnsigned(w, argv[argPos++]) && parseUnsigned(h, argv[argPos++]) && (int) w > 0 && (int) h > 0))
                 ABORT("Invalid arguments for test render. Use -testrender <output." DEFAULT_IMAGE_EXTENSION "> <width> <height>.");
-            testRender = argv[argPos+1];
             testWidth = w, testHeight = h;
-            argPos += 4;
             continue;
         }
         ARG_CASE("-testrendermulti", 3) {
             unsigned w, h;
-            if (!parseUnsigned(w, argv[argPos+2]) || !parseUnsigned(h, argv[argPos+3]) || !w || !h)
+            testRenderMulti = argv[argPos++];
+            if (!(parseUnsigned(w, argv[argPos++]) && parseUnsigned(h, argv[argPos++]) && (int) w > 0 && (int) h > 0))
                 ABORT("Invalid arguments for test render. Use -testrendermulti <output." DEFAULT_IMAGE_EXTENSION "> <width> <height>.");
-            testRenderMulti = argv[argPos+1];
             testWidthM = w, testHeightM = h;
-            argPos += 4;
             continue;
         }
         ARG_CASE("-yflip", 0) {
             yFlip = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-printmetrics", 0) {
             printMetrics = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-estimateerror", 0) {
             estimateError = true;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-keeporder", 0) {
             orientation = KEEP;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-reverseorder", 0) {
             orientation = REVERSE;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-guessorder", 0) {
             orientation = GUESS;
-            argPos += 1;
             continue;
         }
         ARG_CASE("-seed", 1) {
-            if (!parseUnsignedLL(coloringSeed, argv[argPos+1]))
+            if (!parseUnsignedLL(coloringSeed, argv[argPos++]))
                 ABORT("Invalid seed. Use -seed <N> with N being a non-negative integer.");
-            argPos += 2;
             continue;
         }
         ARG_CASE("-version", 0) {
@@ -955,9 +917,8 @@ int main(int argc, const char *const *argv) {
             puts(helpText);
             return 0;
         }
-        fprintf(stderr, "Unknown setting or insufficient parameters: %s\n", argv[argPos]);
+        fprintf(stderr, "Unknown setting or insufficient parameters: %s\n", argv[argPos++]);
         suggestHelp = true;
-        ++argPos;
     }
     if (suggestHelp)
         fprintf(stderr, "Use -help for more information.\n");
