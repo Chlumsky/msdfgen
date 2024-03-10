@@ -4,7 +4,7 @@ This is a utility for generating signed distance fields from vector shapes and f
 which serve as a texture representation that can be used in real-time graphics to efficiently reproduce said shapes.
 Although it can also be used to generate conventional signed distance fields best known from
 [this Valve paper](https://steamcdn-a.akamaihd.net/apps/valve/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf)
-and pseudo-distance fields, its primary purpose is to generate multi-channel distance fields,
+and perpendicular distance fields, its primary purpose is to generate multi-channel distance fields,
 using a method I have developed. Unlike monochrome distance fields, they have the ability
 to reproduce sharp corners almost perfectly by utilizing all three color channels.
 
@@ -52,7 +52,7 @@ where only the input specification is required.
 
 Mode can be one of:
  - **sdf** &ndash; generates a conventional monochrome (true) signed distance field.
- - **psdf** &ndash; generates a monochrome signed pseudo-distance field.
+ - **psdf** &ndash; generates a monochrome signed perpendicular distance field.
  - **msdf** (default) &ndash; generates a multi-channel signed distance field using my new method.
  - **mtsdf** &ndash; generates a combined multi-channel and true signed distance field in the alpha channel.
 
@@ -104,10 +104,9 @@ in order to generate a distance field. Please note that all classes and function
    It consists of closed contours, which in turn consist of edges. An edge is represented by a `LinearEdge`, `QuadraticEdge`,
    or `CubicEdge`. You can construct them from two endpoints and 0 to 2 Bézier control points.
  - Normalize the shape using its `normalize` method and assign colors to edges if you need a multi-channel SDF.
-   This can be performed automatically using the `edgeColoringSimple` heuristic, or manually by setting each edge's
-   `color` member. Keep in mind that at least two color channels must be turned on in each edge, and iff two edges meet
-   at a sharp corner, they must only have one channel in common.
- - Call `generateSDF`, `generatePseudoSDF`, or `generateMSDF` to generate a distance field into a floating point
+   This can be performed automatically using the `edgeColoringSimple` (or other) heuristic, or manually by setting each edge's
+   `color` member. Keep in mind that at least two color channels must be turned on in each edge.
+ - Call `generateSDF`, `generatePSDF`, `generateMSDF`, or `generateMTSDF` to generate a distance field into a floating point
    `Bitmap` object. This can then be worked with further or saved to a file using `saveBmp`, `savePng`, or `saveTiff`.
  - You may also render an image from the distance field using `renderSDF`. Consider calling `simulate8bit`
    on the distance field beforehand to simulate the standard 8 bits/channel image format.

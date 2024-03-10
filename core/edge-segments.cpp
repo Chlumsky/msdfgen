@@ -25,15 +25,15 @@ EdgeSegment *EdgeSegment::create(Point2 p0, Point2 p1, Point2 p2, Point2 p3, Edg
     return new CubicSegment(p0, p1, p2, p3, edgeColor);
 }
 
-void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const {
+void EdgeSegment::distanceToPerpendicularDistance(SignedDistance &distance, Point2 origin, double param) const {
     if (param < 0) {
         Vector2 dir = direction(0).normalize();
         Vector2 aq = origin-point(0);
         double ts = dotProduct(aq, dir);
         if (ts < 0) {
-            double pseudoDistance = crossProduct(aq, dir);
-            if (fabs(pseudoDistance) <= fabs(distance.distance)) {
-                distance.distance = pseudoDistance;
+            double perpendicularDistance = crossProduct(aq, dir);
+            if (fabs(perpendicularDistance) <= fabs(distance.distance)) {
+                distance.distance = perpendicularDistance;
                 distance.dot = 0;
             }
         }
@@ -42,9 +42,9 @@ void EdgeSegment::distanceToPseudoDistance(SignedDistance &distance, Point2 orig
         Vector2 bq = origin-point(1);
         double ts = dotProduct(bq, dir);
         if (ts > 0) {
-            double pseudoDistance = crossProduct(bq, dir);
-            if (fabs(pseudoDistance) <= fabs(distance.distance)) {
-                distance.distance = pseudoDistance;
+            double perpendicularDistance = crossProduct(bq, dir);
+            if (fabs(perpendicularDistance) <= fabs(distance.distance)) {
+                distance.distance = perpendicularDistance;
                 distance.dot = 0;
             }
         }

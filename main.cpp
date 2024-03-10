@@ -358,7 +358,7 @@ static const char *const helpText =
     "\n"
     "MODES\n"
     "  sdf - Generate conventional monochrome (true) signed distance field.\n"
-    "  psdf - Generate monochrome signed pseudo-distance field.\n"
+    "  psdf - Generate monochrome signed perpendicular distance field.\n"
     "  msdf - Generate multi-channel signed distance field. This is used by default if no mode is specified.\n"
     "  mtsdf - Generate combined multi-channel and true signed distance field in the alpha channel.\n"
     "  metrics - Report shape metrics only.\n"
@@ -513,7 +513,7 @@ int main(int argc, const char *const *argv) {
     } inputType = NONE;
     enum {
         SINGLE,
-        PSEUDO,
+        PERPENDICULAR,
         MULTI,
         MULTI_AND_TRUE,
         METRICS
@@ -573,7 +573,7 @@ int main(int argc, const char *const *argv) {
         GUESS
     } orientation = KEEP;
     unsigned long long coloringSeed = 0;
-    void (*edgeColoring)(Shape &, double, unsigned long long) = edgeColoringSimple;
+    void (*edgeColoring)(Shape &, double, unsigned long long) = &edgeColoringSimple;
     bool explicitErrorCorrectionMode = false;
 
     int argPos = 1;
@@ -589,7 +589,7 @@ int main(int argc, const char *const *argv) {
             ++arg;
 
         ARG_MODE("sdf", SINGLE)
-        ARG_MODE("psdf", PSEUDO)
+        ARG_MODE("psdf", PERPENDICULAR)
         ARG_MODE("msdf", MULTI)
         ARG_MODE("mtsdf", MULTI_AND_TRUE)
         ARG_MODE("metrics", METRICS)
@@ -856,9 +856,12 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-coloringstrategy", 1) {
-            if (!strcmp(argv[argPos+1], "simple")) edgeColoring = edgeColoringSimple;
-            else if (!strcmp(argv[argPos+1], "inktrap")) edgeColoring = edgeColoringInkTrap;
-            else if (!strcmp(argv[argPos+1], "distance")) edgeColoring = edgeColoringByDistance;
+            if (!strcmp(argv[argPos+1], "simple"))
+                edgeColoring = &edgeColoringSimple;
+            else if (!strcmp(argv[argPos+1], "inktrap"))
+                edgeColoring = &edgeColoringInkTrap;
+            else if (!strcmp(argv[argPos+1], "distance"))
+                edgeColoring = &edgeColoringByDistance;
             else
                 fputs("Unknown coloring strategy specified.\n", stderr);
             argPos += 2;
@@ -1164,12 +1167,12 @@ int main(int argc, const char *const *argv) {
                 generateSDF(sdf, shape, projection, range, generatorConfig);
             break;
         }
-        case PSEUDO: {
+        case PERPENDICULAR: {
             sdf = Bitmap<float, 1>(width, height);
             if (legacyMode)
-                generatePseudoSDF_legacy(sdf, shape, range, scale, translate);
+                generatePSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generatePseudoSDF(sdf, shape, projection, range, generatorConfig);
+                generatePSDF(sdf, shape, projection, range, generatorConfig);
             break;
         }
         case MULTI: {
@@ -1208,7 +1211,7 @@ int main(int argc, const char *const *argv) {
     if (orientation == REVERSE) {
         switch (mode) {
             case SINGLE:
-            case PSEUDO:
+            case PERPENDICULAR:
                 invertColor<1>(sdf);
                 break;
             case MULTI:
@@ -1223,7 +1226,7 @@ int main(int argc, const char *const *argv) {
     if (scanlinePass) {
         switch (mode) {
             case SINGLE:
-            case PSEUDO:
+            case PERPENDICULAR:
                 distanceSignCorrection(sdf, shape, projection, fillRule);
                 break;
             case MULTI:
@@ -1241,7 +1244,7 @@ int main(int argc, const char *const *argv) {
         float *pixel = NULL, *pixelsEnd = NULL;
         switch (mode) {
             case SINGLE:
-            case PSEUDO:
+            case PERPENDICULAR:
                 pixel = (float *) sdf;
                 pixelsEnd = pixel+1*sdf.width()*sdf.height();
                 break;
@@ -1271,7 +1274,7 @@ int main(int argc, const char *const *argv) {
     const char *error = NULL;
     switch (mode) {
         case SINGLE:
-        case PSEUDO:
+        case PERPENDICULAR:
             if ((error = writeOutput<1>(sdf, output, format))) {
                 fprintf(stderr, "%s\n", error);
                 return 1;

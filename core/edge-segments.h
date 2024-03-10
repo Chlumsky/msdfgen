@@ -37,8 +37,8 @@ public:
     virtual Vector2 directionChange(double param) const = 0;
     /// Returns the minimum signed distance between origin and the edge.
     virtual SignedDistance signedDistance(Point2 origin, double &param) const = 0;
-    /// Converts a previously retrieved signed distance from origin to pseudo-distance.
-    virtual void distanceToPseudoDistance(SignedDistance &distance, Point2 origin, double param) const;
+    /// Converts a previously retrieved signed distance from origin to perpendicular distance.
+    virtual void distanceToPerpendicularDistance(SignedDistance &distance, Point2 origin, double param) const;
     /// Outputs a list of (at most three) intersections (their X coordinates) with an infinite horizontal scanline at y and returns how many there are.
     virtual int scanlineIntersections(double x[3], int dy[3], double y) const = 0;
     /// Adjusts the bounding box to fit the edge segment.

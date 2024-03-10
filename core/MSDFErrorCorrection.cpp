@@ -94,7 +94,7 @@ public:
         return ArtifactClassifier(this, direction, span);
     }
 private:
-    ShapeDistanceFinder<ContourCombiner<PseudoDistanceSelector> > distanceFinder;
+    ShapeDistanceFinder<ContourCombiner<PerpendicularDistanceSelector> > distanceFinder;
     BitmapConstRef<float, N> sdf;
     double invRange;
     Vector2 texelSize;
