@@ -5,6 +5,8 @@
 
 namespace msdfgen {
 
+#define MSDFGEN_LEGACY_FONT_COORDINATE_SCALE (1/64.)
+
 typedef unsigned unicode_t;
 
 class FreetypeHandle;
@@ -45,6 +47,16 @@ struct FontVariationAxis {
     double defaultValue;
 };
 
+/// The scaling applied to font glyph coordinates when loading a glyph
+enum class FontCoordinateScaling {
+    /// The incorrect legacy version that was in effect before version 1.12, coordinate values are divided by 64
+    LEGACY,
+    /// The coordinates are kept as the integer values native to the font file
+    KEEP_INTEGERS,
+    /// The coordinates will be normalized to the em size, i.e. 1 = 1 em
+    EM_NORMALIZED
+};
+
 /// Initializes the FreeType library.
 FreetypeHandle *initializeFreetype();
 /// Deinitializes the FreeType library.
@@ -54,7 +66,7 @@ void deinitializeFreetype(FreetypeHandle *library);
 /// Creates a FontHandle from FT_Face that was loaded by the user. destroyFont must still be called but will not affect the FT_Face.
 FontHandle *adoptFreetypeFont(FT_Face ftFace);
 /// Converts the geometry of FreeType's FT_Outline to a Shape object.
-FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline);
+FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline, double scale = MSDFGEN_LEGACY_FONT_COORDINATE_SCALE);
 #endif
 
 /// Loads a font file and returns its handle.
@@ -64,19 +76,22 @@ FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
 /// Unloads a font.
 void destroyFont(FontHandle *font);
 /// Outputs the metrics of a font.
-bool getFontMetrics(FontMetrics &metrics, FontHandle *font);
+bool getFontMetrics(FontMetrics &metrics, FontHandle *font, FontCoordinateScaling coordinateScaling = FontCoordinateScaling::LEGACY);
 /// Outputs the width of the space and tab characters.
-bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font);
+bool getFontWhitespaceWidth(double &spaceAdvance, double &tabAdvance, FontHandle *font, FontCoordinateScaling coordinateScaling = FontCoordinateScaling::LEGACY);
 /// Outputs the total number of glyphs available in the font.
 bool getGlyphCount(unsigned &output, FontHandle *font);
 /// Outputs the glyph index corresponding to the specified Unicode character.
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
 /// Loads the geometry of a glyph from a font.
-bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *advance = NULL);
-bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *advance = NULL);
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
+// Legacy API - FontCoordinateScaling is LEGACY
+bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *outAdvance = NULL);
+bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *outAdvance = NULL);
 /// Outputs the kerning distance adjustment between two specific glyphs.
-bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1);
-bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1);
+bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1, FontCoordinateScaling coordinateScaling = FontCoordinateScaling::LEGACY);
+bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1, FontCoordinateScaling coordinateScaling = FontCoordinateScaling::LEGACY);
 
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 /// Sets a single variation axis of a variable font.
