@@ -402,6 +402,10 @@ static const char *const helpText =
         "\tSets the dimensions of the output image.\n"
     "  -edgecolors <sequence>\n"
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
+#ifdef MSDFGEN_EXTENSIONS
+    "  -emnormalize\n"
+        "\tBefore applying scale, normalizes font glyph coordinates so that 1 = 1 em.\n"
+#endif
     "  -errorcorrection <mode>\n"
         "\tChanges the MSDF/MTSDF error correction mode. Use -errorcorrection help for a list of valid modes.\n"
     "  -errordeviationratio <ratio>\n"
@@ -426,6 +430,10 @@ static const char *const helpText =
         "\tDisplays this help.\n"
     "  -legacy\n"
         "\tUses the original (legacy) distance field algorithms.\n"
+#ifdef MSDFGEN_EXTENSIONS
+    "  -noemnormalize\n"
+        "\tRaw integer font glyph coordinates will be used. Without this option, legacy scaling will be applied.\n"
+#endif
 #ifdef MSDFGEN_USE_SKIA
     "  -nopreprocess\n"
         "\tDisables path preprocessing which resolves self-intersections and overlapping contours.\n"
@@ -547,6 +555,8 @@ int main(int argc, const char *const *argv) {
     bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
+    FontCoordinateScaling fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+    bool fontCoordinateScalingSpecified = false;
 #endif
 
     int width = 64, height = 64;
@@ -631,6 +641,21 @@ int main(int argc, const char *const *argv) {
             }
             continue;
         }
+        ARG_CASE("-noemnormalize", 0) {
+            fontCoordinateScaling = FontCoordinateScaling::KEEP_INTEGERS;
+            fontCoordinateScalingSpecified = true;
+            continue;
+        }
+        ARG_CASE("-emnormalize", 0) {
+            fontCoordinateScaling = FontCoordinateScaling::EM_NORMALIZED;
+            fontCoordinateScalingSpecified = true;
+            continue;
+        }
+        ARG_CASE("-legacyfontscaling", 0) {
+            fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+            fontCoordinateScalingSpecified = true;
+            continue;
+        }
     #else
         ARG_CASE("-svg", 1) {
             ABORT("SVG input is not available in core-only version.");
@@ -668,6 +693,10 @@ int main(int argc, const char *const *argv) {
         }
         ARG_CASE("-legacy", 0) {
             legacyMode = true;
+        #ifdef MSDFGEN_EXTENSIONS
+            fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+            fontCoordinateScalingSpecified = true;
+        #endif
             continue;
         }
         ARG_CASE("-nopreprocess", 0) {
@@ -987,28 +1016,40 @@ int main(int argc, const char *const *argv) {
         case FONT: case VAR_FONT: {
             if (!glyphIndexSpecified && !unicode)
                 ABORT("No character specified! Use -font <file.ttf/otf> <character code>. Character code can be a Unicode index (65, 0x41), a character in apostrophes ('A'), or a glyph index prefixed by g (g36, g0x24).");
-            FreetypeHandle *ft = initializeFreetype();
-            if (!ft)
-                return -1;
-            FontHandle *font = (
+            struct FreetypeFontGuard {
+                FreetypeHandle *ft;
+                FontHandle *font;
+                FreetypeFontGuard() : ft(), font() { }
+                ~FreetypeFontGuard() {
+                    if (ft) {
+                        if (font)
+                            destroyFont(font);
+                        deinitializeFreetype(ft);
+                    }
+                }
+            } guard;
+            if (!(guard.ft = initializeFreetype()))
+                ABORT("Failed to initialize FreeType library.");
+            if (!(guard.font = (
                 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
-                    inputType == VAR_FONT ? loadVarFont(ft, input) :
+                    inputType == VAR_FONT ? loadVarFont(guard.ft, input) :
                 #endif
-                loadFont(ft, input)
-            );
-            if (!font) {
-                deinitializeFreetype(ft);
+                loadFont(guard.ft, input)
+            )))
                 ABORT("Failed to load font file.");
-            }
             if (unicode)
-                getGlyphIndex(glyphIndex, font, unicode);
-            if (!loadGlyph(shape, font, glyphIndex, &glyphAdvance)) {
-                destroyFont(font);
-                deinitializeFreetype(ft);
+                getGlyphIndex(glyphIndex, guard.font, unicode);
+            if (!loadGlyph(shape, guard.font, glyphIndex, fontCoordinateScaling, &glyphAdvance))
                 ABORT("Failed to load glyph from font file.");
+            if (!fontCoordinateScalingSpecified && (!autoFrame || scaleSpecified || rangeMode == RANGE_UNIT || mode == METRICS || printMetrics || shapeExport)) {
+                fputs(
+                    "Warning: Using legacy font coordinate conversion for compatibility reasons.\n"
+                    "         The scaling behavior in this configuration will likely change in a future version resulting in different output.\n"
+                    "         To silence this warning, use one of the following options:\n"
+                    "           -noemnormalize to switch to the correct native font coordinates,\n"
+                    "           -emnormalize to switch to coordinates normalized to 1 em, or\n"
+                    "           -legacyfontscaling to keep current behavior and make sure it will not change.\n", stderr);
             }
-            destroyFont(font);
-            deinitializeFreetype(ft);
             break;
         }
     #endif
@@ -1026,9 +1067,10 @@ int main(int argc, const char *const *argv) {
             FILE *file = fopen(input, "r");
             if (!file)
                 ABORT("Failed to load shape description file.");
-            if (!readShapeDescription(file, shape, &skipColoring))
-                ABORT("Parse error in shape description.");
+            bool readSuccessful = readShapeDescription(file, shape, &skipColoring);
             fclose(file);
+            if (!readSuccessful)
+                ABORT("Parse error in shape description.");
             break;
         }
         default:;
