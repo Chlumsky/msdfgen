@@ -128,10 +128,11 @@ int main() {
                 shape.normalize();
                 //                      max. angle
                 edgeColoringSimple(shape, 3.0);
-                //           image width, height
+                //          output width, height
                 Bitmap<float, 3> msdf(32, 32);
-                //                     range, scale, translation
-                generateMSDF(msdf, shape, 4.0, 1.0, Vector2(4.0, 4.0));
+                //                           scale, translation
+                SDFTransformation t(Projection(1.0, Vector2(4.0, 4.0)), Range(4.0));
+                generateMSDF(msdf, shape, t);
                 savePng(msdf, "output.png");
             }
             destroyFont(font);

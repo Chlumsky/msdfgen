@@ -388,6 +388,10 @@ static const char *const helpText =
     "OPTIONS\n"
     "  -angle <angle>\n"
         "\tSpecifies the minimum angle between adjacent edges to be considered a corner. Append D for degrees.\n"
+    "  -apxrange <outermost distance> <innermost distance>\n"
+        "\tSpecifies the outermost (negative) and innermost representable distance in pixels.\n"
+    "  -arange <outermost distance> <innermost distance>\n"
+        "\tSpecifies the outermost (negative) and innermost representable distance in shape units.\n"
     "  -ascale <x scale> <y scale>\n"
         "\tSets the scale used to convert shape units to pixels asymmetrically.\n"
     "  -autoframe\n"
@@ -396,8 +400,6 @@ static const char *const helpText =
         "\tSelects the strategy of the edge coloring heuristic.\n"
     "  -dimensions <width> <height>\n"
         "\tSets the dimensions of the output image.\n"
-    "  -distanceshift <shift>\n"
-        "\tShifts all normalized distances in the output distance field by this value.\n"
     "  -edgecolors <sequence>\n"
         "\tOverrides automatic edge coloring with the specified color sequence.\n"
     "  -errorcorrection <mode>\n"
@@ -555,8 +557,8 @@ int main(int argc, const char *const *argv) {
         RANGE_UNIT,
         RANGE_PX
     } rangeMode = RANGE_PX;
-    double range = 1;
-    double pxRange = 2;
+    Range range(1);
+    Range pxRange(2);
     Vector2 translate;
     Vector2 scale = 1;
     bool scaleSpecified = false;
@@ -740,18 +742,42 @@ int main(int argc, const char *const *argv) {
         }
         ARG_CASE("-range" ARG_CASE_OR "-unitrange", 1) {
             double r;
-            if (!(parseDouble(r, argv[argPos++]) && r > 0))
-                ABORT("Invalid range argument. Use -range <range> with a positive real number.");
+            if (!parseDouble(r, argv[argPos++]))
+                ABORT("Invalid range argument. Use -range <range> with a real number.");
+            if (r == 0)
+                ABORT("Range must be non-zero.");
             rangeMode = RANGE_UNIT;
-            range = r;
+            range = Range(r);
             continue;
         }
         ARG_CASE("-pxrange", 1) {
             double r;
-            if (!(parseDouble(r, argv[argPos++]) && r > 0))
-                ABORT("Invalid range argument. Use -pxrange <range> with a positive real number.");
+            if (!parseDouble(r, argv[argPos++]))
+                ABORT("Invalid range argument. Use -pxrange <range> with a real number.");
+            if (r == 0)
+                ABORT("Range must be non-zero.");
             rangeMode = RANGE_PX;
-            pxRange = r;
+            pxRange = Range(r);
+            continue;
+        }
+        ARG_CASE("-arange" ARG_CASE_OR "-aunitrange", 2) {
+            double r0, r1;
+            if (!(parseDouble(r0, argv[argPos++]) && parseDouble(r1, argv[argPos++])))
+                ABORT("Invalid range arguments. Use -arange <minimum> <maximum> with two real numbers.");
+            if (r0 == r1)
+                ABORT("Range must be non-empty.");
+            rangeMode = RANGE_UNIT;
+            range = Range(r0, r1);
+            continue;
+        }
+        ARG_CASE("-apxrange", 2) {
+            double r0, r1;
+            if (!(parseDouble(r0, argv[argPos++]) && parseDouble(r1, argv[argPos++])))
+                ABORT("Invalid range arguments. Use -apxrange <minimum> <maximum> with two real numbers.");
+            if (r0 == r1)
+                ABORT("Range must be non-empty.");
+            rangeMode = RANGE_PX;
+            pxRange = Range(r0, r1);
             continue;
         }
         ARG_CASE("-scale", 1) {
@@ -1039,16 +1065,22 @@ int main(int argc, const char *const *argv) {
     if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS)
         bounds = shape.getBounds();
 
+    if (outputDistanceShift) {
+        Range &rangeRef = rangeMode == RANGE_PX ? pxRange : range;
+        double rangeShift = -outputDistanceShift*(rangeRef.upper-rangeRef.lower);
+        rangeRef.lower += rangeShift;
+        rangeRef.upper += rangeShift;
+    }
+
     // Auto-frame
     if (autoFrame) {
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         Vector2 frame(width, height);
-        double m = .5+(double) outputDistanceShift;
         if (!scaleSpecified) {
             if (rangeMode == RANGE_UNIT)
-                l -= m*range, b -= m*range, r += m*range, t += m*range;
+                l += range.lower, b += range.lower, r -= range.lower, t -= range.lower;
             else
-                frame -= 2*m*pxRange;
+                frame += 2*pxRange.lower;
         }
         if (l >= r || b >= t)
             l = 0, b = 0, r = 1, t = 1;
@@ -1067,7 +1099,7 @@ int main(int argc, const char *const *argv) {
             }
         }
         if (rangeMode == RANGE_PX && !scaleSpecified)
-            translate += m*pxRange/scale;
+            translate -= pxRange.lower/scale;
     }
 
     if (rangeMode == RANGE_PX)
@@ -1094,13 +1126,13 @@ int main(int argc, const char *const *argv) {
             fprintf(out, "translate = %.17g, %.17g\n", translate.x, translate.y);
         }
         if (rangeMode == RANGE_PX)
-            fprintf(out, "range = %.17g\n", range);
+            fprintf(out, "range %.17g to %.17g\n", range.lower, range.upper);
         if (mode == METRICS && outputSpecified)
             fclose(out);
     }
 
     // Compute output
-    Projection projection(scale, translate);
+    SDFTransformation transformation(Projection(scale, translate), range);
     Bitmap<float, 1> sdf;
     Bitmap<float, 3> msdf;
     Bitmap<float, 4> mtsdf;
@@ -1125,7 +1157,7 @@ int main(int argc, const char *const *argv) {
             if (legacyMode)
                 generateSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generateSDF(sdf, shape, projection, range, generatorConfig);
+                generateSDF(sdf, shape, transformation, generatorConfig);
             break;
         }
         case PERPENDICULAR: {
@@ -1133,7 +1165,7 @@ int main(int argc, const char *const *argv) {
             if (legacyMode)
                 generatePSDF_legacy(sdf, shape, range, scale, translate);
             else
-                generatePSDF(sdf, shape, projection, range, generatorConfig);
+                generatePSDF(sdf, shape, transformation, generatorConfig);
             break;
         }
         case MULTI: {
@@ -1145,7 +1177,7 @@ int main(int argc, const char *const *argv) {
             if (legacyMode)
                 generateMSDF_legacy(msdf, shape, range, scale, translate, generatorConfig.errorCorrection);
             else
-                generateMSDF(msdf, shape, projection, range, generatorConfig);
+                generateMSDF(msdf, shape, transformation, generatorConfig);
             break;
         }
         case MULTI_AND_TRUE: {
@@ -1157,7 +1189,7 @@ int main(int argc, const char *const *argv) {
             if (legacyMode)
                 generateMTSDF_legacy(mtsdf, shape, range, scale, translate, generatorConfig.errorCorrection);
             else
-                generateMTSDF(mtsdf, shape, projection, range, generatorConfig);
+                generateMTSDF(mtsdf, shape, transformation, generatorConfig);
             break;
         }
         default:;
@@ -1188,39 +1220,18 @@ int main(int argc, const char *const *argv) {
         switch (mode) {
             case SINGLE:
             case PERPENDICULAR:
-                distanceSignCorrection(sdf, shape, projection, fillRule);
+                distanceSignCorrection(sdf, shape, transformation, fillRule);
                 break;
             case MULTI:
-                distanceSignCorrection(msdf, shape, projection, fillRule);
-                msdfErrorCorrection(msdf, shape, projection, range, postErrorCorrectionConfig);
+                distanceSignCorrection(msdf, shape, transformation, fillRule);
+                msdfErrorCorrection(msdf, shape, transformation, postErrorCorrectionConfig);
                 break;
             case MULTI_AND_TRUE:
-                distanceSignCorrection(mtsdf, shape, projection, fillRule);
-                msdfErrorCorrection(msdf, shape, projection, range, postErrorCorrectionConfig);
+                distanceSignCorrection(mtsdf, shape, transformation, fillRule);
+                msdfErrorCorrection(msdf, shape, transformation, postErrorCorrectionConfig);
                 break;
             default:;
         }
-    }
-    if (outputDistanceShift) {
-        float *pixel = NULL, *pixelsEnd = NULL;
-        switch (mode) {
-            case SINGLE:
-            case PERPENDICULAR:
-                pixel = (float *) sdf;
-                pixelsEnd = pixel+1*sdf.width()*sdf.height();
-                break;
-            case MULTI:
-                pixel = (float *) msdf;
-                pixelsEnd = pixel+3*msdf.width()*msdf.height();
-                break;
-            case MULTI_AND_TRUE:
-                pixel = (float *) mtsdf;
-                pixelsEnd = pixel+4*mtsdf.width()*mtsdf.height();
-                break;
-            default:;
-        }
-        while (pixel < pixelsEnd)
-            *pixel++ += outputDistanceShift;
     }
 
     // Save output
@@ -1243,18 +1254,18 @@ int main(int argc, const char *const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(sdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(sdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(sdf, shape, transformation, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
-                renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, sdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, sdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, sdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
@@ -1267,18 +1278,18 @@ int main(int argc, const char *const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(msdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(msdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(msdf, shape, transformation, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
-                renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, msdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, msdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, msdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
@@ -1291,18 +1302,18 @@ int main(int argc, const char *const *argv) {
             if (is8bitFormat(format) && (testRenderMulti || testRender || estimateError))
                 simulate8bit(mtsdf);
             if (estimateError) {
-                double sdfError = estimateSDFError(mtsdf, shape, projection, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
+                double sdfError = estimateSDFError(mtsdf, shape, transformation, SDF_ERROR_ESTIMATE_PRECISION, fillRule);
                 printf("SDF error ~ %e\n", sdfError);
             }
             if (testRenderMulti) {
                 Bitmap<float, 4> render(testWidthM, testHeightM);
-                renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, mtsdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
-                renderSDF(render, mtsdf, avgScale*range, .5f+outputDistanceShift);
+                renderSDF(render, mtsdf, avgScale*range);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
