@@ -555,7 +555,7 @@ int main(int argc, const char *const *argv) {
     bool glyphIndexSpecified = false;
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
-    FontCoordinateScaling fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+    FontCoordinateScaling fontCoordinateScaling = FONT_SCALING_LEGACY;
     bool fontCoordinateScalingSpecified = false;
 #endif
 
@@ -642,17 +642,17 @@ int main(int argc, const char *const *argv) {
             continue;
         }
         ARG_CASE("-noemnormalize", 0) {
-            fontCoordinateScaling = FontCoordinateScaling::KEEP_INTEGERS;
+            fontCoordinateScaling = FONT_SCALING_NONE;
             fontCoordinateScalingSpecified = true;
             continue;
         }
         ARG_CASE("-emnormalize", 0) {
-            fontCoordinateScaling = FontCoordinateScaling::EM_NORMALIZED;
+            fontCoordinateScaling = FONT_SCALING_EM_NORMALIZED;
             fontCoordinateScalingSpecified = true;
             continue;
         }
         ARG_CASE("-legacyfontscaling", 0) {
-            fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+            fontCoordinateScaling = FONT_SCALING_LEGACY;
             fontCoordinateScalingSpecified = true;
             continue;
         }
@@ -694,7 +694,7 @@ int main(int argc, const char *const *argv) {
         ARG_CASE("-legacy", 0) {
             legacyMode = true;
         #ifdef MSDFGEN_EXTENSIONS
-            fontCoordinateScaling = FontCoordinateScaling::LEGACY;
+            fontCoordinateScaling = FONT_SCALING_LEGACY;
             fontCoordinateScalingSpecified = true;
         #endif
             continue;
@@ -1044,7 +1044,7 @@ int main(int argc, const char *const *argv) {
             if (!fontCoordinateScalingSpecified && (!autoFrame || scaleSpecified || rangeMode == RANGE_UNIT || mode == METRICS || printMetrics || shapeExport)) {
                 fputs(
                     "Warning: Using legacy font coordinate conversion for compatibility reasons.\n"
-                    "         The scaling behavior in this configuration will likely change in a future version resulting in different output.\n"
+                    "         The implicit scaling behavior will likely change in a future version resulting in different output.\n"
                     "         To silence this warning, use one of the following options:\n"
                     "           -noemnormalize to switch to the correct native font coordinates,\n"
                     "           -emnormalize to switch to coordinates normalized to 1 em, or\n"

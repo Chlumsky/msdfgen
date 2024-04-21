@@ -103,12 +103,12 @@ static int ftCubicTo(const FT_Vector *control1, const FT_Vector *control2, const
 
 static double getFontCoordinateScale(const FT_Face &face, FontCoordinateScaling coordinateScaling) {
     switch (coordinateScaling) {
-        case FontCoordinateScaling::LEGACY:
-            return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
-        case FontCoordinateScaling::KEEP_INTEGERS:
+        case FONT_SCALING_NONE:
             return 1;
-        case FontCoordinateScaling::EM_NORMALIZED:
+        case FONT_SCALING_EM_NORMALIZED:
             return 1./(face->units_per_EM ? face->units_per_EM : 1);
+        case FONT_SCALING_LEGACY:
+            return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
     }
     return 1;
 }
@@ -243,11 +243,11 @@ bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, FontCoordinat
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *outAdvance) {
-    return loadGlyph(output, font, glyphIndex, FontCoordinateScaling::LEGACY, outAdvance);
+    return loadGlyph(output, font, glyphIndex, FONT_SCALING_LEGACY, outAdvance);
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *outAdvance) {
-    return loadGlyph(output, font, unicode, FontCoordinateScaling::LEGACY, outAdvance);
+    return loadGlyph(output, font, unicode, FONT_SCALING_LEGACY, outAdvance);
 }
 
 bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1, FontCoordinateScaling coordinateScaling) {
