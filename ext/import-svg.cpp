@@ -8,7 +8,16 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <vector>
+#include <string>
+#include <stack>
+
+#ifdef MSDFGEN_USE_TINYXML2
 #include <tinyxml2.h>
+#endif
+#ifdef MSDFGEN_USE_DROPXML
+#include <dropXML.hpp>
+#endif
 
 #ifdef MSDFGEN_USE_SKIA
 #include <skia/core/SkPath.h>
@@ -35,6 +44,8 @@ MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_PARTIAL_FAILURE_FLAG = 0x02;
 MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_INCOMPLETE_FLAG = 0x04;
 MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG = 0x08;
 MSDFGEN_EXT_PUBLIC const int SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG = 0x10;
+
+#define FLAGS_FINAL(flags) (((flags)&(SVG_IMPORT_SUCCESS_FLAG|SVG_IMPORT_INCOMPLETE_FLAG|SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG)) == (SVG_IMPORT_SUCCESS_FLAG|SVG_IMPORT_INCOMPLETE_FLAG|SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG))
 
 static void skipExtraChars(const char *&pathDef) {
     while (*pathDef == ',' || *pathDef == ' ' || *pathDef == '\t' || *pathDef == '\r' || *pathDef == '\n')
@@ -134,46 +145,6 @@ static void addArcApproximate(Contour &contour, Point2 startPoint, Point2 endPoi
         Point2 node = i == segments-1 ? endPoint : center+rotateVector(d*radius, axis);
         contour.addEdge(EdgeHolder(prevNode, controlPoint[0], controlPoint[1], node));
         prevNode = node;
-    }
-}
-
-#define FLAGS_FINAL(flags) (((flags)&(SVG_IMPORT_SUCCESS_FLAG|SVG_IMPORT_INCOMPLETE_FLAG|SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG)) == (SVG_IMPORT_SUCCESS_FLAG|SVG_IMPORT_INCOMPLETE_FLAG|SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG))
-
-static void findPathByForwardIndex(tinyxml2::XMLElement *&path, int &flags, int &skips, tinyxml2::XMLElement *parent, bool hasTransformation) {
-    for (tinyxml2::XMLElement *cur = parent->FirstChildElement(); cur && !FLAGS_FINAL(flags); cur = cur->NextSiblingElement()) {
-        if (!strcmp(cur->Name(), "path")) {
-            if (!skips--) {
-                path = cur;
-                flags |= SVG_IMPORT_SUCCESS_FLAG;
-                if (hasTransformation || cur->Attribute("transform"))
-                    flags |= SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
-            } else if (flags&SVG_IMPORT_SUCCESS_FLAG)
-                flags |= SVG_IMPORT_INCOMPLETE_FLAG;
-        } else if (!strcmp(cur->Name(), "g"))
-            findPathByForwardIndex(path, flags, skips, cur, hasTransformation || cur->Attribute("transform"));
-        else if (!strcmp(cur->Name(), "rect") || !strcmp(cur->Name(), "circle") || !strcmp(cur->Name(), "ellipse") || !strcmp(cur->Name(), "polygon"))
-            flags |= SVG_IMPORT_INCOMPLETE_FLAG;
-        else if (!strcmp(cur->Name(), "mask") || !strcmp(cur->Name(), "use"))
-            flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
-    }
-}
-
-static void findPathByBackwardIndex(tinyxml2::XMLElement *&path, int &flags, int &skips, tinyxml2::XMLElement *parent, bool hasTransformation) {
-    for (tinyxml2::XMLElement *cur = parent->LastChildElement(); cur && !FLAGS_FINAL(flags); cur = cur->PreviousSiblingElement()) {
-        if (!strcmp(cur->Name(), "path")) {
-            if (!skips--) {
-                path = cur;
-                flags |= SVG_IMPORT_SUCCESS_FLAG;
-                if (hasTransformation || cur->Attribute("transform"))
-                    flags |= SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
-            } else if (flags&SVG_IMPORT_SUCCESS_FLAG)
-                flags |= SVG_IMPORT_INCOMPLETE_FLAG;
-        } else if (!strcmp(cur->Name(), "g"))
-            findPathByBackwardIndex(path, flags, skips, cur, hasTransformation || cur->Attribute("transform"));
-        else if (!strcmp(cur->Name(), "rect") || !strcmp(cur->Name(), "circle") || !strcmp(cur->Name(), "ellipse") || !strcmp(cur->Name(), "polygon"))
-            flags |= SVG_IMPORT_INCOMPLETE_FLAG;
-        else if (!strcmp(cur->Name(), "mask") || !strcmp(cur->Name(), "use"))
-            flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
     }
 }
 
@@ -307,6 +278,46 @@ bool buildShapeFromSvgPath(Shape &shape, const char *pathDef, double endpointSna
     return true;
 }
 
+#ifdef MSDFGEN_USE_TINYXML2
+
+static void findPathByForwardIndex(tinyxml2::XMLElement *&path, int &flags, int &skips, tinyxml2::XMLElement *parent, bool hasTransformation) {
+    for (tinyxml2::XMLElement *cur = parent->FirstChildElement(); cur && !FLAGS_FINAL(flags); cur = cur->NextSiblingElement()) {
+        if (!strcmp(cur->Name(), "path")) {
+            if (!skips--) {
+                path = cur;
+                flags |= SVG_IMPORT_SUCCESS_FLAG;
+                if (hasTransformation || cur->Attribute("transform"))
+                    flags |= SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
+            } else if (flags&SVG_IMPORT_SUCCESS_FLAG)
+                flags |= SVG_IMPORT_INCOMPLETE_FLAG;
+        } else if (!strcmp(cur->Name(), "g"))
+            findPathByForwardIndex(path, flags, skips, cur, hasTransformation || cur->Attribute("transform"));
+        else if (!strcmp(cur->Name(), "rect") || !strcmp(cur->Name(), "circle") || !strcmp(cur->Name(), "ellipse") || !strcmp(cur->Name(), "polygon"))
+            flags |= SVG_IMPORT_INCOMPLETE_FLAG;
+        else if (!strcmp(cur->Name(), "mask") || !strcmp(cur->Name(), "use"))
+            flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
+    }
+}
+
+static void findPathByBackwardIndex(tinyxml2::XMLElement *&path, int &flags, int &skips, tinyxml2::XMLElement *parent, bool hasTransformation) {
+    for (tinyxml2::XMLElement *cur = parent->LastChildElement(); cur && !FLAGS_FINAL(flags); cur = cur->PreviousSiblingElement()) {
+        if (!strcmp(cur->Name(), "path")) {
+            if (!skips--) {
+                path = cur;
+                flags |= SVG_IMPORT_SUCCESS_FLAG;
+                if (hasTransformation || cur->Attribute("transform"))
+                    flags |= SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
+            } else if (flags&SVG_IMPORT_SUCCESS_FLAG)
+                flags |= SVG_IMPORT_INCOMPLETE_FLAG;
+        } else if (!strcmp(cur->Name(), "g"))
+            findPathByBackwardIndex(path, flags, skips, cur, hasTransformation || cur->Attribute("transform"));
+        else if (!strcmp(cur->Name(), "rect") || !strcmp(cur->Name(), "circle") || !strcmp(cur->Name(), "ellipse") || !strcmp(cur->Name(), "polygon"))
+            flags |= SVG_IMPORT_INCOMPLETE_FLAG;
+        else if (!strcmp(cur->Name(), "mask") || !strcmp(cur->Name(), "use"))
+            flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
+    }
+}
+
 bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *dimensions) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filename))
@@ -340,8 +351,190 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     return buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
 }
 
+#endif
+
+#ifdef MSDFGEN_USE_DROPXML
+
+struct StrRange {
+    const char *start, *end;
+    inline StrRange() : start(), end() { }
+    inline StrRange(const char *start, const char *end) : start(start), end(end) { }
+    inline std::string str() const { return std::string(start, end); }
+};
+
+static bool matchName(const char *start, const char *end, const char *value) {
+    for (const char *c = start; c < end; ++c, ++value) {
+        if (*c != *value)
+            return false;
+    }
+    return !*value;
+}
+
+static std::string xmlDecode(const char *start, const char *end) {
+    if (!dropXML::decode(start, end, nullptr, nullptr)) {
+        std::string buffer(end-start+1, '\0');
+        if (!dropXML::decode(start, end, &buffer[0], &buffer[buffer.size()-1]))
+            return std::string();
+        if (start == buffer.data()) {
+            buffer.resize(end-start, '\0');
+            return (std::string &&) buffer;
+        }
+    }
+    return std::string(start, end);
+}
+
+static double xmlGetDouble(const char *start, const char *end) {
+    double x = 0;
+    std::string decodedStr(xmlDecode(start, end));
+    const char *strPtr = decodedStr.c_str();
+    readDouble(x, strPtr);
+    return x;
+}
+
+#define SVG_NAME_IS(x) matchName(nameStart, nameEnd, x)
+#define SVG_DEC_VAL() xmlDecode(valueStart, valueEnd)
+#define SVG_DOUBLEVAL() xmlGetDouble(valueStart, valueEnd)
+
+static bool readFile(std::vector<char> &output, const char *filename) {
+    if (FILE *f = fopen(filename, "rb")) {
+        struct FileGuard {
+            FILE *f;
+            ~FileGuard() {
+                fclose(f);
+            }
+        } fileGuard = { f };
+        if (fseek(f, 0, SEEK_END))
+            return false;
+        long size = ftell(f);
+        if (size < 0)
+            return false;
+        output.resize(size);
+        if (!size)
+            return true;
+        if (fseek(f, 0, SEEK_SET))
+            return false;
+        return fread(&output[0], 1, size, f) == (size_t) size;
+    }
+    return false;
+}
+
+class BaseSvgConsumer {
+public:
+    inline bool processingInstruction(const char *, const char *) { return true; }
+    inline bool doctype(const char *, const char *) { return true; }
+    inline bool text(const char *, const char *) { return true; }
+    inline bool cdata(const char *, const char *) { return true; }
+};
+
+class SvgPathAggregator : public BaseSvgConsumer {
+    enum {
+        IGNORED,
+        SVG,
+        G,
+        PATH
+    } curElement;
+    int ignoredDepth;
+
+public:
+    int flags;
+    Vector2 dimensions;
+    StrRange viewBox;
+    std::vector<StrRange> pathDefs;
+
+    inline SvgPathAggregator() : curElement(IGNORED), ignoredDepth(0), flags(0) { }
+
+    inline bool enterElement(const char *nameStart, const char *nameEnd) {
+        curElement = IGNORED;
+        if (ignoredDepth)
+            ++ignoredDepth;
+        else if (SVG_NAME_IS("svg"))
+            curElement = SVG;
+        else if (SVG_NAME_IS("g"))
+            curElement = G;
+        else if (SVG_NAME_IS("path"))
+            curElement = PATH;
+        else {
+            if (SVG_NAME_IS("rect") || SVG_NAME_IS("circle") || SVG_NAME_IS("ellipse") || SVG_NAME_IS("polygon"))
+                flags |= SVG_IMPORT_INCOMPLETE_FLAG;
+            else if (SVG_NAME_IS("mask") || SVG_NAME_IS("use"))
+                flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
+            ++ignoredDepth;
+        }
+        return true;
+    }
+
+    inline bool leaveElement(const char *, const char *) {
+        if (ignoredDepth)
+            --ignoredDepth;
+        return true;
+    }
+
+    inline bool elementAttribute(const char *nameStart, const char *nameEnd, const char *valueStart, const char *valueEnd) {
+        switch (curElement) {
+            case IGNORED:
+                break;
+            case SVG:
+                if (SVG_NAME_IS("width"))
+                    dimensions.x = xmlGetDouble(valueStart, valueEnd);
+                else if (SVG_NAME_IS("height"))
+                    dimensions.y = xmlGetDouble(valueStart, valueEnd);
+                else if (SVG_NAME_IS("viewBox"))
+                    viewBox = StrRange(valueStart, valueEnd);
+                break;
+            case PATH:
+                if (SVG_NAME_IS("d"))
+                    pathDefs.push_back(StrRange(valueStart, valueEnd));
+                // fallthrough
+            case G:
+                if (SVG_NAME_IS("transform"))
+                    flags |= SVG_IMPORT_TRANSFORMATION_IGNORED_FLAG;
+                break;
+        }
+        return true;
+    }
+
+    inline bool finishAttributes() { return true; }
+    inline bool finish() { return !ignoredDepth; }
+
+};
+
+bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *dimensions) {
+    std::vector<char> svgData;
+    if (!(readFile(svgData, filename) && !svgData.empty()))
+        return false;
+
+    SvgPathAggregator pathAggregator;
+    if (!dropXML::parse(pathAggregator, &svgData[0], &svgData[0]+svgData.size()))
+        return false;
+
+    if (pathIndex <= 0) {
+        if (pathIndex == 0)
+            pathIndex = -1;
+        pathIndex = pathAggregator.pathDefs.size()+pathIndex;
+    } else
+        --pathIndex;
+    if (!(pathIndex > 0 && pathIndex < (int) pathAggregator.pathDefs.size()))
+        return false;
+
+    Vector2 dims(pathAggregator.dimensions);
+    if (pathAggregator.viewBox.start < pathAggregator.viewBox.end) {
+        std::string viewBoxStr = xmlDecode(pathAggregator.viewBox.start, pathAggregator.viewBox.end);
+        const char *viewBoxPtr = viewBoxStr.c_str();
+        double left = 0, top = 0;
+        readDouble(left, viewBoxPtr) && readDouble(top, viewBoxPtr) && readDouble(dims.x, viewBoxPtr) && readDouble(dims.y, viewBoxPtr);
+    }
+    if (dimensions)
+        *dimensions = dims;
+    output.contours.clear();
+    output.inverseYAxis = true;
+    return buildShapeFromSvgPath(output, xmlDecode(pathAggregator.pathDefs[pathIndex].start, pathAggregator.pathDefs[pathIndex].end).c_str(), ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
+}
+
+#endif
+
 #ifndef MSDFGEN_USE_SKIA
 
+#ifdef MSDFGEN_USE_TINYXML2
 int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filename))
@@ -372,6 +565,34 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
         return SVG_IMPORT_FAILURE;
     return flags;
 }
+#endif
+
+#ifdef MSDFGEN_USE_DROPXML
+int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
+    std::vector<char> svgData;
+    if (!(readFile(svgData, filename) && !svgData.empty()))
+        return SVG_IMPORT_FAILURE;
+
+    SvgPathAggregator pathAggregator;
+    if (!dropXML::parse(pathAggregator, &svgData[0], &svgData[0]+svgData.size()) || pathAggregator.pathDefs.empty())
+        return SVG_IMPORT_FAILURE;
+
+    viewBox.l = 0, viewBox.b = 0;
+    Vector2 dims(pathAggregator.dimensions);
+    if (pathAggregator.viewBox.start < pathAggregator.viewBox.end) {
+        std::string viewBoxStr = xmlDecode(pathAggregator.viewBox.start, pathAggregator.viewBox.end);
+        const char *viewBoxPtr = viewBoxStr.c_str();
+        readDouble(viewBox.l, viewBoxPtr) && readDouble(viewBox.b, viewBoxPtr) && readDouble(dims.x, viewBoxPtr) && readDouble(dims.y, viewBoxPtr);
+    }
+    viewBox.r = viewBox.l+dims.x;
+    viewBox.t = viewBox.b+dims.y;
+    output.contours.clear();
+    output.inverseYAxis = true;
+    if (!buildShapeFromSvgPath(output, xmlDecode(pathAggregator.pathDefs.back().start, pathAggregator.pathDefs.back().end).c_str(), ENDPOINT_SNAP_RANGE_PROPORTION*dims.length()))
+        return SVG_IMPORT_FAILURE;
+    return SVG_IMPORT_SUCCESS_FLAG|pathAggregator.flags;
+}
+#endif
 
 #else
 
@@ -438,9 +659,9 @@ static SkMatrix parseTransformation(int &flags, const char *str) {
 }
 
 static SkMatrix combineTransformation(int &flags, const SkMatrix &parentTransformation, const char *transformationString, const char *transformationOriginString) {
-    if (transformationString) {
+    if (transformationString && *transformationString) {
         SkMatrix transformation = parseTransformation(flags, transformationString);
-        if (transformationOriginString) {
+        if (transformationOriginString && *transformationOriginString) {
             Point2 origin;
             if (readCoord(origin, transformationOriginString))
                 transformation = SkMatrix::Translate(SkScalar(origin.x), SkScalar(origin.y))*transformation*SkMatrix::Translate(SkScalar(-origin.x), SkScalar(-origin.y));
@@ -451,6 +672,8 @@ static SkMatrix combineTransformation(int &flags, const SkMatrix &parentTransfor
     }
     return parentTransformation;
 }
+
+#ifdef MSDFGEN_USE_TINYXML2
 
 static void gatherPaths(SkPath &fullPath, int &flags, tinyxml2::XMLElement *parent, const SkMatrix &transformation) {
     for (tinyxml2::XMLElement *cur = parent->FirstChildElement(); cur && !FLAGS_FINAL(flags); cur = cur->NextSiblingElement()) {
@@ -545,6 +768,290 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     viewBox.t = viewBox.b+dims.y;
     return flags;
 }
+
+#endif
+
+#ifdef MSDFGEN_USE_DROPXML
+
+int parseSvgShape(Shape &output, Shape::Bounds &viewBox, const char *svgData, size_t svgLength) {
+
+    class SvgConsumer : public BaseSvgConsumer {
+        enum Element {
+            BEGINNING,
+            IGNORED,
+            SVG,
+            G,
+            PATH,
+            RECT,
+            CIRCLE,
+            ELLIPSE,
+            POLYGON
+        } curElement;
+
+        // Current element attributes
+        struct ElementData {
+            StrRange transform, transformOrigin;
+            Vector2 pos, dims, radius;
+            StrRange pathDef;
+            bool fillRuleEvenOdd;
+            ElementData() : fillRuleEvenOdd(false) { }
+        } elem;
+
+        int ignoredDepth;
+        SkMatrix transformation;
+        std::stack<SkMatrix> transformationStack;
+
+    public:
+        int flags;
+        Vector2 dimensions;
+        Shape::Bounds viewBox;
+        SkPath fullPath;
+
+        SvgConsumer() : curElement(BEGINNING), ignoredDepth(0), flags(0), viewBox() { }
+
+        bool enterElement(const char *nameStart, const char *nameEnd) {
+            if (ignoredDepth) {
+                ++ignoredDepth;
+                return true;
+            }
+            if (curElement == BEGINNING && SVG_NAME_IS("svg"))
+                curElement = SVG;
+            else if (SVG_NAME_IS("g"))
+                curElement = G;
+            else if (SVG_NAME_IS("path"))
+                curElement = PATH;
+            else if (SVG_NAME_IS("rect"))
+                curElement = RECT;
+            else if (SVG_NAME_IS("circle"))
+                curElement = CIRCLE;
+            else if (SVG_NAME_IS("ellipse"))
+                curElement = ELLIPSE;
+            else if (SVG_NAME_IS("polygon"))
+                curElement = POLYGON;
+            else {
+                curElement = IGNORED;
+                ++ignoredDepth;
+                if (SVG_NAME_IS("mask") || SVG_NAME_IS("use"))
+                    flags |= SVG_IMPORT_UNSUPPORTED_FEATURE_FLAG;
+            }
+            if (curElement != IGNORED)
+                elem = ElementData();
+            return true;
+        }
+
+        bool leaveElement(const char *nameStart, const char *nameEnd) {
+            if (ignoredDepth) {
+                --ignoredDepth;
+                return true;
+            }
+            if (SVG_NAME_IS("g")) {
+                if (transformationStack.empty())
+                    return false;
+                transformation = transformationStack.top();
+                transformationStack.pop();
+            }
+            return true;
+        }
+
+        bool elementAttribute(const char *nameStart, const char *nameEnd, const char *valueStart, const char *valueEnd) {
+            switch (curElement) {
+                case BEGINNING:
+                case IGNORED:
+                    break;
+                case SVG:
+                    if (SVG_NAME_IS("width"))
+                        dimensions.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("height"))
+                        dimensions.y = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("viewBox")) {
+                        std::string viewBoxStr(SVG_DEC_VAL());
+                        const char *strPtr = viewBoxStr.c_str();
+                        double w = 0, h = 0;
+                        readDouble(viewBox.l, strPtr) && readDouble(viewBox.b, strPtr) && readDouble(w, strPtr) && readDouble(h, strPtr);
+                        viewBox.r = viewBox.l+w;
+                        viewBox.t = viewBox.b+h;
+                    }
+                    break;
+                case G:
+                    break;
+                case PATH:
+                    if (SVG_NAME_IS("d"))
+                        elem.pathDef = StrRange(valueStart, valueEnd);
+                    break;
+                case RECT:
+                    if (SVG_NAME_IS("x"))
+                        elem.pos.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("y"))
+                        elem.pos.y = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("width"))
+                        elem.dims.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("height"))
+                        elem.dims.y = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("rx"))
+                        elem.radius.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("ry"))
+                        elem.radius.y = SVG_DOUBLEVAL();
+                    break;
+                case CIRCLE:
+                    if (SVG_NAME_IS("cx"))
+                        elem.pos.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("cy"))
+                        elem.pos.y = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("r"))
+                        elem.radius.x = SVG_DOUBLEVAL();
+                    break;
+                case ELLIPSE:
+                    if (SVG_NAME_IS("cx"))
+                        elem.pos.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("cy"))
+                        elem.pos.y = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("rx"))
+                        elem.radius.x = SVG_DOUBLEVAL();
+                    else if (SVG_NAME_IS("ry"))
+                        elem.radius.y = SVG_DOUBLEVAL();
+                    break;
+                case POLYGON:
+                    if (SVG_NAME_IS("points"))
+                        elem.pathDef = StrRange(valueStart, valueEnd);
+                    break;
+            }
+            switch (curElement) {
+                case PATH:
+                case RECT:
+                case CIRCLE:
+                case ELLIPSE:
+                case POLYGON:
+                    if (SVG_NAME_IS("fill-rule"))
+                        elem.fillRuleEvenOdd = SVG_DEC_VAL() == "evenodd";
+                    // fallthrough
+                case G:
+                    if (SVG_NAME_IS("transform"))
+                        elem.transform = StrRange(valueStart, valueEnd);
+                    else if (SVG_NAME_IS("transform-origin"))
+                        elem.transformOrigin = StrRange(valueStart, valueEnd);
+                    break;
+                default:;
+            }
+            return true;
+        }
+
+        bool finishAttributes() {
+            switch (curElement) {
+                case BEGINNING:
+                case IGNORED:
+                case SVG:
+                    break;
+                case G:
+                    transformationStack.push(transformation);
+                    transformation = combineTransformation(flags, transformation, elem.transform.str().c_str(), elem.transformOrigin.str().c_str());
+                    break;
+                case PATH:
+                case RECT:
+                case CIRCLE:
+                case ELLIPSE:
+                case POLYGON:
+                    {
+                        SkPath curPath;
+                        switch (curElement) {
+                            case PATH:
+                                if (!SkParsePath::FromSVGString(elem.pathDef.str().c_str(), &curPath)) {
+                                    flags |= SVG_IMPORT_PARTIAL_FAILURE_FLAG;
+                                    return true;
+                                }
+                                break;
+                            case RECT:
+                                {
+                                    if (!(elem.dims.x && elem.dims.y))
+                                        return true;
+                                    SkRect rect = SkRect::MakeLTRB(elem.pos.x, elem.pos.y, elem.pos.x+elem.dims.x, elem.pos.y+elem.dims.y);
+                                    if (elem.radius.x || elem.radius.y) {
+                                        SkScalar rx = SkScalar(elem.radius.x), ry = SkScalar(elem.radius.y);
+                                        SkScalar radii[] = { rx, ry, rx, ry, rx, ry, rx, ry };
+                                        curPath.addRoundRect(rect, radii);
+                                    } else
+                                        curPath.addRect(rect);
+                                }
+                                break;
+                            case CIRCLE:
+                                if (!elem.radius.x)
+                                    return true;
+                                curPath.addCircle(elem.pos.x, elem.pos.y, elem.radius.x);
+                                break;
+                            case ELLIPSE:
+                                if (!(elem.radius.x && elem.radius.y))
+                                    return true;
+                                curPath.addOval(SkRect::MakeLTRB(elem.pos.x-elem.radius.x, elem.pos.y-elem.radius.y, elem.pos.x+elem.radius.x, elem.pos.y+elem.radius.y));
+                                break;
+                            case POLYGON:
+                                {
+                                    if (elem.pathDef.start == elem.pathDef.end) {
+                                        flags |= SVG_IMPORT_PARTIAL_FAILURE_FLAG;
+                                        return true;
+                                    }
+                                    std::string pdStr = elem.pathDef.str();
+                                    const char *pd = pdStr.c_str();
+                                    Point2 point;
+                                    if (!readCoord(point, pd))
+                                        return true;
+                                    curPath.moveTo(SkScalar(point.x), SkScalar(point.y));
+                                    if (!readCoord(point, pd))
+                                        return true;
+                                    do {
+                                        curPath.lineTo(SkScalar(point.x), SkScalar(point.y));
+                                    } while (readCoord(point, pd));
+                                    curPath.close();
+                                }
+                                break;
+                            default:
+                                return true;
+                        }
+                        if (elem.fillRuleEvenOdd)
+                            curPath.setFillType(SkPathFillType::kEvenOdd);
+                        curPath.transform(combineTransformation(flags, transformation, elem.transform.str().c_str(), elem.transformOrigin.str().c_str()));
+                        if (Op(fullPath, curPath, kUnion_SkPathOp, &fullPath))
+                            flags |= SVG_IMPORT_SUCCESS_FLAG;
+                        else
+                            flags |= SVG_IMPORT_PARTIAL_FAILURE_FLAG;
+                    }
+                    break;
+            }
+            return true;
+        }
+
+        bool finish() {
+            return !ignoredDepth && transformationStack.empty();
+        }
+
+    };
+
+    SvgConsumer svg;
+    if (!(
+        dropXML::parse(svg, svgData, svgData+svgLength) &&
+        (svg.flags&SVG_IMPORT_SUCCESS_FLAG) &&
+        Simplify(svg.fullPath, &svg.fullPath)
+    ))
+        return SVG_IMPORT_FAILURE;
+
+    shapeFromSkiaPath(output, svg.fullPath);
+    output.inverseYAxis = true;
+    output.orientContours();
+
+    viewBox = svg.viewBox;
+    if (svg.dimensions.x > 0 && viewBox.r == viewBox.l)
+        viewBox.r += svg.dimensions.x;
+    if (svg.dimensions.y > 0 && viewBox.t == viewBox.b)
+        viewBox.t += svg.dimensions.y;
+    return svg.flags;
+}
+
+int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
+    std::vector<char> svgData;
+    if (!readFile(svgData, filename))
+        return SVG_IMPORT_FAILURE;
+    return parseSvgShape(output, viewBox, svgData.empty() ? NULL : &svgData[0], svgData.size());
+}
+
+#endif
 
 #endif
 
