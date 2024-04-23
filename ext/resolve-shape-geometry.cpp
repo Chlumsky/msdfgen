@@ -5,6 +5,7 @@
 
 #include <skia/core/SkPath.h>
 #include <skia/pathops/SkPathOps.h>
+#include "../core/arithmetics.hpp"
 #include "../core/Vector2.hpp"
 #include "../core/edge-segments.h"
 #include "../core/Contour.h"
@@ -22,10 +23,11 @@ Point2 pointFromSkiaPoint(const SkPoint p) {
 void shapeToSkiaPath(SkPath &skPath, const Shape &shape) {
     for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
         if (!contour->edges.empty()) {
-            skPath.moveTo(pointToSkiaPoint(contour->edges.front()->point(0)));
-            for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
-                const Point2 *p = (*edge)->controlPoints();
-                switch ((*edge)->type()) {
+            const EdgeSegment *edge = contour->edges.back();
+            skPath.moveTo(pointToSkiaPoint(*edge->controlPoints()));
+            for (std::vector<EdgeHolder>::const_iterator nextEdge = contour->edges.begin(); nextEdge != contour->edges.end(); edge = *nextEdge++) {
+                const Point2 *p = edge->controlPoints();
+                switch (edge->type()) {
                     case (int) LinearSegment::EDGE_TYPE:
                         skPath.lineTo(pointToSkiaPoint(p[1]));
                         break;
@@ -78,13 +80,47 @@ void shapeFromSkiaPath(Shape &shape, const SkPath &skPath) {
         shape.contours.pop_back();
 }
 
+static void pruneCrossedQuadrilaterals(Shape &shape) {
+    int n = 0;
+    for (int i = 0; i < (int) shape.contours.size(); ++i) {
+        Contour &contour = shape.contours[i];
+        if (
+            contour.edges.size() == 4 &&
+            contour.edges[0]->type() == (int) LinearSegment::EDGE_TYPE &&
+            contour.edges[1]->type() == (int) LinearSegment::EDGE_TYPE &&
+            contour.edges[2]->type() == (int) LinearSegment::EDGE_TYPE &&
+            contour.edges[3]->type() == (int) LinearSegment::EDGE_TYPE && (
+                sign(crossProduct(contour.edges[0]->direction(1), contour.edges[1]->direction(0)))+
+                sign(crossProduct(contour.edges[1]->direction(1), contour.edges[2]->direction(0)))+
+                sign(crossProduct(contour.edges[2]->direction(1), contour.edges[3]->direction(0)))+
+                sign(crossProduct(contour.edges[3]->direction(1), contour.edges[0]->direction(0)))
+            ) == 0
+        ) {
+            contour.edges.clear();
+        } else {
+            if (i != n) {
+                #ifdef MSDFGEN_USE_CPP11
+                    shape.contours[n] = (Contour &&) contour;
+                #else
+                    shape.contours[n] = contour;
+                #endif
+            }
+            ++n;
+        }
+    }
+    shape.contours.resize(n);
+}
+
 bool resolveShapeGeometry(Shape &shape) {
     SkPath skPath;
+    shape.normalize();
     shapeToSkiaPath(skPath, shape);
     if (!Simplify(skPath, &skPath))
         return false;
     // Skia's AsWinding doesn't seem to work for unknown reasons
     shapeFromSkiaPath(shape, skPath);
+    // In some rare cases, Skia produces tiny residual crossed quadrilateral contours, which are not valid geometry, so they must be removed.
+    pruneCrossedQuadrilaterals(shape);
     shape.orientContours();
     return true;
 }

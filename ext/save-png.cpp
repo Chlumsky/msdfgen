@@ -22,7 +22,8 @@ public:
     inline PngGuard(png_structp png, png_infop info) : png(png), info(info), file(NULL) { }
     inline ~PngGuard() {
         png_destroy_write_struct(&png, &info);
-        fclose(file);
+        if (file)
+            fclose(file);
     }
     inline void setFile(FILE *file) {
         this->file = file;
