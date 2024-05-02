@@ -341,25 +341,27 @@ MSDF_API void msdf_contour_free(msdf_contour_handle contour) {
     msdf_delete(reinterpret_cast<msdfgen::Contour*>(contour));
 }
 
-// msdf_edge
+// msdf_edge_holder
 
-MSDF_API int msdf_edge_alloc(msdf_edge_holder_handle* edge) {
+int msdf_edge_alloc(msdf_segment_handle segment, msdf_edge_holder_handle* edge) {
+    if(edge == nullptr || segment == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *edge = reinterpret_cast<msdf_edge_holder_handle>(msdf_new<msdfgen::EdgeHolder>(reinterpret_cast<msdfgen::EdgeSegment*>(segment)));
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_edge_add_segment(msdf_edge_holder_handle edge, msdf_segment_handle segment) {
+int msdf_edge_get_segment(msdf_edge_holder_handle edge, msdf_segment_handle* segment) {
+    if(edge == nullptr || segment == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    msdfgen::EdgeSegment* p_segment = *reinterpret_cast<msdfgen::EdgeHolder*>(edge);
+    *segment = reinterpret_cast<msdf_segment_handle>(p_segment);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, size_t index, msdf_segment_handle* segment) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, size_t* segment_count) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API void msdf_edge_free(msdf_edge_holder_handle edge) {
+void msdf_edge_free(msdf_edge_holder_handle edge) {
+    msdf_delete(reinterpret_cast<msdfgen::EdgeHolder*>(edge));
 }
 
 // msdf_segment

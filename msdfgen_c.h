@@ -165,10 +165,8 @@ MSDF_API int msdf_contour_get_winding(msdf_contour_handle contour, int* winding)
 MSDF_API int msdf_contour_reverse(msdf_contour_handle contour);
 MSDF_API void msdf_contour_free(msdf_contour_handle contour);
 
-MSDF_API int msdf_edge_alloc(msdf_edge_holder_handle* edge);
-MSDF_API int msdf_edge_add_segment(msdf_edge_holder_handle edge, msdf_segment_handle segment);
-MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, size_t index, msdf_segment_handle* segment);
-MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, size_t* segment_count);
+MSDF_API int msdf_edge_alloc(msdf_segment_handle segment, msdf_edge_holder_handle* edge);
+MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, msdf_segment_handle* segment);
 MSDF_API void msdf_edge_free(msdf_edge_holder_handle edge);
 
 MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment);
