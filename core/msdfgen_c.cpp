@@ -180,50 +180,95 @@ MSDF_API void msdf_bitmap_free(msdf_bitmap_t* bitmap) {
 // msdf_shape
 
 MSDF_API int msdf_shape_alloc(msdf_shape_handle* shape) {
+    if(shape == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *shape = reinterpret_cast<msdf_shape_handle>(msdf_new<msdfgen::Shape>());
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_get_bounds(msdf_shape_handle shape, msdf_bounds_t* bounds) {
+    if(shape == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const auto src_bounds = reinterpret_cast<msdfgen::Shape*>(shape)->getBounds();
+    memcpy(bounds, &src_bounds, sizeof(msdfgen::Shape::Bounds));
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_handle* contour) {
+    if(shape == nullptr || contour == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, int* contour_count) {
+MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, size_t* contour_count) {
+    if(shape == nullptr || contour_count == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *contour_count = reinterpret_cast<msdfgen::Shape*>(shape)->contours.size();
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_get_contours(msdf_shape_handle shape, msdf_contour_handle* contours) {
+    if(shape == nullptr || contours == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *contours = reinterpret_cast<msdf_contour_handle>(reinterpret_cast<msdfgen::Shape*>(shape)->contours.data());
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_get_edge_counts(msdf_shape_handle shape, int* edge_count) {
+MSDF_API int msdf_shape_get_edge_counts(msdf_shape_handle shape, size_t* edge_count) {
+    if(shape == nullptr || edge_count == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *edge_count = reinterpret_cast<msdfgen::Shape*>(shape)->edgeCount();
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_has_inverse_y_axis(msdf_shape_handle shape, int* inverse_y_axis) {
+    if(shape == nullptr || inverse_y_axis == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *inverse_y_axis = reinterpret_cast<msdfgen::Shape*>(shape)->inverseYAxis ? MSDF_TRUE : MSDF_FALSE;
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_normalize(msdf_shape_handle shape) {
+    if(shape == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Shape*>(shape)->normalize();
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_validate(msdf_shape_handle shape, int* result) {
+    if(shape == nullptr || result == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *result = reinterpret_cast<msdfgen::Shape*>(shape)->validate();
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_bound(msdf_shape_handle shape, msdf_bounds_t* bounds) {
+    if(shape == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Shape*>(shape)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_shape_bound_miters(msdf_shape_handle shape, msdf_bounds_t* bounds, double border, double miterLimit, int polarity) {
+    if(shape == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Shape*>(shape)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miterLimit, polarity);
     return MSDF_SUCCESS;
 }
 
 MSDF_API void msdf_shape_free(msdf_shape_handle shape) {
+    msdf_delete(reinterpret_cast<msdfgen::Shape*>(shape));
 }
 
 // msdf_contour
