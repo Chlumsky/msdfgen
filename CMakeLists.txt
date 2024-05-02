@@ -91,7 +91,7 @@ file(GLOB_RECURSE MSDFGEN_EXT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ext/
 file(GLOB_RECURSE MSDFGEN_EXT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ext/*.cpp" "lib/*.cpp")
 
 # Core library
-add_library(msdfgen-core "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" ${MSDFGEN_CORE_HEADERS} ${MSDFGEN_CORE_SOURCES})
+add_library(msdfgen-core "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen_c.h" ${MSDFGEN_CORE_HEADERS} ${MSDFGEN_CORE_SOURCES})
 add_library(msdfgen::msdfgen-core ALIAS msdfgen-core)
 set_target_properties(msdfgen-core PROPERTIES PUBLIC_HEADER "${MSDFGEN_CORE_HEADERS}")
 set_property(TARGET msdfgen-core PROPERTY MSVC_RUNTIME_LIBRARY "${MSDFGEN_MSVC_RUNTIME}")
@@ -120,11 +120,16 @@ if(MSDFGEN_USE_OPENMP)
     target_link_libraries(msdfgen-core PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-if(BUILD_SHARED_LIBS AND WIN32)
-    target_compile_definitions(msdfgen-core PRIVATE "MSDFGEN_PUBLIC=__declspec(dllexport)")
-    target_compile_definitions(msdfgen-core INTERFACE "MSDFGEN_PUBLIC=__declspec(dllimport)")
+if(BUILD_SHARED_LIBS)
+    if(WIN32)
+        target_compile_definitions(msdfgen-core PRIVATE "MSDFGEN_PUBLIC=__declspec(dllexport)")
+        target_compile_definitions(msdfgen-core INTERFACE "MSDFGEN_PUBLIC=__declspec(dllimport)")
+    else()
+        target_compile_definitions(msdfgen-core PRIVATE "MSDFGEN_PUBLIC=__attribute__((visibility(\"default\")))")
+        target_compile_definitions(msdfgen-core INTERFACE "MSDFGEN_PUBLIC=")
+    endif()
 else()
-    target_compile_definitions(msdfgen-core PUBLIC MSDFGEN_PUBLIC=)
+    target_compile_definitions(msdfgen-core PUBLIC "MSDFGEN_PUBLIC=")
 endif()
 
 # Extensions library
