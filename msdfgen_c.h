@@ -84,6 +84,11 @@ typedef struct msdf_vector2 {
     double y;
 } msdf_vector2_t;
 
+typedef struct msdf_range {
+    double lower;
+    double upper;
+} msdf_range_t;
+
 typedef struct msdf_bounds {
     double l;
     double b;
@@ -96,15 +101,10 @@ typedef struct msdf_projection {
     msdf_vector2_t translation;
 } msdf_projection_t;
 
-typedef struct msdf_distance_mapping {
-    double scale;
-    double translation;
-} msdf_distance_mapping_t;
-
 typedef struct msdf_transform {
     msdf_vector2_t scale;
     msdf_vector2_t translation;
-    msdf_distance_mapping_t distance_mapping;
+    msdf_range_t distance_mapping;
 } msdf_transform_t;
 
 typedef struct msdf_config {

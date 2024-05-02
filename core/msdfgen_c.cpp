@@ -562,18 +562,50 @@ MSDF_API void msdf_segment_free(msdf_segment_t* segment) {
 // Main msdfgen APIs
 
 int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    if(output == nullptr || shape == nullptr || transform == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    msdfgen::generateSDF(*static_cast<SDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform);
     return MSDF_SUCCESS;
 }
 
 int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    if(output == nullptr || shape == nullptr || transform == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    msdfgen::generatePSDF(*static_cast<PSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform);
     return MSDF_SUCCESS;
 }
 
 int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    if(output == nullptr || shape == nullptr || transform == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    msdfgen::generateMSDF(*static_cast<MSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform);
     return MSDF_SUCCESS;
 }
 
 int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    if(output == nullptr || shape == nullptr || transform == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    msdfgen::generateMTSDF(*static_cast<MTSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform);
     return MSDF_SUCCESS;
 }
 
@@ -581,6 +613,16 @@ int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
                                   msdf_shape_handle shape,
                                   const msdf_transform_t* transform,
                                   const msdf_config_t* config) {
+    if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    const msdfgen::GeneratorConfig actual_config(config->overlap_support == MSDF_TRUE);
+    msdfgen::generateSDF(*static_cast<SDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform,
+                         actual_config);
     return MSDF_SUCCESS;
 }
 
@@ -588,6 +630,16 @@ int msdf_generate_psdf_with_config(msdf_bitmap_t* output,
                                    msdf_shape_handle shape,
                                    const msdf_transform_t* transform,
                                    const msdf_config_t* config) {
+    if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    const msdfgen::GeneratorConfig actual_config(config->overlap_support == MSDF_TRUE);
+    msdfgen::generatePSDF(*static_cast<PSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform,
+                          actual_config);
     return MSDF_SUCCESS;
 }
 
@@ -595,6 +647,20 @@ int msdf_generate_msdf_with_config(msdf_bitmap_t* output,
                                    msdf_shape_handle shape,
                                    const msdf_transform_t* transform,
                                    const msdf_multichannel_config_t* config) {
+    if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    const msdfgen::ErrorCorrectionConfig error_correction_config(
+        static_cast<msdfgen::ErrorCorrectionConfig::Mode>(config->mode),
+        static_cast<msdfgen::ErrorCorrectionConfig::DistanceCheckMode>(config->distance_check_mode), config->min_deviation_ratio,
+        config->min_improve_ratio);
+    const msdfgen::MSDFGeneratorConfig actual_config(config->overlap_support == MSDF_TRUE, error_correction_config);
+    msdfgen::generateMSDF(*static_cast<MSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform,
+                          actual_config);
     return MSDF_SUCCESS;
 }
 
@@ -602,6 +668,20 @@ int msdf_generate_mtsdf_with_config(msdf_bitmap_t* output,
                                     msdf_shape_handle shape,
                                     const msdf_transform_t* transform,
                                     const msdf_multichannel_config_t* config) {
+    if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
+                                         *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
+    const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
+    const msdfgen::SDFTransformation actual_transform(projection, dist_mapping);
+    const msdfgen::ErrorCorrectionConfig error_correction_config(
+        static_cast<msdfgen::ErrorCorrectionConfig::Mode>(config->mode),
+        static_cast<msdfgen::ErrorCorrectionConfig::DistanceCheckMode>(config->distance_check_mode), config->min_deviation_ratio,
+        config->min_improve_ratio);
+    const msdfgen::MSDFGeneratorConfig actual_config(config->overlap_support == MSDF_TRUE, error_correction_config);
+    msdfgen::generateMTSDF(*static_cast<MTSDFBitmap*>(output->handle), *reinterpret_cast<const msdfgen::Shape*>(shape), actual_transform,
+                           actual_config);
     return MSDF_SUCCESS;
 }
 }
