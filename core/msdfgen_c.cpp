@@ -565,6 +565,9 @@ int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf
     if(output == nullptr || shape == nullptr || transform == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
+    if(output->type != MSDF_BITMAP_TYPE_SDF) {
+        return MSDF_ERR_INVALID_TYPE;
+    }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
     const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
@@ -576,6 +579,9 @@ int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf
 int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
     if(output == nullptr || shape == nullptr || transform == nullptr) {
         return MSDF_ERR_INVALID_ARG;
+    }
+    if(output->type != MSDF_BITMAP_TYPE_PSDF) {
+        return MSDF_ERR_INVALID_TYPE;
     }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
@@ -589,6 +595,9 @@ int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msd
     if(output == nullptr || shape == nullptr || transform == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
+    if(output->type != MSDF_BITMAP_TYPE_MSDF) {
+        return MSDF_ERR_INVALID_TYPE;
+    }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
     const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
@@ -600,6 +609,9 @@ int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msd
 int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
     if(output == nullptr || shape == nullptr || transform == nullptr) {
         return MSDF_ERR_INVALID_ARG;
+    }
+    if(output->type != MSDF_BITMAP_TYPE_MTSDF) {
+        return MSDF_ERR_INVALID_TYPE;
     }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
@@ -615,6 +627,9 @@ int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
                                   const msdf_config_t* config) {
     if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
         return MSDF_ERR_INVALID_ARG;
+    }
+    if(output->type != MSDF_BITMAP_TYPE_SDF) {
+        return MSDF_ERR_INVALID_TYPE;
     }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
@@ -633,6 +648,9 @@ int msdf_generate_psdf_with_config(msdf_bitmap_t* output,
     if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
+    if(output->type != MSDF_BITMAP_TYPE_PSDF) {
+        return MSDF_ERR_INVALID_TYPE;
+    }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
     const msdfgen::Range dist_mapping(transform->distance_mapping.lower, transform->distance_mapping.upper);
@@ -649,6 +667,9 @@ int msdf_generate_msdf_with_config(msdf_bitmap_t* output,
                                    const msdf_multichannel_config_t* config) {
     if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
         return MSDF_ERR_INVALID_ARG;
+    }
+    if(output->type != MSDF_BITMAP_TYPE_MSDF) {
+        return MSDF_ERR_INVALID_TYPE;
     }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
@@ -670,6 +691,9 @@ int msdf_generate_mtsdf_with_config(msdf_bitmap_t* output,
                                     const msdf_multichannel_config_t* config) {
     if(output == nullptr || shape == nullptr || transform == nullptr || config == nullptr) {
         return MSDF_ERR_INVALID_ARG;
+    }
+    if(output->type != MSDF_BITMAP_TYPE_MTSDF) {
+        return MSDF_ERR_INVALID_TYPE;
     }
     const msdfgen::Projection projection(*reinterpret_cast<const msdfgen::Vector2*>(&transform->scale),
                                          *reinterpret_cast<const msdfgen::Vector2*>(&transform->translation));
