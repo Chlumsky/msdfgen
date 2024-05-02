@@ -96,11 +96,6 @@ typedef struct msdf_bounds {
     double t;
 } msdf_bounds_t;
 
-typedef struct msdf_projection {
-    msdf_vector2_t scale;
-    msdf_vector2_t translation;
-} msdf_projection_t;
-
 typedef struct msdf_transform {
     msdf_vector2_t scale;
     msdf_vector2_t translation;
