@@ -1,0 +1,76 @@
+Checks: '
+-*,
+readability-*,
+-readability-magic-numbers,
+modernize-*,
+-modernize-use-trailing-return-type,
+-modernize-use-default-member-init,
+cppcoreguidelines-*,
+-cppcoreguidelines-owning-memory,
+-cppcoreguidelines-use-default-member-init,
+-cppcoreguidelines-avoid-magic-numbers,
+-cppcoreguidelines-pro-type-reinterpret-cast,
+-cppcoreguidelines-pro-bounds-pointer-arithmetic,
+-cppcoreguidelines-macro-usage,
+-cppcoreguidelines-missing-std-forward,
+-google-explicit-constructor,
+-fuchsia-overloaded-operator,
+bugprone-*,
+-bugprone-assert-side-effect,
+-bugprone-assignment-in-if-condition,
+-bugprone-easily-swappable-parameters,
+-bugprone-reserved-identifier
+'
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+CheckOptions:
+  - key: modernize-replace-auto-ptr.IncludeStyle
+    value: llvm
+  - key: readability-uppercase-literal-suffix.NewSuffixes
+    value: L;LL;LU;LLU
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: _
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: _
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstantParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.LocalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterPrefix
+    value: T
+  - key: readability-identifier-naming.TemplateTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateTemplateParameterPrefix
+    value: T
+  - key: readability-identifier-naming.ValueTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ValueTemplateParameterPrefix
+    value: T
