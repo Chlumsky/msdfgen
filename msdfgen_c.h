@@ -30,17 +30,21 @@
 #define MSDF_TRUE 1
 
 #define MSDF_SUCCESS 0
-#define MSDF_ERR_INVALID_ARG 1
-#define MSDF_ERR_INVALID_FORMAT 2
+#define MSDF_ERR_FAILED 1
+#define MSDF_ERR_INVALID_ARG 2
+#define MSDF_ERR_INVALID_TYPE 3
+#define MSDF_ERR_INVALID_SIZE 4
 
-#define MSDF_BITMAP_TYPE_FLOAT 0
-#define MSDF_BITMAP_TYPE_DOUBLE 1
-#define MSDF_BITMAP_TYPE_INT 2
-#define MSDF_BITMAP_TYPE_SHORT 3
+#define MSDF_BITMAP_TYPE_SDF 0
+#define MSDF_BITMAP_TYPE_PSDF 1
+#define MSDF_BITMAP_TYPE_MSDF 2
+#define MSDF_BITMAP_TYPE_MTSDF 3
+#define MSDF_BITMAP_TYPE_MAX MSDF_BITMAP_TYPE_MTSDF
 
 #define MSDF_SEGMENT_TYPE_LINEAR 0
 #define MSDF_SEGMENT_TYPE_QUADRATIC 1
 #define MSDF_SEGMENT_TYPE_CUBIC 2
+#define MSDF_SEGMENT_TYPE_MAX MSDF_SEGMENT_TYPE_CUBIC
 
 #define MSDF_EDGE_COLOR_BLACK 0
 #define MSDF_EDGE_COLOR_RED 1
@@ -54,10 +58,10 @@
 #define MSDF_DEFINE_HANDLE_TYPE(n) typedef struct n* n##_handle // NOLINT
 
 // Macros for allocating default MSDF bitmap types
-#define MSDF_ALLOC_SDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_FLOAT, 1, w, h)
-#define MSDF_ALLOC_PSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_FLOAT, 1, w, h)
-#define MSDF_ALLOC_MSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_FLOAT, 3, w, h)
-#define MSDF_ALLOC_MTSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_FLOAT, 4, w, h)
+#define MSDF_ALLOC_SDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_SDF, w, h)
+#define MSDF_ALLOC_PSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_PSDF, w, h)
+#define MSDF_ALLOC_MSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_MSDF, w, h)
+#define MSDF_ALLOC_MTSDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_MTSDF, w, h)
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,11 +116,16 @@ typedef struct msdf_multichannel_config {
     int distance_check_mode;
     double min_deviation_ratio;
     double min_improve_ratio;
-    char* buffer;
 } msdf_multichannel_config_t;
 
+typedef struct msdf_bitmap {
+    int type;
+    int width;
+    int height;
+    void* handle;
+} msdf_bitmap_t;
+
 // Opaque handle types
-MSDF_DEFINE_HANDLE_TYPE(msdf_bitmap);
 MSDF_DEFINE_HANDLE_TYPE(msdf_shape);
 MSDF_DEFINE_HANDLE_TYPE(msdf_contour);
 MSDF_DEFINE_HANDLE_TYPE(msdf_edge_holder);
@@ -126,13 +135,11 @@ MSDF_DEFINE_HANDLE_TYPE(msdf_segment);
 MSDF_API void msdf_allocator_set(const msdf_allocator_t* allocator);
 MSDF_API const msdf_allocator_t* msdf_allocator_get();
 
-MSDF_API int msdf_bitmap_alloc(int type, int num_channels, int width, int height, msdf_bitmap_handle* bitmap);
-MSDF_API int msdf_bitmap_get_type(msdf_bitmap_handle bitmap, int* type);
-MSDF_API int msdf_bitmap_get_channel_count(msdf_bitmap_handle bitmap, int* channel_count);
-MSDF_API int msdf_bitmap_get_width(msdf_bitmap_handle bitmap, int* width);
-MSDF_API int msdf_bitmap_get_height(msdf_bitmap_handle bitmap, int* height);
-MSDF_API int msdf_bitmap_get_pixels(msdf_bitmap_handle bitmap, void** pixels);
-MSDF_API void msdf_bitmap_free(msdf_bitmap_handle bitmap);
+MSDF_API int msdf_bitmap_alloc(int type, int width, int height, msdf_bitmap_t** bitmap);
+MSDF_API int msdf_bitmap_get_channel_count(const msdf_bitmap_t* bitmap, int* channel_count);
+MSDF_API int msdf_bitmap_get_pixels(const msdf_bitmap_t* bitmap, void** pixels);
+MSDF_API int msdf_bitmap_get_size(const msdf_bitmap_t* bitmap, size_t* size);
+MSDF_API void msdf_bitmap_free(msdf_bitmap_t* bitmap);
 
 MSDF_API int msdf_shape_alloc(msdf_shape_handle* shape);
 MSDF_API int msdf_shape_get_bounds(msdf_shape_handle shape, msdf_bounds_t* bounds);
@@ -181,24 +188,24 @@ MSDF_API int msdf_segment_move_start_point(msdf_segment_handle segment, const ms
 MSDF_API int msdf_segment_move_end_point(msdf_segment_handle segment, const msdf_vector2_t* point);
 MSDF_API void msdf_segment_free(msdf_segment_handle segment);
 
-MSDF_API int msdf_generate_sdf(msdf_bitmap_handle output, msdf_shape_handle shape, const msdf_transform_t* transform);
-MSDF_API int msdf_generate_psdf(msdf_bitmap_handle output, msdf_shape_handle shape, const msdf_transform_t* transform);
-MSDF_API int msdf_generate_msdf(msdf_bitmap_handle output, msdf_shape_handle shape, const msdf_transform_t* transform);
-MSDF_API int msdf_generate_mtsdf(msdf_bitmap_handle output, msdf_shape_handle shape, const msdf_transform_t* transform);
+MSDF_API int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);
+MSDF_API int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);
+MSDF_API int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);
+MSDF_API int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);
 
-MSDF_API int msdf_generate_sdf_with_config(msdf_bitmap_handle output,
+MSDF_API int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
                                            msdf_shape_handle shape,
                                            const msdf_transform_t* transform,
                                            const msdf_config_t* config);
-MSDF_API int msdf_generate_psdf_with_config(msdf_bitmap_handle output,
+MSDF_API int msdf_generate_psdf_with_config(msdf_bitmap_t* output,
                                             msdf_shape_handle shape,
                                             const msdf_transform_t* transform,
                                             const msdf_config_t* config);
-MSDF_API int msdf_generate_msdf_with_config(msdf_bitmap_handle output,
+MSDF_API int msdf_generate_msdf_with_config(msdf_bitmap_t* output,
                                             msdf_shape_handle shape,
                                             const msdf_transform_t* transform,
                                             const msdf_multichannel_config_t* config);
-MSDF_API int msdf_generate_mtsdf_with_config(msdf_bitmap_handle output,
+MSDF_API int msdf_generate_mtsdf_with_config(msdf_bitmap_t* output,
                                              msdf_shape_handle shape,
                                              const msdf_transform_t* transform,
                                              const msdf_multichannel_config_t* config);

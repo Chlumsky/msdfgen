@@ -18,16 +18,39 @@
 #include <utility>
 
 namespace {
+    using SDFBitmap = msdfgen::Bitmap<float>;
+    using SDFBitmapRef = msdfgen::BitmapRef<float>;
+    using PSDFBitmap = msdfgen::Bitmap<float>;
+    using PSDFBitmapRef = msdfgen::BitmapRef<float>;
+    using MSDFBitmap = msdfgen::Bitmap<float, 3>;
+    using MSDFBitmapRef = msdfgen::BitmapRef<float, 3>;
+    using MTSDFBitmap = msdfgen::Bitmap<float, 4>;
+    using MTSDFBitmapRef = msdfgen::BitmapRef<float, 4>;
+
     msdf_allocator_t g_allocator = {malloc, realloc, free};
 
+    template<typename T>
+    [[nodiscard]] auto msdf_alloc(const size_t count = 1) noexcept -> T* {
+        return static_cast<T*>(g_allocator.alloc_callback(sizeof(T) * count));
+    }
+
+    auto msdf_free(void* memory) {
+        g_allocator.free_callback(memory);
+    }
+
     template<typename T, typename... TArgs>
-    [[nodiscard]] auto _new(TArgs&&... args) noexcept -> T* {
+    [[nodiscard]] auto msdf_new(TArgs&&... args) noexcept -> T* {
         auto* memory = static_cast<T*>(g_allocator.alloc_callback(sizeof(T)));
         new(memory) T(std::forward<TArgs>(args)...);
         return memory;
     }
 
-    auto _delete(void* memory) noexcept -> void {
+    template<typename T>
+    auto msdf_delete(T* memory) noexcept -> void {
+        if(memory == nullptr) {
+            return;
+        }
+        memory->~T();
         g_allocator.free_callback(memory);
     }
 }// namespace
@@ -46,31 +69,112 @@ MSDF_API const msdf_allocator_t* msdf_allocator_get() {
 
 // msdf_bitmap
 
-MSDF_API int msdf_bitmap_alloc(int type, int num_channels, int width, int height, msdf_bitmap_handle* bitmap) {
+MSDF_API int msdf_bitmap_alloc(const int type, const int width, const int height, msdf_bitmap_t** bitmap) {
+    if(width < 0 || height < 0) {
+        return MSDF_ERR_INVALID_SIZE;
+    }
+    if(bitmap == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    auto* wrapper = msdf_alloc<msdf_bitmap_t>();
+    wrapper->type = type;
+    wrapper->width = width;
+    wrapper->height = height;
+    switch(type) {
+        case MSDF_BITMAP_TYPE_SDF:
+            wrapper->handle = msdf_new<SDFBitmap>(width, height);
+            break;
+        case MSDF_BITMAP_TYPE_PSDF:
+            wrapper->handle = msdf_new<PSDFBitmap>(width, height);
+            break;
+        case MSDF_BITMAP_TYPE_MSDF:
+            wrapper->handle = msdf_new<MSDFBitmap>(width, height);
+            break;
+        case MSDF_BITMAP_TYPE_MTSDF:
+            wrapper->handle = msdf_new<MTSDFBitmap>(width, height);
+            break;
+        default:
+            return MSDF_ERR_INVALID_ARG;
+    }
+    *bitmap = wrapper;
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_bitmap_get_type(msdf_bitmap_handle bitmap, int* type) {
+MSDF_API int msdf_bitmap_get_channel_count(const msdf_bitmap_t* bitmap, int* channel_count) {
+    if(bitmap == nullptr || channel_count == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    switch(bitmap->type) {
+        case MSDF_BITMAP_TYPE_MSDF:
+            *channel_count = 3;
+            break;
+        case MSDF_BITMAP_TYPE_MTSDF:
+            *channel_count = 4;
+            break;
+        default:
+            *channel_count = 1;
+            break;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_bitmap_get_channel_count(msdf_bitmap_handle bitmap, int* channel_count) {
+MSDF_API int msdf_bitmap_get_size(const msdf_bitmap_t* bitmap, size_t* size) {
+    if(bitmap == nullptr || size == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    int channel_count;
+    if(msdf_bitmap_get_channel_count(bitmap, &channel_count) != MSDF_SUCCESS) {
+        return MSDF_ERR_FAILED;
+    }
+    // << 2 because we only support floats right now, sizeof(float) is always 4
+    *size = static_cast<size_t>(bitmap->width) * static_cast<size_t>(bitmap->height) * static_cast<size_t>(channel_count) << 2;
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_bitmap_get_width(msdf_bitmap_handle bitmap, int* width) {
+MSDF_API int msdf_bitmap_get_pixels(const msdf_bitmap_t* bitmap, void** pixels) {
+    if(bitmap == nullptr || pixels == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    switch(bitmap->type) {
+        case MSDF_BITMAP_TYPE_SDF:
+            *pixels = static_cast<SDFBitmapRef>(*static_cast<SDFBitmap*>(bitmap->handle)).pixels;
+            break;
+        case MSDF_BITMAP_TYPE_PSDF:
+            *pixels = static_cast<PSDFBitmapRef>(*static_cast<PSDFBitmap*>(bitmap->handle)).pixels;
+            break;
+        case MSDF_BITMAP_TYPE_MSDF:
+            *pixels = static_cast<MSDFBitmapRef>(*static_cast<MSDFBitmap*>(bitmap->handle)).pixels;
+            break;
+        case MSDF_BITMAP_TYPE_MTSDF:
+            *pixels = static_cast<MTSDFBitmapRef>(*static_cast<MTSDFBitmap*>(bitmap->handle)).pixels;
+            break;
+        default:
+            return MSDF_ERR_INVALID_TYPE;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_bitmap_get_height(msdf_bitmap_handle bitmap, int* height) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API int msdf_bitmap_get_pixels(msdf_bitmap_handle bitmap, void** pixels) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API void msdf_bitmap_free(msdf_bitmap_handle bitmap) {
+MSDF_API void msdf_bitmap_free(msdf_bitmap_t* bitmap) {
+    if(bitmap == nullptr) {
+        return;
+    }
+    switch(bitmap->type) {
+        case MSDF_BITMAP_TYPE_SDF:
+            msdf_delete(static_cast<SDFBitmap*>(bitmap->handle));
+            break;
+        case MSDF_BITMAP_TYPE_PSDF:
+            msdf_delete(static_cast<PSDFBitmap*>(bitmap->handle));
+            break;
+        case MSDF_BITMAP_TYPE_MSDF:
+            msdf_delete(static_cast<MSDFBitmap*>(bitmap->handle));
+            break;
+        case MSDF_BITMAP_TYPE_MTSDF:
+            msdf_delete(static_cast<MTSDFBitmap*>(bitmap->handle));
+            break;
+        default:
+            return;
+    }
+    msdf_free(bitmap);
 }
 
 // msdf_shape
