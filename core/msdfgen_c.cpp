@@ -211,11 +211,11 @@ MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, size_t* conto
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_get_contours(msdf_shape_handle shape, msdf_contour_handle* contours) {
+MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, size_t index, msdf_contour_handle* contours) {
     if(shape == nullptr || contours == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    *contours = reinterpret_cast<msdf_contour_handle>(reinterpret_cast<msdfgen::Shape*>(shape)->contours.data());
+    *contours = reinterpret_cast<msdf_contour_handle>(&reinterpret_cast<msdfgen::Shape*>(shape)->contours[index]);
     return MSDF_SUCCESS;
 }
 
@@ -274,42 +274,71 @@ MSDF_API void msdf_shape_free(msdf_shape_handle shape) {
 // msdf_contour
 
 MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour) {
+    if(contour == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *contour = reinterpret_cast<msdf_contour_handle>(msdf_new<msdfgen::Contour>());
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_edge_holder_handle* edge) {
+    if(contour == nullptr || edge == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *edge = reinterpret_cast<msdf_edge_holder_handle>(&reinterpret_cast<msdfgen::Contour*>(contour)->addEdge());
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, int index, msdf_edge_holder_handle* edge) {
+MSDF_API int msdf_contour_get_edge_count(msdf_contour_handle contour, size_t* edge_count) {
+    if(contour == nullptr || edge_count == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *edge_count = reinterpret_cast<msdfgen::Contour*>(contour)->edges.size();
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_get_edge_count(msdf_contour_handle contour, int* edge_count) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API int msdf_contour_get_edges(msdf_contour_handle contour, msdf_edge_holder_handle* edges) {
+MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, size_t index, msdf_edge_holder_handle* edges) {
+    if(contour == nullptr || edges == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *edges = reinterpret_cast<msdf_edge_holder_handle>(&reinterpret_cast<msdfgen::Contour*>(contour)->edges[index]);
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_contour_bound(msdf_contour_handle contour, msdf_bounds_t* bounds) {
+    if(contour == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Contour*>(contour)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour, msdf_bounds_t* bounds, double border, double miterLimit, int polarity) {
+    if(contour == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Contour*>(contour)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miterLimit, polarity);
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_contour_get_winding(msdf_contour_handle contour, int* winding) {
+    if(contour == nullptr || winding == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *winding = reinterpret_cast<msdfgen::Contour*>(contour)->winding();
     return MSDF_SUCCESS;
 }
 
 MSDF_API int msdf_contour_reverse(msdf_contour_handle contour) {
+    if(contour == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    reinterpret_cast<msdfgen::Contour*>(contour)->reverse();
     return MSDF_SUCCESS;
 }
 
 MSDF_API void msdf_contour_free(msdf_contour_handle contour) {
+    msdf_delete(reinterpret_cast<msdfgen::Contour*>(contour));
 }
 
 // msdf_edge
@@ -322,15 +351,11 @@ MSDF_API int msdf_edge_add_segment(msdf_edge_holder_handle edge, msdf_segment_ha
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, int index, msdf_segment_handle* segment) {
+MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, size_t index, msdf_segment_handle* segment) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, int* segment_count) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API int msdf_edge_get_segments(msdf_edge_holder_handle edge, msdf_segment_handle* segments) {
+MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, size_t* segment_count) {
     return MSDF_SUCCESS;
 }
 
@@ -347,19 +372,15 @@ MSDF_API int msdf_segment_get_type(msdf_segment_handle segment, int* type) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, int* point_count) {
+MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, size_t* point_count) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_points(msdf_segment_handle segment, msdf_vector2_t const** points) {
+MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, size_t index, msdf_vector2_t* point) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, int index, msdf_vector2_t* point) {
-    return MSDF_SUCCESS;
-}
-
-MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, int index, const msdf_vector2_t* point) {
+MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, size_t index, const msdf_vector2_t* point) {
     return MSDF_SUCCESS;
 }
 

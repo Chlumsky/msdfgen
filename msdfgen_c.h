@@ -34,6 +34,7 @@
 #define MSDF_ERR_INVALID_ARG 2
 #define MSDF_ERR_INVALID_TYPE 3
 #define MSDF_ERR_INVALID_SIZE 4
+#define MSDF_ERR_INVALID_INDEX 5
 
 #define MSDF_BITMAP_TYPE_SDF 0
 #define MSDF_BITMAP_TYPE_PSDF 1
@@ -55,7 +56,7 @@
 #define MSDF_EDGE_COLOR_CYAN 6
 #define MSDF_EDGE_COLOR_WHITE 7
 
-#define MSDF_DEFINE_HANDLE_TYPE(n) typedef struct n* n##_handle // NOLINT
+#define MSDF_DEFINE_HANDLE_TYPE(n) typedef struct n* n##_handle// NOLINT
 
 // Macros for allocating default MSDF bitmap types
 #define MSDF_ALLOC_SDF_BITMAP(w, h) msdf_bitmap_alloc(MSDF_BITMAP_TYPE_SDF, w, h)
@@ -145,7 +146,7 @@ MSDF_API int msdf_shape_alloc(msdf_shape_handle* shape);
 MSDF_API int msdf_shape_get_bounds(msdf_shape_handle shape, msdf_bounds_t* bounds);
 MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_handle* contour);
 MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, size_t* contour_count);
-MSDF_API int msdf_shape_get_contours(msdf_shape_handle shape, msdf_contour_handle* contours);
+MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, size_t index, msdf_contour_handle* contours);
 MSDF_API int msdf_shape_get_edge_counts(msdf_shape_handle shape, size_t* edge_count);
 MSDF_API int msdf_shape_has_inverse_y_axis(msdf_shape_handle shape, int* inverse_y_axis);
 MSDF_API int msdf_shape_normalize(msdf_shape_handle shape);
@@ -156,9 +157,8 @@ MSDF_API void msdf_shape_free(msdf_shape_handle shape);
 
 MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour);
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_edge_holder_handle* edge);
-MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, int index, msdf_edge_holder_handle* edge);
-MSDF_API int msdf_contour_get_edge_count(msdf_contour_handle contour, int* edge_count);
-MSDF_API int msdf_contour_get_edges(msdf_contour_handle contour, msdf_edge_holder_handle* edges);
+MSDF_API int msdf_contour_get_edge_count(msdf_contour_handle contour, size_t* edge_count);
+MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, size_t index, msdf_edge_holder_handle* edge);
 MSDF_API int msdf_contour_bound(msdf_contour_handle contour, msdf_bounds_t* bounds);
 MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour, msdf_bounds_t* bounds, double border, double miterLimit, int polarity);
 MSDF_API int msdf_contour_get_winding(msdf_contour_handle contour, int* winding);
@@ -167,17 +167,15 @@ MSDF_API void msdf_contour_free(msdf_contour_handle contour);
 
 MSDF_API int msdf_edge_alloc(msdf_edge_holder_handle* edge);
 MSDF_API int msdf_edge_add_segment(msdf_edge_holder_handle edge, msdf_segment_handle segment);
-MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, int index, msdf_segment_handle* segment);
-MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, int* segment_count);
-MSDF_API int msdf_edge_get_segments(msdf_edge_holder_handle edge, msdf_segment_handle* segments);
+MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, size_t index, msdf_segment_handle* segment);
+MSDF_API int msdf_edge_get_segment_count(msdf_edge_holder_handle edge, size_t* segment_count);
 MSDF_API void msdf_edge_free(msdf_edge_holder_handle edge);
 
 MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment);
 MSDF_API int msdf_segment_get_type(msdf_segment_handle segment, int* type);
-MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, int* point_count);
-MSDF_API int msdf_segment_get_points(msdf_segment_handle segment, msdf_vector2_t const** points);
-MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, int index, msdf_vector2_t* point);
-MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, int index, const msdf_vector2_t* point);
+MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, size_t* point_count);
+MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, size_t index, msdf_vector2_t* point);
+MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, size_t index, const msdf_vector2_t* point);
 MSDF_API int msdf_segment_set_color(msdf_segment_handle segment, int color);
 MSDF_API int msdf_segment_get_color(msdf_segment_handle segment, int* color);
 MSDF_API int msdf_segment_get_direction(msdf_segment_handle segment, double param, msdf_vector2_t* direction);
