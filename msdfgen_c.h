@@ -126,11 +126,15 @@ typedef struct msdf_bitmap {
     void* handle;
 } msdf_bitmap_t;
 
+typedef struct msdf_segment {
+    int type;
+    void* handle;
+} msdf_segment_t;
+
 // Opaque handle types
 MSDF_DEFINE_HANDLE_TYPE(msdf_shape);
 MSDF_DEFINE_HANDLE_TYPE(msdf_contour);
 MSDF_DEFINE_HANDLE_TYPE(msdf_edge_holder);
-MSDF_DEFINE_HANDLE_TYPE(msdf_segment);
 
 // Exported API functions
 MSDF_API void msdf_allocator_set(const msdf_allocator_t* allocator);
@@ -165,24 +169,22 @@ MSDF_API int msdf_contour_get_winding(msdf_contour_handle contour, int* winding)
 MSDF_API int msdf_contour_reverse(msdf_contour_handle contour);
 MSDF_API void msdf_contour_free(msdf_contour_handle contour);
 
-MSDF_API int msdf_edge_alloc(msdf_segment_handle segment, msdf_edge_holder_handle* edge);
-MSDF_API int msdf_edge_get_segment(msdf_edge_holder_handle edge, msdf_segment_handle* segment);
+MSDF_API int msdf_edge_alloc(msdf_segment_t* segment, msdf_edge_holder_handle* edge);
 MSDF_API void msdf_edge_free(msdf_edge_holder_handle edge);
 
-MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment);
-MSDF_API int msdf_segment_get_type(msdf_segment_handle segment, int* type);
-MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, size_t* point_count);
-MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, size_t index, msdf_vector2_t* point);
-MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, size_t index, const msdf_vector2_t* point);
-MSDF_API int msdf_segment_set_color(msdf_segment_handle segment, int color);
-MSDF_API int msdf_segment_get_color(msdf_segment_handle segment, int* color);
-MSDF_API int msdf_segment_get_direction(msdf_segment_handle segment, double param, msdf_vector2_t* direction);
-MSDF_API int msdf_segment_get_direction_change(msdf_segment_handle segment, double param, msdf_vector2_t* direction_change);
-MSDF_API int msdf_segment_point(msdf_segment_handle segment, double param, msdf_vector2_t* point);
-MSDF_API int msdf_segment_bound(msdf_segment_handle segment, msdf_bounds_t* bounds);
-MSDF_API int msdf_segment_move_start_point(msdf_segment_handle segment, const msdf_vector2_t* point);
-MSDF_API int msdf_segment_move_end_point(msdf_segment_handle segment, const msdf_vector2_t* point);
-MSDF_API void msdf_segment_free(msdf_segment_handle segment);
+MSDF_API int msdf_segment_alloc(int type, msdf_segment_t** segment);
+MSDF_API int msdf_segment_get_point_count(msdf_segment_t* segment, size_t* point_count);
+MSDF_API int msdf_segment_get_point(msdf_segment_t* segment, size_t index, msdf_vector2_t* point);
+MSDF_API int msdf_segment_set_point(msdf_segment_t* segment, size_t index, const msdf_vector2_t* point);
+MSDF_API int msdf_segment_set_color(msdf_segment_t* segment, int color);
+MSDF_API int msdf_segment_get_color(msdf_segment_t* segment, int* color);
+MSDF_API int msdf_segment_get_direction(msdf_segment_t* segment, double param, msdf_vector2_t* direction);
+MSDF_API int msdf_segment_get_direction_change(msdf_segment_t* segment, double param, msdf_vector2_t* direction_change);
+MSDF_API int msdf_segment_point(msdf_segment_t* segment, double param, msdf_vector2_t* point);
+MSDF_API int msdf_segment_bound(msdf_segment_t* segment, msdf_bounds_t* bounds);
+MSDF_API int msdf_segment_move_start_point(msdf_segment_t* segment, const msdf_vector2_t* point);
+MSDF_API int msdf_segment_move_end_point(msdf_segment_t* segment, const msdf_vector2_t* point);
+MSDF_API void msdf_segment_free(msdf_segment_t* segment);
 
 MSDF_API int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform);

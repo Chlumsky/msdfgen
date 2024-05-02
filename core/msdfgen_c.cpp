@@ -17,7 +17,19 @@
 
 #include <utility>
 
+/*
+ * A C-API implementation modeled closely after the msdfgen C++ API
+ * to allow C-programs and other language runtimes to
+ * use the msdfgen library. Originally written for LWJGL.
+ *
+ * @since 01/05/2024
+ * @author Alexander Hinze
+ */
+
 namespace {
+    static_assert(sizeof(msdfgen::Point2) == sizeof(msdfgen::Vector2));
+    static_assert(sizeof(msdfgen::Vector2) == sizeof(msdf_vector2_t));
+
     using SDFBitmap = msdfgen::Bitmap<float>;
     using SDFBitmapRef = msdfgen::BitmapRef<float>;
     using PSDFBitmap = msdfgen::Bitmap<float>;
@@ -191,8 +203,7 @@ MSDF_API int msdf_shape_get_bounds(msdf_shape_handle shape, msdf_bounds_t* bound
     if(shape == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    const auto src_bounds = reinterpret_cast<msdfgen::Shape*>(shape)->getBounds();
-    memcpy(bounds, &src_bounds, sizeof(msdfgen::Shape::Bounds));
+    *reinterpret_cast<msdfgen::Shape::Bounds*>(bounds) = reinterpret_cast<msdfgen::Shape*>(shape)->getBounds();
     return MSDF_SUCCESS;
 }
 
@@ -211,7 +222,7 @@ MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, size_t* conto
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, size_t index, msdf_contour_handle* contours) {
+MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, const size_t index, msdf_contour_handle* contours) {
     if(shape == nullptr || contours == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
@@ -259,7 +270,11 @@ MSDF_API int msdf_shape_bound(msdf_shape_handle shape, msdf_bounds_t* bounds) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_bound_miters(msdf_shape_handle shape, msdf_bounds_t* bounds, double border, double miterLimit, int polarity) {
+MSDF_API int msdf_shape_bound_miters(msdf_shape_handle shape,
+                                     msdf_bounds_t* bounds,
+                                     const double border,
+                                     const double miterLimit,
+                                     const int polarity) {
     if(shape == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
@@ -297,7 +312,7 @@ MSDF_API int msdf_contour_get_edge_count(msdf_contour_handle contour, size_t* ed
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, size_t index, msdf_edge_holder_handle* edges) {
+MSDF_API int msdf_contour_get_edge(msdf_contour_handle contour, const size_t index, msdf_edge_holder_handle* edges) {
     if(contour == nullptr || edges == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
@@ -313,7 +328,11 @@ MSDF_API int msdf_contour_bound(msdf_contour_handle contour, msdf_bounds_t* boun
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour, msdf_bounds_t* bounds, double border, double miterLimit, int polarity) {
+MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour,
+                                       msdf_bounds_t* bounds,
+                                       const double border,
+                                       const double miterLimit,
+                                       const int polarity) {
     if(contour == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
@@ -343,20 +362,11 @@ MSDF_API void msdf_contour_free(msdf_contour_handle contour) {
 
 // msdf_edge_holder
 
-int msdf_edge_alloc(msdf_segment_handle segment, msdf_edge_holder_handle* edge) {
+int msdf_edge_alloc(msdf_segment_t* segment, msdf_edge_holder_handle* edge) {
     if(edge == nullptr || segment == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    *edge = reinterpret_cast<msdf_edge_holder_handle>(msdf_new<msdfgen::EdgeHolder>(reinterpret_cast<msdfgen::EdgeSegment*>(segment)));
-    return MSDF_SUCCESS;
-}
-
-int msdf_edge_get_segment(msdf_edge_holder_handle edge, msdf_segment_handle* segment) {
-    if(edge == nullptr || segment == nullptr) {
-        return MSDF_ERR_INVALID_ARG;
-    }
-    msdfgen::EdgeSegment* p_segment = *reinterpret_cast<msdfgen::EdgeHolder*>(edge);
-    *segment = reinterpret_cast<msdf_segment_handle>(p_segment);
+    *edge = reinterpret_cast<msdf_edge_holder_handle>(msdf_new<msdfgen::EdgeHolder>(static_cast<msdfgen::EdgeSegment*>(segment->handle)));
     return MSDF_SUCCESS;
 }
 
@@ -366,58 +376,232 @@ void msdf_edge_free(msdf_edge_holder_handle edge) {
 
 // msdf_segment
 
-MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment) {
+MSDF_API int msdf_segment_alloc(const int type, msdf_segment_t** segment) {
+    if(type < 0 || type >= MSDF_SEGMENT_TYPE_MAX) {
+        return MSDF_ERR_INVALID_TYPE;
+    }
+    if(segment == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    auto* wrapper = msdf_alloc<msdf_segment_t>();
+    wrapper->type = type;
+    switch(type) {
+        case MSDF_SEGMENT_TYPE_LINEAR:
+            wrapper->handle = msdf_new<msdfgen::LinearSegment>(msdfgen::Point2 {}, msdfgen::Point2 {});
+            break;
+        case MSDF_SEGMENT_TYPE_QUADRATIC:
+            wrapper->handle = msdf_new<msdfgen::QuadraticSegment>(msdfgen::Point2 {}, msdfgen::Point2 {}, msdfgen::Point2 {});
+            break;
+        case MSDF_SEGMENT_TYPE_CUBIC:
+            wrapper->handle =
+                msdf_new<msdfgen::CubicSegment>(msdfgen::Point2 {}, msdfgen::Point2 {}, msdfgen::Point2 {}, msdfgen::Point2 {});
+            break;
+        default:
+            return MSDF_ERR_INVALID_ARG;
+    }
+    *segment = wrapper;
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_type(msdf_segment_handle segment, int* type) {
+MSDF_API int msdf_segment_get_point_count(msdf_segment_t* segment, size_t* point_count) {
+    if(segment == nullptr || point_count == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    switch(segment->type) {
+        case MSDF_SEGMENT_TYPE_LINEAR:
+            *point_count = 2;
+            break;
+        case MSDF_SEGMENT_TYPE_QUADRATIC:
+            *point_count = 3;
+            break;
+        case MSDF_SEGMENT_TYPE_CUBIC:
+            *point_count = 4;
+            break;
+        default:
+            *point_count = 0;
+            break;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_point_count(msdf_segment_handle segment, size_t* point_count) {
+MSDF_API int msdf_segment_get_point(msdf_segment_t* segment, const size_t index, msdf_vector2_t* point) {
+    if(segment == nullptr || point == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    size_t point_count;
+    if(msdf_segment_get_point_count(segment, &point_count) != MSDF_SUCCESS) {
+        return MSDF_ERR_FAILED;
+    }
+    if(index >= point_count) {
+        return MSDF_ERR_INVALID_INDEX;
+    }
+    switch(segment->type) {
+        case MSDF_SEGMENT_TYPE_LINEAR:
+            *reinterpret_cast<msdfgen::Point2*>(point) = static_cast<msdfgen::LinearSegment*>(segment->handle)->p[index];
+            break;
+        case MSDF_SEGMENT_TYPE_QUADRATIC:
+            *reinterpret_cast<msdfgen::Point2*>(point) = static_cast<msdfgen::QuadraticSegment*>(segment->handle)->p[index];
+            break;
+        case MSDF_SEGMENT_TYPE_CUBIC:
+            *reinterpret_cast<msdfgen::Point2*>(point) = static_cast<msdfgen::CubicSegment*>(segment->handle)->p[index];
+            break;
+        default:
+            return MSDF_ERR_INVALID_ARG;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_point(msdf_segment_handle segment, size_t index, msdf_vector2_t* point) {
+MSDF_API int msdf_segment_set_point(msdf_segment_t* segment, const size_t index, const msdf_vector2_t* point) {
+    if(segment == nullptr || point == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    size_t point_count;
+    if(msdf_segment_get_point_count(segment, &point_count) != MSDF_SUCCESS) {
+        return MSDF_ERR_FAILED;
+    }
+    if(index >= point_count) {
+        return MSDF_ERR_INVALID_INDEX;
+    }
+    switch(segment->type) {
+        case MSDF_SEGMENT_TYPE_LINEAR:
+            static_cast<msdfgen::LinearSegment*>(segment->handle)->p[index] = *reinterpret_cast<const msdfgen::Point2*>(point);
+            break;
+        case MSDF_SEGMENT_TYPE_QUADRATIC:
+            static_cast<msdfgen::QuadraticSegment*>(segment->handle)->p[index] = *reinterpret_cast<const msdfgen::Point2*>(point);
+            break;
+        case MSDF_SEGMENT_TYPE_CUBIC:
+            static_cast<msdfgen::CubicSegment*>(segment->handle)->p[index] = *reinterpret_cast<const msdfgen::Point2*>(point);
+            break;
+        default:
+            return MSDF_ERR_INVALID_ARG;
+    }
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, size_t index, const msdf_vector2_t* point) {
+MSDF_API int msdf_segment_set_color(msdf_segment_t* segment, int color) {
+    if(segment == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    static_cast<msdfgen::EdgeSegment*>(segment->handle)->color = static_cast<msdfgen::EdgeColor>(color);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_set_color(msdf_segment_handle segment, int color) {
+MSDF_API int msdf_segment_get_color(msdf_segment_t* segment, int* color) {
+    if(segment == nullptr || color == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *color = static_cast<int>(static_cast<msdfgen::EdgeSegment*>(segment->handle)->color);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_color(msdf_segment_handle segment, int* color) {
+MSDF_API int msdf_segment_get_direction(msdf_segment_t* segment, double param, msdf_vector2_t* direction) {
+    if(segment == nullptr || direction == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *reinterpret_cast<msdfgen::Vector2*>(direction) = static_cast<msdfgen::EdgeSegment*>(segment->handle)->direction(param);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_direction(msdf_segment_handle segment, double param, msdf_vector2_t* direction) {
+MSDF_API int msdf_segment_get_direction_change(msdf_segment_t* segment, double param, msdf_vector2_t* direction_change) {
+    if(segment == nullptr || direction_change == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *reinterpret_cast<msdfgen::Vector2*>(direction_change) = static_cast<msdfgen::EdgeSegment*>(segment->handle)->directionChange(param);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_get_direction_change(msdf_segment_handle segment, double param, msdf_vector2_t* direction_change) {
+MSDF_API int msdf_segment_point(msdf_segment_t* segment, double param, msdf_vector2_t* point) {
+    if(segment == nullptr || point == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *reinterpret_cast<msdfgen::Point2*>(point) = static_cast<msdfgen::EdgeSegment*>(segment->handle)->point(param);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_point(msdf_segment_handle segment, double param, msdf_vector2_t* point) {
+MSDF_API int msdf_segment_bound(msdf_segment_t* segment, msdf_bounds_t* bounds) {
+    if(segment == nullptr || bounds == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    static_cast<msdfgen::EdgeSegment*>(segment->handle)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_bound(msdf_segment_handle segment, msdf_bounds_t* bounds) {
+MSDF_API int msdf_segment_move_start_point(msdf_segment_t* segment, const msdf_vector2_t* point) {
+    if(segment == nullptr || point == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    static_cast<msdfgen::EdgeSegment*>(segment->handle)->moveStartPoint(*reinterpret_cast<const msdfgen::Point2*>(point));
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_move_start_point(msdf_segment_handle segment, const msdf_vector2_t* point) {
+MSDF_API int msdf_segment_move_end_point(msdf_segment_t* segment, const msdf_vector2_t* point) {
+    if(segment == nullptr || point == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    static_cast<msdfgen::EdgeSegment*>(segment->handle)->moveEndPoint(*reinterpret_cast<const msdfgen::Point2*>(point));
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_segment_move_end_point(msdf_segment_handle segment, const msdf_vector2_t* point) {
+MSDF_API void msdf_segment_free(msdf_segment_t* segment) {
+    switch(segment->type) {
+        case MSDF_SEGMENT_TYPE_LINEAR:
+            msdf_delete(static_cast<msdfgen::LinearSegment*>(segment->handle));
+            break;
+        case MSDF_SEGMENT_TYPE_QUADRATIC:
+            msdf_delete(static_cast<msdfgen::QuadraticSegment*>(segment->handle));
+            break;
+        case MSDF_SEGMENT_TYPE_CUBIC:
+            msdf_delete(static_cast<msdfgen::CubicSegment*>(segment->handle));
+            break;
+        default:
+            return;
+    }
+    msdf_free(segment);
+}
+
+// Main msdfgen APIs
+
+int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API void msdf_segment_free(msdf_segment_handle segment) {
+int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_handle shape, const msdf_transform_t* transform) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
+                                  msdf_shape_handle shape,
+                                  const msdf_transform_t* transform,
+                                  const msdf_config_t* config) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_psdf_with_config(msdf_bitmap_t* output,
+                                   msdf_shape_handle shape,
+                                   const msdf_transform_t* transform,
+                                   const msdf_config_t* config) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_msdf_with_config(msdf_bitmap_t* output,
+                                   msdf_shape_handle shape,
+                                   const msdf_transform_t* transform,
+                                   const msdf_multichannel_config_t* config) {
+    return MSDF_SUCCESS;
+}
+
+int msdf_generate_mtsdf_with_config(msdf_bitmap_t* output,
+                                    msdf_shape_handle shape,
+                                    const msdf_transform_t* transform,
+                                    const msdf_multichannel_config_t* config) {
+    return MSDF_SUCCESS;
 }
 }
