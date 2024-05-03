@@ -176,7 +176,7 @@ int main(int num_args, char** args) {
     
     // DO SOMETHING WITH THE GENERATED GLYPH BITMAP HERE..
     
-    // Make sure to free heap allocated resource when we're done
+    // Make sure to free heap allocated resources when we're done
     msdf_shape_free(shape);
     msdf_bitmap_free(bitmap);
     return 0;
