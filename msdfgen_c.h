@@ -153,7 +153,7 @@ MSDF_API const msdf_allocator_t* msdf_allocator_get();
 // msdf_bitmap
 
 /**
- * Allocates a new MSDF bitmap object to render a shape into.
+ * Allocates a new MSDF bitmap object to render a shape into using the internal allocator.
  * @param type The type of bitmap to allocate. Can be one of @code MSDF_BITMAP_TYPE_SDF@endcode, @code MSDF_BITMAP_TYPE_PSDF@endcode,
  *  @code MSDF_BITMAP_TYPE_MSDF@endcode or @code MSDF_BITMAP_TYPE_MTSDF@endcode.
  * @param width The width of the bitmap in pixels.
@@ -196,17 +196,103 @@ MSDF_API void msdf_bitmap_free(msdf_bitmap_t* bitmap);
 
 // msdf_shape
 
+/**
+ * Allocates a new MSDF shape object using the internal allocator.
+ * @param shape A pointer to an address which is populated with the address of the newly allocated shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_alloc(msdf_shape_handle* shape);
+
+/**
+ * Retrieves the bounds of the given shape.
+ * @param shape A pointer to a shape object to retrieve the bounds from.
+ * @param bounds A pointer to a variable which is populated with the bounds of the given shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_get_bounds(msdf_shape_const_handle shape, msdf_bounds_t* bounds);
+
+/**
+ * Adds a new contour to the given shape.
+ * @param shape A pointer to a shape object to add a new contour to.
+ * @param contour A pointer to an address which is populated with the address of the newly created contour.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_handle* contour);
+
+/**
+ * Retrieves the number of contours allocated within the given shape object.
+ * @param shape A pointer to a shape object from which to retrieve the contour count.
+ * @param contour_count A pointer to a variable which is populated with the number of contours of the given shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_get_contour_count(msdf_shape_const_handle shape, size_t* contour_count);
+
+/**
+ * Retrieves a contour at a given index from the given shape.
+ * @param shape A pointer to a shape object from which to retrieve a contour.
+ * @param index The index of the contour to retrieve.
+ * @param contour A pointer to an address which is populated with the address of the contour at the given index if present.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_get_contour(msdf_shape_const_handle shape, size_t index, msdf_contour_const_handle* contour);
+
+/**
+ * Retrieves the number of edges of the given shape.
+ * @param shape A pointer to a shape from which to retrieve the edge count.
+ * @param edge_count A pointer to a variable which is populated with the number of edges defined by the given shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_get_edge_count(msdf_shape_const_handle shape, size_t* edge_count);
+
+/**
+ * Retrieves the inverse-y-axis flag of the given shape.
+ * @param shape A pointer to a shape from which to fetch the inverse-y-axis flag.
+ * @param inverse_y_axis A pointer to a variable which is populated with @code MSDF_TRUE@endcode when the
+ *  y-axis of the given shape is inverted. Otherwise the variable will be set to @code MSDF_FALSE@endcode.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_has_inverse_y_axis(msdf_shape_const_handle shape, int* inverse_y_axis);
+
+/**
+ * Normalizes the given shape.
+ * @param shape A pointer to a shape to normalize.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_normalize(msdf_shape_handle shape);
+
+/**
+ * Validates the given shape.
+ * @param shape A pointer to a shape to validate.
+ * @param result A pointer to a variable which is populated with @code MSDF_TRUE@endcode when the
+ *  validation was successful. Otherwise the variable will be set to @code MSDF_FALSE@endcode.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_validate(msdf_shape_handle shape, int* result);
+
+/**
+ * Adjusts the given bounding box to fit the given shape.
+ * @param shape A pointer to a shape to fit into the given bounding box.
+ * @param bounds A pointer to a bounding box which should at least fit the given shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_bound(msdf_shape_const_handle shape, msdf_bounds_t* bounds);
+
+/**
+ * Adjusts the given bounding box to fit the given shape including a mitered border.
+ * @param shape A pointer to a shape to fit into the given bounding box.
+ * @param bounds A pointer to a bounding box which should at least fit the given shape including the specified border.
+ * @param border The size of the border.
+ * @param miter_limit The miter limit value.
+ * @param polarity The miter polarity.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape, msdf_bounds_t* bounds, double border, double miter_limit, int polarity);
+
+/**
+ * Calls the destructor of the given bitmap and frees its memory using the
+ * internal allocator.
+ * @param shape A pointer to a shape object to be freed.
+ */
 MSDF_API void msdf_shape_free(msdf_shape_handle shape);
 
 // msdf_contour
