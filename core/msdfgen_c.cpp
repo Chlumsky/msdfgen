@@ -262,15 +262,15 @@ MSDF_API int msdf_shape_validate(msdf_shape_handle shape, int* result) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_bound(msdf_shape_handle shape, msdf_bounds_t* bounds) {
+MSDF_API int msdf_shape_bound(msdf_shape_const_handle shape, msdf_bounds_t* bounds) {
     if(shape == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    reinterpret_cast<msdfgen::Shape*>(shape)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
+    reinterpret_cast<const msdfgen::Shape*>(shape)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_bound_miters(msdf_shape_handle shape,
+MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape,
                                      msdf_bounds_t* bounds,
                                      const double border,
                                      const double miter_limit,
@@ -278,7 +278,7 @@ MSDF_API int msdf_shape_bound_miters(msdf_shape_handle shape,
     if(shape == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    reinterpret_cast<msdfgen::Shape*>(shape)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miter_limit, polarity);
+    reinterpret_cast<const msdfgen::Shape*>(shape)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miter_limit, polarity);
     return MSDF_SUCCESS;
 }
 
@@ -322,15 +322,15 @@ MSDF_API int msdf_contour_get_edge(msdf_contour_const_handle contour, const size
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_bound(msdf_contour_handle contour, msdf_bounds_t* bounds) {
+MSDF_API int msdf_contour_bound(msdf_contour_const_handle contour, msdf_bounds_t* bounds) {
     if(contour == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    reinterpret_cast<msdfgen::Contour*>(contour)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
+    reinterpret_cast<const msdfgen::Contour*>(contour)->bound(bounds->l, bounds->b, bounds->r, bounds->t);
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour,
+MSDF_API int msdf_contour_bound_miters(msdf_contour_const_handle contour,
                                        msdf_bounds_t* bounds,
                                        const double border,
                                        const double miter_limit,
@@ -338,7 +338,7 @@ MSDF_API int msdf_contour_bound_miters(msdf_contour_handle contour,
     if(contour == nullptr || bounds == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    reinterpret_cast<msdfgen::Contour*>(contour)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miter_limit, polarity);
+    reinterpret_cast<const msdfgen::Contour*>(contour)->boundMiters(bounds->l, bounds->b, bounds->r, bounds->t, border, miter_limit, polarity);
     return MSDF_SUCCESS;
 }
 
