@@ -148,21 +148,16 @@ int main() {
 ```c++
 #include <msdfgen_c.h>
 
-inline void create_shape(msdf_shape_handle* shape, char value) {
+int main(int num_args, char** args) {
+    msdf_bitmap_t bitmap;
+    if(msdf_bitmap_alloc(MSDF_BITMAP_TYPE_MSDF, 16, 16, &bitmap) != MSDF_SUCCESS) {
+        return 1;
+    }
     msdf_shape_handle shape = NULL;
     if(msdf_shape_alloc(&shape) != MSDF_SUCCESS) {
         return; // Handle error accordingly
     }
     // Create shape data from font using FreeType, STB etc here..
-}
-
-int main(int num_args, char** args) {
-    msdf_bitmap_t* bitmap = NULL;
-    if(msdf_bitmap_alloc(MSDF_BITMAP_TYPE_MSDF, 16, 16, &bitmap) != MSDF_SUCCESS) {
-        return 1;
-    }
-    msdf_shape_handle shape = NULL;
-    create_shape(&shape, 'A');
     msdf_transform_t transform;
     transform.scale.x = 1.0;
     transform.scale.y = 1.0;
@@ -170,15 +165,13 @@ int main(int num_args, char** args) {
     transform.translation.y = 4.0;
     transform.distance_mapping.lower = 4.0;
     transform.distance_mapping.upper = 4.0;
-    if(msdf_generate_msdf(bitmap, shape, &transform) != MSDF_SUCCESS) {
+    if(msdf_generate_msdf(&bitmap, shape, &transform) != MSDF_SUCCESS) {
         return 1;
     }
-    
-    // DO SOMETHING WITH THE GENERATED GLYPH BITMAP HERE..
-    
+    // DO SOMETHING WITH THE GENERATED GLYPH BITMAP HERE.. 
     // Make sure to free heap allocated resources when we're done
     msdf_shape_free(shape);
-    msdf_bitmap_free(bitmap);
+    msdf_bitmap_free(&bitmap);
     return 0;
 }
 ```
