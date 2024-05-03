@@ -72,7 +72,8 @@
 extern "C" {
 #endif
 
-// Type definitions
+// -------------------- Type definitions
+
 typedef void* (*msdf_allocator_alloc_callback_t)(size_t size);
 typedef void* (*msdf_allocator_realloc_callback_t)(void* memory, size_t size);
 typedef void (*msdf_allocator_free_callback_t)(void* memory);
@@ -125,20 +126,75 @@ typedef struct msdf_bitmap {
     void* handle;
 } msdf_bitmap_t;
 
-// Opaque handle types
+// -------------------- Opaque handle types
+
 MSDF_DEFINE_HANDLE_TYPE(msdf_shape);
 MSDF_DEFINE_HANDLE_TYPE(msdf_contour);
 MSDF_DEFINE_HANDLE_TYPE(msdf_segment);
 
-// Exported API functions
+// -------------------- Exported API functions
+// msdf_allocator
+
+/**
+ * Sets the allocation callbacks to use for allocating API objects.
+ * @param allocator The address of an msdf_allocator_t structure
+ * to copy the callback pointers from.
+ */
 MSDF_API void msdf_allocator_set(const msdf_allocator_t* allocator);
+
+/**
+ * Retrieves the address of the allocator used by the C API
+ * to allocate underlying objects.
+ * @returns The address of the allocator used by the C API
+ *  to allocate underlying objects.
+ */
 MSDF_API const msdf_allocator_t* msdf_allocator_get();
 
+// msdf_bitmap
+
+/**
+ * Allocates a new MSDF bitmap object to render a shape into.
+ * @param type The type of bitmap to allocate. Can be one of @code MSDF_BITMAP_TYPE_SDF@endcode, @code MSDF_BITMAP_TYPE_PSDF@endcode,
+ *  @code MSDF_BITMAP_TYPE_MSDF@endcode or @code MSDF_BITMAP_TYPE_MTSDF@endcode.
+ * @param width The width of the bitmap in pixels.
+ * @param height The height of the bitmap in pixels.
+ * @param bitmap A pointer to an @code msdf_bitmap_t@endcode structure to allocate a new bitmap into.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_bitmap_alloc(int type, int width, int height, msdf_bitmap_t* bitmap);
+
+/**
+ * Retrieves the number of color channels used by the given bitmap.
+ * @param bitmap A pointer to an @code msdf_bitmap_t@endcode structure to retrieve the channel count from.
+ * @param channel_count A pointer to a variable which is populated with the number of color channels used by the given bitmap.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_bitmap_get_channel_count(const msdf_bitmap_t* bitmap, int* channel_count);
+
+/**
+ * Retrieves the address of the raw pixel data of the given bitmap.
+ * @param bitmap A pointer to an @code msdf_bitmap_t@endcode structure to retrieve the raw pixel data from.
+ * @param pixels A pointer to an address which is populated with the raw pixel data of the given bitmap.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_bitmap_get_pixels(const msdf_bitmap_t* bitmap, void** pixels);
+
+/**
+ * Retrieves the size of the pixel data of the given bitmap in bytes.
+ * @param bitmap A pointer to an @code msdf_bitmap_t@endcode structure to retrieve the size of the raw pixel data from.
+ * @param size A pointer to a variable which is populated with the byte size of the raw pixel data of the given bitmap.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_bitmap_get_byte_size(const msdf_bitmap_t* bitmap, size_t* size);
+
+/**
+ * Calls the destructor of the given bitmap and frees its memory using the
+ * internal allocator.
+ * @param bitmap A pointer to an @code msdf_bitmap_t@endcode structure to be freed.
+ */
 MSDF_API void msdf_bitmap_free(msdf_bitmap_t* bitmap);
+
+// msdf_shape
 
 MSDF_API int msdf_shape_alloc(msdf_shape_handle* shape);
 MSDF_API int msdf_shape_get_bounds(msdf_shape_const_handle shape, msdf_bounds_t* bounds);
@@ -153,15 +209,20 @@ MSDF_API int msdf_shape_bound(msdf_shape_const_handle shape, msdf_bounds_t* boun
 MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape, msdf_bounds_t* bounds, double border, double miter_limit, int polarity);
 MSDF_API void msdf_shape_free(msdf_shape_handle shape);
 
+// msdf_contour
+
 MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour);
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_segment_handle* segment);
 MSDF_API int msdf_contour_get_edge_count(msdf_contour_const_handle contour, size_t* edge_count);
 MSDF_API int msdf_contour_get_edge(msdf_contour_const_handle contour, size_t index, msdf_segment_const_handle* segment);
 MSDF_API int msdf_contour_bound(msdf_contour_const_handle contour, msdf_bounds_t* bounds);
-MSDF_API int msdf_contour_bound_miters(msdf_contour_const_handle contour, msdf_bounds_t* bounds, double border, double miter_limit, int polarity);
+MSDF_API int
+    msdf_contour_bound_miters(msdf_contour_const_handle contour, msdf_bounds_t* bounds, double border, double miter_limit, int polarity);
 MSDF_API int msdf_contour_get_winding(msdf_contour_const_handle contour, int* winding);
 MSDF_API int msdf_contour_reverse(msdf_contour_handle contour);
 MSDF_API void msdf_contour_free(msdf_contour_handle contour);
+
+// msdf_segment
 
 MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment);
 MSDF_API int msdf_segment_get_type(msdf_segment_const_handle segment, int* type);
@@ -178,10 +239,14 @@ MSDF_API int msdf_segment_move_start_point(msdf_segment_handle segment, const ms
 MSDF_API int msdf_segment_move_end_point(msdf_segment_handle segment, const msdf_vector2_t* point);
 MSDF_API void msdf_segment_free(msdf_segment_handle segment);
 
+// msdf_segment
+
 MSDF_API int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
+
+// msdfgen-core API functions
 
 MSDF_API int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
                                            msdf_shape_const_handle shape,
