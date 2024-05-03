@@ -297,15 +297,80 @@ MSDF_API void msdf_shape_free(msdf_shape_handle shape);
 
 // msdf_contour
 
+/**
+ * Allocates a new contour object using the internal allocator.
+ * @param contour A pointer to an address which is populated with the address of the newly allocated contour object.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour);
+
+/**
+ * Adds a new edge to the given contour and returns its associated segment handle.
+ * @param contour A pointer to the contour to add a new edge (segment) to.
+ * @param segment A pointer to an address which is populated with the address of the newly
+ *  added edge segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_segment_handle* segment);
+
+/**
+ * Retrieves the edge count of the given contour.
+ * @param contour A pointer to the contour to retrieve the edge count from.
+ * @param edge_count A pointer to a variable which is populated with the edge count of the given contour.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_get_edge_count(msdf_contour_const_handle contour, size_t* edge_count);
+
+/**
+ * Retrieves an edge (segment) from the given contour at the given index.
+ * @param contour A pointer to the contour from which to retrieve the given edge segment.
+ * @param index The index from which to retrieve the edge segment.
+ * @param segment A pointer to an address which is populated with the address of the
+ *  edge segment at the given index if present.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_get_edge(msdf_contour_const_handle contour, size_t index, msdf_segment_const_handle* segment);
+
+/**
+ * Adjusts the given bounding box to fit at least the given contour.
+ * @param contour A pointer to the contour which should at least fit into the given bounding box.
+ * @param bounds A pointer to the bounding box to fit the given contour into.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_bound(msdf_contour_const_handle contour, msdf_bounds_t* bounds);
+
+/**
+ * Adjust the given bounding box to fit at least the given contour including a specified border.
+ * @param contour A pointer to the contour which should at least fit into the given bounding box.
+ * @param bounds A pointer to the bounding box to fit the given contour including the specified border.
+ * @param border The size of the border.
+ * @param miter_limit The miter limit value.
+ * @param polarity The miter polarity.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int
     msdf_contour_bound_miters(msdf_contour_const_handle contour, msdf_bounds_t* bounds, double border, double miter_limit, int polarity);
+
+/**
+ * Retrieves the winding direction of the given contour.
+ * @param contour A pointer to the contour of which to retrieve the winding direction.
+ * @param winding A pointer to a variables which is populated with the winding direction of the given contour.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_get_winding(msdf_contour_const_handle contour, int* winding);
+
+/**
+ * Reverses the order of edges in the given contour.
+ * @param contour A pointer to the contour which to reverse the edge order for.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_contour_reverse(msdf_contour_handle contour);
+
+/**
+ * Calls the destructor of the given bitmap and frees its memory using the
+ * internal allocator.
+ * @param contour A pointer to the contour to free.
+ */
 MSDF_API void msdf_contour_free(msdf_contour_handle contour);
 
 // msdf_segment
