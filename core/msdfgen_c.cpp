@@ -231,7 +231,7 @@ MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, const size_t index,
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_get_edge_counts(msdf_shape_handle shape, size_t* edge_count) {
+MSDF_API int msdf_shape_get_edge_count(msdf_shape_handle shape, size_t* edge_count) {
     if(shape == nullptr || edge_count == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }

@@ -146,7 +146,7 @@ MSDF_API int msdf_shape_get_bounds(msdf_shape_handle shape, msdf_bounds_t* bound
 MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_handle* contour);
 MSDF_API int msdf_shape_get_contour_count(msdf_shape_handle shape, size_t* contour_count);
 MSDF_API int msdf_shape_get_contour(msdf_shape_handle shape, size_t index, msdf_contour_handle* contours);
-MSDF_API int msdf_shape_get_edge_counts(msdf_shape_handle shape, size_t* edge_count);
+MSDF_API int msdf_shape_get_edge_count(msdf_shape_handle shape, size_t* edge_count);
 MSDF_API int msdf_shape_has_inverse_y_axis(msdf_shape_handle shape, int* inverse_y_axis);
 MSDF_API int msdf_shape_normalize(msdf_shape_handle shape);
 MSDF_API int msdf_shape_validate(msdf_shape_handle shape, int* result);
