@@ -24,11 +24,12 @@
  * @author Alexander Hinze
  */
 
+// Common definitions
 #define MSDF_API MSDFGEN_PUBLIC
-
 #define MSDF_FALSE 0
 #define MSDF_TRUE 1
 
+// Success and error codes
 #define MSDF_SUCCESS 0
 #define MSDF_ERR_FAILED 1
 #define MSDF_ERR_INVALID_ARG 2
@@ -36,17 +37,20 @@
 #define MSDF_ERR_INVALID_SIZE 4
 #define MSDF_ERR_INVALID_INDEX 5
 
+// Bitmap types used with msdf_bitmap_alloc
 #define MSDF_BITMAP_TYPE_SDF 0
 #define MSDF_BITMAP_TYPE_PSDF 1
 #define MSDF_BITMAP_TYPE_MSDF 2
 #define MSDF_BITMAP_TYPE_MTSDF 3
 #define MSDF_BITMAP_TYPE_MAX MSDF_BITMAP_TYPE_MTSDF
 
+// Segment types used with msdf_segment_alloc/msdf_segment_get_type
 #define MSDF_SEGMENT_TYPE_LINEAR 0
 #define MSDF_SEGMENT_TYPE_QUADRATIC 1
 #define MSDF_SEGMENT_TYPE_CUBIC 2
 #define MSDF_SEGMENT_TYPE_MAX MSDF_SEGMENT_TYPE_CUBIC
 
+// Segment/edge colors used with msdf_segment_set_color/msdf_segment_get_color
 #define MSDF_EDGE_COLOR_BLACK 0
 #define MSDF_EDGE_COLOR_RED 1
 #define MSDF_EDGE_COLOR_GREEN 2
@@ -375,29 +379,136 @@ MSDF_API void msdf_contour_free(msdf_contour_handle contour);
 
 // msdf_segment
 
+/**
+ * Allocates a new segment of the given type and populates the given address
+ * with the address of the newly allocated segment.
+ * @param type The type of segment to allocate. Can be one of @code MSDF_SEGMENT_TYPE_LINEAR@endcode,
+ *  @code MSDF_SEGMENT_TYPE_QUADRATIC@endcode or @code MSDF_SEGMENT_TYPE_CUBIC@endcode.
+ * @param segment A pointer to an address which is populated with the address of the newly
+ *  allocated segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_alloc(int type, msdf_segment_handle* segment);
+
+/**
+ * Retrieves the type of the given segment.
+ * @param segment A pointer to the segment of which to retrieve the type.
+ * @param type A pointer to a variable which is populated with the type of the given segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_type(msdf_segment_const_handle segment, int* type);
+
+/**
+ * Retrieves the point count of the given segment.
+ * @param segment A pointer to the segment of which to retrieve the number of points.
+ * @param point_count A pointer to a variable which is populated with
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_point_count(msdf_segment_const_handle segment, size_t* point_count);
+
+/**
+ * Retrieves a point at the given index from the given segment.
+ * @param segment A pointer to the segment from which to retrieve a point.
+ * @param index The index of the point to retrieve.
+ * @param point A pointer to a point which is populated with the coordinates of the point
+ *  at the given index if present.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_point(msdf_segment_const_handle segment, size_t index, msdf_vector2_t* point);
+
+/**
+ * Sets the coordinates of a point at the given index in the given segment.
+ * @param segment A pointer to the segment of which to set the point.
+ * @param index The index of the point to set.
+ * @param point A pointer to a point which is copied to the given index within the segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_set_point(msdf_segment_handle segment, size_t index, const msdf_vector2_t* point);
+
+/**
+ * Sets the color of the given segment.
+ * @param segment A pointer to the segment of which to set the color.
+ * @param color The color to set. Can be any @code MSDF_COLOR_@endcode value.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_set_color(msdf_segment_handle segment, int color);
+
+/**
+ * Retrieves the color of the given segment.
+ * @param segment A pointer to the segment of which to retrieve the color.
+ * @param color A pointer to a variable which is populated with the color of the given segment.
+ *  Will be one of the constants prefixed with @code MSDF_COLOR_@endcode.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_color(msdf_segment_const_handle segment, int* color);
+
+/**
+ * Retrieves the direction of the given segment at the given point.
+ * @param segment A pointer to the segment of which to retrieve the direction.
+ * @param param The point at which to retrieve the segment direction.
+ * @param direction A pointer to a variable which is populated with the direction of the given
+ *  segment at the given point.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_direction(msdf_segment_const_handle segment, double param, msdf_vector2_t* direction);
+
+/**
+ * Retrieves the direction change of the given segment at the given point.
+ * @param segment A pointer to the segment of which to retrieve the direction change.
+ * @param param The point at which to retrieve the segment direction change.
+ * @param direction_change A pointer to a variable which is populated with the direction change
+ *  of the given segment at the given point.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_get_direction_change(msdf_segment_const_handle segment, double param, msdf_vector2_t* direction_change);
+
+/**
+ * Retrieves the point on the given edge segment specified by the given parameter.
+ * @param segment A pointer to the segment of which to retrieve the edge point.
+ * @param param The point at which to sample.
+ * @param point A pointer to a variable which is populated with the edge point
+ *  at the given location from the given segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_point(msdf_segment_const_handle segment, double param, msdf_vector2_t* point);
+
+/**
+ * Adjusts the given bounding box to fit at least the given segment.
+ * @param segment A pointer to the segment which should at least fit in the given bounding box.
+ * @param bounds A pointer to the bounding box which should at least fit the given segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_bound(msdf_segment_const_handle segment, msdf_bounds_t* bounds);
+
+/**
+ * Moves the start point of the given segment.
+ * @param segment A pointer to the segment of which to adjust the start point.
+ * @param point A pointer to the new start point of the given segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_move_start_point(msdf_segment_handle segment, const msdf_vector2_t* point);
+
+/**
+ * Moves the end point of the given segment.
+ * @param segment A pointer to the segment of which to adjust the end point.
+ * @param point A pointer to the new end point of the given segment.
+ * @returns @code MSDF_SUCCESS@endcode on success, one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_segment_move_end_point(msdf_segment_handle segment, const msdf_vector2_t* point);
+
+/**
+ * Calls the destructor of the given segment and frees its memory using the
+ * internal allocator.
+ * @param segment A pointer to the segment to free.
+ */
 MSDF_API void msdf_segment_free(msdf_segment_handle segment);
 
-// msdf_segment
+// msdfgen-core API functions
 
 MSDF_API int msdf_generate_sdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_psdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_msdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
 MSDF_API int msdf_generate_mtsdf(msdf_bitmap_t* output, msdf_shape_const_handle shape, const msdf_transform_t* transform);
-
-// msdfgen-core API functions
 
 MSDF_API int msdf_generate_sdf_with_config(msdf_bitmap_t* output,
                                            msdf_shape_const_handle shape,
