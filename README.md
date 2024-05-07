@@ -67,7 +67,7 @@ The input can be specified as one of:
 The complete list of available options can be printed with **-help**.
 Some of the important ones are:
  - **-o \<filename\>** &ndash; specifies the output file name. The desired format will be deduced from the extension
-   (png, bmp, tif, txt, bin). Otherwise, use -format.
+   (png, bmp, tiff, rgba, fl32, txt, bin). Otherwise, use -format.
  - **-dimensions \<width\> \<height\>** &ndash; specifies the dimensions of the output distance field (in pixels).
  - **-range \<range\>**, **-pxrange \<range\>** &ndash; specifies the width of the range around the shape
    between the minimum and maximum representable signed distance in shape units or distance field pixels, respectivelly.
@@ -107,7 +107,7 @@ in order to generate a distance field. Please note that all classes and function
    This can be performed automatically using the `edgeColoringSimple` (or other) heuristic, or manually by setting each edge's
    `color` member. Keep in mind that at least two color channels must be turned on in each edge.
  - Call `generateSDF`, `generatePSDF`, `generateMSDF`, or `generateMTSDF` to generate a distance field into a floating point
-   `Bitmap` object. This can then be worked with further or saved to a file using `saveBmp`, `savePng`, or `saveTiff`.
+   `Bitmap` object. This can then be worked with further or saved to a file using `saveBmp`, `savePng`, `saveTiff`, etc.
  - You may also render an image from the distance field using `renderSDF`. Consider calling `simulate8bit`
    on the distance field beforehand to simulate the standard 8 bits/channel image format.
 

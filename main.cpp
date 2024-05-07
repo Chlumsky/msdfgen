@@ -30,7 +30,7 @@
 #define DEFAULT_IMAGE_EXTENSION "png"
 #define SAVE_DEFAULT_IMAGE_FORMAT savePng
 #else
-#define DEFAULT_IMAGE_EXTENSION "tif"
+#define DEFAULT_IMAGE_EXTENSION "tiff"
 #define SAVE_DEFAULT_IMAGE_FORMAT saveTiff
 #endif
 
@@ -41,6 +41,8 @@ enum Format {
     PNG,
     BMP,
     TIFF,
+    RGBA,
+    FL32,
     TEXT,
     TEXT_FLOAT,
     BINARY,
@@ -49,7 +51,7 @@ enum Format {
 };
 
 static bool is8bitFormat(Format format) {
-    return format == PNG || format == BMP || format == TEXT || format == BINARY;
+    return format == PNG || format == BMP || format == RGBA || format == TEXT || format == BINARY;
 }
 
 static char toupper(char c) {
@@ -263,7 +265,9 @@ static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const cha
                 return "PNG format is not available in core-only version.";
         #endif
             else if (cmpExtension(filename, ".bmp")) format = BMP;
-            else if (cmpExtension(filename, ".tif") || cmpExtension(filename, ".tiff")) format = TIFF;
+            else if (cmpExtension(filename, ".tiff") || cmpExtension(filename, ".tif")) format = TIFF;
+            else if (cmpExtension(filename, ".rgba")) format = RGBA;
+            else if (cmpExtension(filename, ".fl32")) format = FL32;
             else if (cmpExtension(filename, ".txt")) format = TEXT;
             else if (cmpExtension(filename, ".bin")) format = BINARY;
             else
@@ -275,6 +279,8 @@ static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const cha
         #endif
             case BMP: return saveBmp(bitmap, filename) ? NULL : "Failed to write output BMP image.";
             case TIFF: return saveTiff(bitmap, filename) ? NULL : "Failed to write output TIFF image.";
+            case RGBA: return saveRgba(bitmap, filename) ? NULL : "Failed to write output RGBA image.";
+            case FL32: return saveFl32(bitmap, filename) ? NULL : "Failed to write output FL32 image.";
             case TEXT: case TEXT_FLOAT: {
                 FILE *file = fopen(filename, "w");
                 if (!file) return "Failed to write output text file.";
@@ -416,12 +422,14 @@ static const char *const helpText =
         "\tComputes and prints the distance field's estimated fill error to the standard output.\n"
     "  -exportshape <filename.txt>\n"
         "\tSaves the shape description into a text file that can be edited and loaded using -shapedesc.\n"
+    "  -exportsvg <filename.svg>\n"
+        "\tSaves the shape geometry into a simple SVG file.\n"
     "  -fillrule <nonzero / evenodd / positive / negative>\n"
         "\tSets the fill rule for the scanline pass. Default is nonzero.\n"
 #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
-    "  -format <png / bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
+    "  -format <png / bmp / tiff / rgba / fl32 / text / textfloat / bin / binfloat / binfloatbe>\n"
 #else
-    "  -format <bmp / tiff / text / textfloat / bin / binfloat / binfloatbe>\n"
+    "  -format <bmp / tiff / rgba / fl32 / text / textfloat / bin / binfloat / binfloatbe>\n"
 #endif
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
     "  -guessorder\n"
@@ -548,6 +556,7 @@ int main(int argc, const char *const *argv) {
     const char *input = NULL;
     const char *output = "output." DEFAULT_IMAGE_EXTENSION;
     const char *shapeExport = NULL;
+    const char *svgExport = NULL;
     const char *testRender = NULL;
     const char *testRenderMulti = NULL;
     bool outputSpecified = false;
@@ -747,7 +756,9 @@ int main(int argc, const char *const *argv) {
                 fputs("PNG format is not available in core-only version.\n", stderr);
         #endif
             else if (ARG_IS("bmp")) SET_FORMAT(BMP, "bmp");
-            else if (ARG_IS("tiff") || ARG_IS("tif")) SET_FORMAT(TIFF, "tif");
+            else if (ARG_IS("tiff") || ARG_IS("tif")) SET_FORMAT(TIFF, "tiff");
+            else if (ARG_IS("rgba")) SET_FORMAT(RGBA, "rgba");
+            else if (ARG_IS("fl32")) SET_FORMAT(FL32, "fl32");
             else if (ARG_IS("text") || ARG_IS("txt")) SET_FORMAT(TEXT, "txt");
             else if (ARG_IS("textfloat") || ARG_IS("txtfloat")) SET_FORMAT(TEXT_FLOAT, "txt");
             else if (ARG_IS("bin") || ARG_IS("binary")) SET_FORMAT(BINARY, "bin");
@@ -919,6 +930,10 @@ int main(int argc, const char *const *argv) {
             shapeExport = argv[argPos++];
             continue;
         }
+        ARG_CASE("-exportsvg", 1) {
+            svgExport = argv[argPos++];
+            continue;
+        }
         ARG_CASE("-testrender", 3) {
             unsigned w, h;
             testRender = argv[argPos++];
@@ -1041,7 +1056,7 @@ int main(int argc, const char *const *argv) {
                 getGlyphIndex(glyphIndex, guard.font, unicode);
             if (!loadGlyph(shape, guard.font, glyphIndex, fontCoordinateScaling, &glyphAdvance))
                 ABORT("Failed to load glyph from font file.");
-            if (!fontCoordinateScalingSpecified && (!autoFrame || scaleSpecified || rangeMode == RANGE_UNIT || mode == METRICS || printMetrics || shapeExport)) {
+            if (!fontCoordinateScalingSpecified && (!autoFrame || scaleSpecified || rangeMode == RANGE_UNIT || mode == METRICS || printMetrics || shapeExport || svgExport)) {
                 fputs(
                     "Warning: Using legacy font coordinate conversion for compatibility reasons.\n"
                     "         The implicit scaling behavior will likely change in a future version resulting in different output.\n"
@@ -1104,7 +1119,7 @@ int main(int argc, const char *const *argv) {
 
     double avgScale = .5*(scale.x+scale.y);
     Shape::Bounds bounds = { };
-    if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS)
+    if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS || svgExport)
         bounds = shape.getBounds();
 
     if (outputDistanceShift) {
@@ -1278,12 +1293,15 @@ int main(int argc, const char *const *argv) {
 
     // Save output
     if (shapeExport) {
-        FILE *file = fopen(shapeExport, "w");
-        if (file) {
+        if (FILE *file = fopen(shapeExport, "w")) {
             writeShapeDescription(file, shape);
             fclose(file);
         } else
             fputs("Failed to write shape export file.\n", stderr);
+    }
+    if (svgExport) {
+        if (!saveSvgShape(shape, bounds, svgExport))
+            fputs("Failed to write shape SVG file.\n", stderr);
     }
     const char *error = NULL;
     switch (mode) {
