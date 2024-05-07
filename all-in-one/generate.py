@@ -15,8 +15,12 @@ sourceList = [
     'core/BitmapRef.hpp',
     'core/Bitmap.h',
     'core/Bitmap.hpp',
+    'core/Range.hpp',
     'core/Projection.h',
     'core/Projection.cpp',
+    'core/DistanceMapping.h',
+    'core/DistanceMapping.cpp',
+    'core/SDFTransformation.h',
     'core/SignedDistance.hpp',
     'core/Scanline.h',
     'core/Scanline.cpp',
@@ -51,6 +55,8 @@ sourceList = [
     'ext/import-font.cpp',
     'ext/resolve-shape-geometry.h',
     'ext/resolve-shape-geometry.cpp',
+    'ext/import-svg.h',
+    'ext/import-svg.cpp',
     'msdfgen.h'
 ]
 
@@ -61,6 +67,9 @@ header = """
 #ifndef MSDFGEN_NO_FREETYPE
 #define MSDFGEN_USE_FREETYPE
 #define MSDFGEN_DISABLE_VARIABLE_FONTS
+#endif
+#ifndef MSDFGEN_ENABLE_SVG
+#define MSDFGEN_DISABLE_SVG
 #endif
 
 #include <cstddef>
@@ -144,7 +153,7 @@ header = """
 /*
  * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR
  * ---------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2023
+ * A utility by Viktor Chlumsky, (c) 2014 - 2024
  * https://github.com/Chlumsky/msdfgen
  * Published under the MIT license
  *

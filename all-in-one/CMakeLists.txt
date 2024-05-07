@@ -50,8 +50,9 @@ add_library(msdfgen "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" "${CMAKE_CURRENT_SOU
 set_property(TARGET msdfgen PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 target_compile_features(msdfgen PUBLIC cxx_std_11)
 if(MSDFGEN_USE_FREETYPE)
-    target_compile_definitions(msdfgen PUBLIC MSDFGEN_USE_FREETYPE)
     target_link_libraries(msdfgen PRIVATE Freetype::Freetype)
+else()
+    target_compile_definitions(msdfgen PUBLIC MSDFGEN_NO_FREETYPE)
 endif()
 
 add_executable(msdfgen-test "${CMAKE_CURRENT_SOURCE_DIR}/test.cpp")
