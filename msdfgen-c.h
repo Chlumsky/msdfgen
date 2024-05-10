@@ -295,6 +295,7 @@ MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape, msdf_bounds_
 /**
  * Orients all contours associated with the given shape before rendering.
  * @param shape A pointer to a shape whose contours to orient.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
 MSDF_API int msdf_shape_orient_contours(msdf_shape_handle shape);
 
