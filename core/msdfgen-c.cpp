@@ -282,6 +282,9 @@ MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape,
 }
 
 MSDF_API int msdf_shape_orient_contours(msdf_shape_handle shape) {
+    if(shape == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
     reinterpret_cast<msdfgen::Shape*>(shape)->orientContours();
     return MSDF_SUCCESS;
 }
