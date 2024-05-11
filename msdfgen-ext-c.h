@@ -15,6 +15,15 @@
 
 #include "msdfgen-c.h"
 
+/*
+ * A C-API modeled closely after the msdfgen C++ API
+ * to allow C-programs and other language runtimes to
+ * use the msdfgen library. Originally written for LWJGL.
+ *
+ * @since 11/05/2024
+ * @author Alexander Hinze
+ */
+
 MSDF_DEFINE_HANDLE_TYPE(msdf_ft);
 MSDF_DEFINE_HANDLE_TYPE(msdf_ft_font);
 

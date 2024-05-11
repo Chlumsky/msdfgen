@@ -15,6 +15,15 @@
 #include "../msdfgen-ext-c.h"
 #include "../msdfgen-ext.h"
 
+/*
+ * A C-API modeled closely after the msdfgen C++ API
+ * to allow C-programs and other language runtimes to
+ * use the msdfgen library. Originally written for LWJGL.
+ *
+ * @since 11/05/2024
+ * @author Alexander Hinze
+ */
+
 extern "C" {
 
 MSDF_API int msdf_ft_init(msdf_ft_handle* handle) {
