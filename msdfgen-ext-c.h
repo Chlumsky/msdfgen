@@ -46,7 +46,7 @@ MSDF_API int msdf_ft_init(msdf_ft_handle* handle);
  * @param font A pointer to a font handle to be populated with the address of the newly loaded font.
  * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
-MSDF_API int msdf_ft_font_load(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font);
+MSDF_API int msdf_ft_load_font(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font);
 
 /**
  * Loads a TrueType font from the given buffer and populates
@@ -57,7 +57,7 @@ MSDF_API int msdf_ft_font_load(msdf_ft_handle handle, const char* filename, msdf
  * @param font A pointer to a font handle to be populated with the address of the newly loaded font.
  * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
-MSDF_API int msdf_ft_font_load_data(msdf_ft_handle handle, const void* data, size_t size, msdf_ft_font_handle* font);
+MSDF_API int msdf_ft_load_font_data(msdf_ft_handle handle, const void* data, size_t size, msdf_ft_font_handle* font);
 
 /**
  * Loads a single glyph from the given font and converts it into a vector shape

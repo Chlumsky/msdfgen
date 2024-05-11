@@ -34,7 +34,7 @@ MSDF_API int msdf_ft_init(msdf_ft_handle* handle) {
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_ft_font_load(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font) {
+MSDF_API int msdf_ft_load_font(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font) {
     if(handle == nullptr || filename == nullptr || font == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
@@ -42,7 +42,7 @@ MSDF_API int msdf_ft_font_load(msdf_ft_handle handle, const char* filename, msdf
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_ft_font_load_data(msdf_ft_handle handle, const void* data, const size_t size, msdf_ft_font_handle* font) {
+MSDF_API int msdf_ft_load_font_data(msdf_ft_handle handle, const void* data, const size_t size, msdf_ft_font_handle* font) {
     if(handle == nullptr || data == nullptr || font == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
