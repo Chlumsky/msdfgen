@@ -52,7 +52,7 @@ MSDF_API int msdf_ft_font_load_glyph(msdf_ft_font_handle font, const unsigned cp
     return MSDF_SUCCESS;
 }
 
-MSDF_API void msdf_ft_font_destroy(msdf_ft_handle handle) {
+MSDF_API void msdf_ft_font_destroy(msdf_ft_font_handle handle) {
     if(handle == nullptr) {
         return;
     }

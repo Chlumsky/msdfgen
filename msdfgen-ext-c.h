@@ -22,16 +22,55 @@ MSDF_DEFINE_HANDLE_TYPE(msdf_ft_font);
 extern "C" {
 #endif
 
+/**
+ * Initializes a new FreeType instance to be used with msdfgen.
+ * @param handle A pointer to a handle to be populated with a new FreeType context.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_ft_init(msdf_ft_handle* handle);
 
+/**
+ * Loads a TrueType font from the given file(path) and populates
+ * the given font handle with the address of the newly loaded font.
+ * @param handle The handle to the FreeType context to use for loading the font.
+ * @param filename The name or path of/to the font file to load.
+ * @param font A pointer to a font handle to be populated with the address of the newly loaded font.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_ft_font_load(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font);
 
+/**
+ * Loads a TrueType font from the given buffer and populates
+ * the given font handle with the address of the newly loaded font.
+ * @param handle The handle to the FreeType context to use for loading the font.
+ * @param data A pointer to the raw data of the TrueType font to load.
+ * @param size The size of the data buffer in bytes.
+ * @param font A pointer to a font handle to be populated with the address of the newly loaded font.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_ft_font_load_data(msdf_ft_handle handle, const void* data, size_t size, msdf_ft_font_handle* font);
 
+/**
+ * Loads a single glyph from the given font and converts it into a vector shape
+ * for rendering glyph sprites.
+ * @param font A handle to the font to use for generating the glyph shape.
+ * @param cp The codepoint to generate a shape for.
+ * @param shape A pointer to a handle to be populated with the address of the newly created shape.
+ *  This shape must later be freed using msdf_shape_free!
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
 MSDF_API int msdf_ft_font_load_glyph(msdf_ft_font_handle font, unsigned cp, msdf_shape_handle* shape);
 
-MSDF_API void msdf_ft_font_destroy(msdf_ft_handle handle);
+/**
+ * Frees the underlying instance of the given FreeType font.
+ * @param handle The handle to the font to free.
+ */
+MSDF_API void msdf_ft_font_destroy(msdf_ft_font_handle handle);
 
+/**
+ * Frees the underlying FreeType instance of the given context.
+ * @param handle The handle to the FreeType context to free.
+ */
 MSDF_API void msdf_ft_deinit(msdf_ft_handle handle);
 
 #ifdef __cplusplus

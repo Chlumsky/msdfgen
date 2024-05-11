@@ -292,7 +292,8 @@ MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour);
 /**
  * Adds a new edge to the given contour and returns its associated segment handle.
  * @param contour A pointer to the contour to add a new edge (segment) to.
- * @param segment A pointer to the segment to add as an edge.
+ * @param segment A pointer to the segment to add as an edge. This segment must be heap-allocated
+ *  and may not be freed before the contour object that owns it.
  * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_segment_handle segment);
