@@ -198,6 +198,14 @@ MSDF_API int msdf_shape_get_bounds(msdf_shape_const_handle shape, msdf_bounds_t*
 MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_const_handle contour);
 
 /**
+ * Removes the given contour from the given shape if present.
+ * @param shape A pointer to a shape object to remove the given contour from.
+ * @param contour A pointer to the contour to remove from the shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
+MSDF_API int msdf_shape_remove_contour(msdf_shape_handle shape, msdf_contour_const_handle contour);
+
+/**
  * Retrieves the number of contours allocated within the given shape object.
  * @param shape A pointer to a shape object from which to retrieve the contour count.
  * @param contour_count A pointer to a variable which is populated with the number of contours of the given shape.
@@ -324,6 +332,14 @@ MSDF_API int msdf_contour_alloc(msdf_contour_handle* contour);
  * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
 MSDF_API int msdf_contour_add_edge(msdf_contour_handle contour, msdf_segment_handle segment);
+
+/**
+ * Removes the given edge from the given contour if present.
+ * @param contour A pointer to the contour to remove the given edge (segment) from.
+ * @param segment A pointer to the segment to remove from the given contour.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
+MSDF_API int msdf_contour_remove_edge(msdf_contour_handle contour, msdf_segment_handle segment);
 
 /**
  * Retrieves the edge count of the given contour.
