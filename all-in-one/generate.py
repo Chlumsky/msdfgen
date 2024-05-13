@@ -80,6 +80,10 @@ header = """
 """
 
 source = """
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "msdfgen.h"
 
 #include <queue>
@@ -136,7 +140,7 @@ license = '\n'.join([' * '+line for line in license.strip().split('\n')])
 for filename in sourceList:
     with open(os.path.join(rootDir, *filename.split('/')), 'r') as file:
         src = file.read()
-    src = '\n'.join([line for line in src.split('\n') if not re.match(r'^\s*#(include\s.*|pragma\s+once)\s*$', line)])
+    src = '\n'.join([line for line in src.split('\n') if not re.match(r'^\s*#(include\s.*|pragma\s+once|define\s+(_CRT_SECURE_NO_WARNINGS|_USE_MATH_DEFINES))\s*$', line)])
     if filename.startswith('ext/import-font.'):
         src = '#ifdef MSDFGEN_USE_FREETYPE\n\n'+src+'\n\n#endif\n\n'
     if filename.endswith('.h') or filename.endswith('.hpp'):
