@@ -274,7 +274,7 @@ MSDF_API int msdf_shape_bound_miters(msdf_shape_const_handle shape, msdf_bounds_
 MSDF_API int msdf_shape_orient_contours(msdf_shape_handle shape);
 
 /**
- * Colors the edges of the given shape using the default MSDF colors specified by thee
+ * Colors the edges of the given shape using the default MSDF colors specified by the
  * MSDF_COLOR_ prefixed constants.
  * @param shape A pointer to a shape whose edges to color with the default MSDF colors.
  * @param angle_threshold The threshold angle in degrees.
