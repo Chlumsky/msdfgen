@@ -13,7 +13,9 @@
  */
 
 #include "../msdfgen-c.h"
+
 #include "../msdfgen.h"
+#include "ShapeDistanceFinder.h"
 
 #include <utility>
 
@@ -295,6 +297,15 @@ MSDF_API int msdf_shape_edge_colors_by_distance(msdf_shape_handle shape, const d
         return MSDF_ERR_INVALID_ARG;
     }
     msdfgen::edgeColoringByDistance(*reinterpret_cast<msdfgen::Shape*>(shape), angle_threshold);
+    return MSDF_SUCCESS;
+}
+
+MSDF_API int msdf_shape_one_shot_distance(msdf_shape_const_handle shape, const msdf_vector2_t* origin, double* distance) {
+    if(shape == nullptr || origin == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *distance = msdfgen::SimpleTrueShapeDistanceFinder::oneShotDistance(*reinterpret_cast<const msdfgen::Shape*>(shape),
+                                                                        *reinterpret_cast<const msdfgen::Point2*>(origin));
     return MSDF_SUCCESS;
 }
 

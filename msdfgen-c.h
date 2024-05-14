@@ -320,6 +320,16 @@ MSDF_API int msdf_shape_edge_colors_ink_trap(msdf_shape_handle shape, double ang
 MSDF_API int msdf_shape_edge_colors_by_distance(msdf_shape_handle shape, double angle_threshold);
 
 /**
+ * Finds the distance between shape and origin.
+ * Does not allocate result cache used to optimize performance of multiple queries.
+ * @param shape A pointer to the shape to find the distance to.
+ * @param origin The point to find the distance relative to the given shape to.
+ * @param distance A pointer to a variable to be populated with the calculated distance to the given shape.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
+MSDF_API int msdf_shape_one_shot_distance(msdf_shape_const_handle shape, const msdf_vector2_t* origin, double* distance);
+
+/**
  * Calls the destructor of the given bitmap and frees its memory using the
  * internal allocator.
  * @param shape A pointer to a shape object to be freed.
