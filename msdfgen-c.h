@@ -60,6 +60,17 @@
 #define MSDF_EDGE_COLOR_CYAN 6
 #define MSDF_EDGE_COLOR_WHITE 7
 
+// Error correction modes for generator config
+#define MSDF_ERROR_CORRECTION_MODE_DISABLED 0
+#define MSDF_ERROR_CORRECTION_MODE_INDISCRIMINATE 1
+#define MSDF_ERROR_CORRECTION_MODE_EDGE_PRIORITY 2
+#define MSDF_ERROR_CORRECTION_MODE_EDGE_ONLY 3
+
+// Distance check mode for generator config
+#define MSDF_DISTANCE_CHECK_MODE_NONE 0
+#define MSDF_DISTANCE_CHECK_MODE_AT_EDGE 1
+#define MSDF_DISTANCE_CHECK_MODE_ALWAYS 2
+
 // NOLINTBEGIN
 #define MSDF_DEFINE_HANDLE_TYPE(n) \
     typedef struct n* n##_handle;  \
