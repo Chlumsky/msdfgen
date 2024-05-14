@@ -69,6 +69,8 @@ FontHandle *adoptFreetypeFont(FT_Face ftFace);
 FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline, double scale = MSDFGEN_LEGACY_FONT_COORDINATE_SCALE);
 #endif
 
+/// Creates a FontHandle from FT_Face opaque pointer (mostly used for C-API)
+FontHandle *adoptFreetypeFontRaw(void *ftFace);
 /// Loads a font file and returns its handle.
 FontHandle *loadFont(FreetypeHandle *library, const char *filename);
 /// Loads a font from binary data and returns its handle.

@@ -30,6 +30,7 @@ class FreetypeHandle {
 };
 
 class FontHandle {
+    friend FontHandle *adoptFreetypeFontRaw(void *ftFace);
     friend FontHandle *adoptFreetypeFont(FT_Face ftFace);
     friend FontHandle *loadFont(FreetypeHandle *library, const char *filename);
     friend FontHandle *loadFontData(FreetypeHandle *library, const byte *data, int length);
@@ -132,6 +133,13 @@ FreetypeHandle *initializeFreetype() {
 void deinitializeFreetype(FreetypeHandle *library) {
     FT_Done_FreeType(library->library);
     delete library;
+}
+
+FontHandle *adoptFreetypeFontRaw(void *ftFace) {
+    FontHandle *handle = new FontHandle;
+    handle->face = static_cast<FT_Face>(ftFace);
+    handle->ownership = false;
+    return handle;
 }
 
 FontHandle *adoptFreetypeFont(FT_Face ftFace) {

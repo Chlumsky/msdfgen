@@ -49,6 +49,14 @@ MSDF_API int msdf_ft_init(msdf_ft_handle* handle);
 MSDF_API int msdf_ft_load_font(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font);
 
 /**
+ * Adopts the given FreeType FT_Face pointer as a font handle.
+ * @param face An opaque pointer to the FT_Face to adopt.
+ * @param font A pointer to an address to be populated with the newly allocated font handle.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
+MSDF_API int msdf_ft_adopt_font(void* face, msdf_ft_font_handle* font);
+
+/**
  * Loads a TrueType font from the given buffer and populates
  * the given font handle with the address of the newly loaded font.
  * @param handle The handle to the FreeType context to use for loading the font.

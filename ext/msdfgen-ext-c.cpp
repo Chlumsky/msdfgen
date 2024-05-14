@@ -34,6 +34,14 @@ MSDF_API int msdf_ft_init(msdf_ft_handle* handle) {
     return MSDF_SUCCESS;
 }
 
+int msdf_ft_adopt_font(void* face, msdf_ft_font_handle* font) {
+    if(face == nullptr || font == nullptr) {
+        return MSDF_ERR_INVALID_ARG;
+    }
+    *font = reinterpret_cast<msdf_ft_font_handle>(msdfgen::adoptFreetypeFontRaw(face));
+    return MSDF_SUCCESS;
+}
+
 MSDF_API int msdf_ft_load_font(msdf_ft_handle handle, const char* filename, msdf_ft_font_handle* font) {
     if(handle == nullptr || filename == nullptr || font == nullptr) {
         return MSDF_ERR_INVALID_ARG;
