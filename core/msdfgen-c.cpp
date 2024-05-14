@@ -168,11 +168,11 @@ MSDF_API int msdf_shape_get_bounds(msdf_shape_const_handle shape, msdf_bounds_t*
     return MSDF_SUCCESS;
 }
 
-MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_const_handle contour) {
+MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_const_handle* contour) {
     if(shape == nullptr || contour == nullptr) {
         return MSDF_ERR_INVALID_ARG;
     }
-    reinterpret_cast<msdfgen::Shape*>(shape)->addContour(*reinterpret_cast<const msdfgen::Contour*>(contour));
+    *contour = reinterpret_cast<msdf_contour_const_handle>(&reinterpret_cast<msdfgen::Shape*>(shape)->addContour());
     return MSDF_SUCCESS;
 }
 

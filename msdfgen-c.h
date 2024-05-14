@@ -192,10 +192,10 @@ MSDF_API int msdf_shape_get_bounds(msdf_shape_const_handle shape, msdf_bounds_t*
 /**
  * Adds a new contour to the given shape.
  * @param shape A pointer to a shape object to add a new contour to.
- * @param contour A pointer to the contour to add to the shape.
+ * @param contour A pointer to a contour handle to be populated with a new contour that was added to the shape.
  * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
  */
-MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_const_handle contour);
+MSDF_API int msdf_shape_add_contour(msdf_shape_handle shape, msdf_contour_const_handle* contour);
 
 /**
  * Removes the given contour from the given shape if present.
