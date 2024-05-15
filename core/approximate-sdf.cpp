@@ -9,7 +9,7 @@
 
 namespace msdfgen {
 
-void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double outerRange, double innerRange) {
+void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const SDFTransformation &transformation) {
     struct Entry {
         float absDist;
         int bitmapX, bitmapY;
@@ -31,8 +31,9 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
     for (float *p = output.pixels, *end = output.pixels+output.width*output.height; p < end; ++p)
         *p = -ESTSDF_MAX_DIST;
 
-    Vector2 invScale = projection.unprojectVector(Vector2(1));
-    float dLimit = float(max(outerRange, innerRange));
+    Vector2 invScale = transformation.unprojectVector(Vector2(1));
+    DistanceMapping invDistanceMapping = transformation.distanceMapping.inverse();
+    float dLimit = float(max(fabs(invDistanceMapping(0)), fabs(invDistanceMapping(1))));
     std::priority_queue<Entry> queue;
     double x[3], y[3];
     int dx[3], dy[3];
@@ -40,13 +41,13 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
     // Horizontal scanlines
     for (int bitmapY = 0; bitmapY < output.height; ++bitmapY) {
         float *row = firstRow+bitmapY*stride;
-        double y = projection.unprojectY(bitmapY+.5);
+        double y = transformation.unprojectY(bitmapY+.5);
         entry.bitmapY = bitmapY;
         for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                 int n = (*edge)->horizontalScanlineIntersections(x, dy, y);
                 for (int i = 0; i < n; ++i) {
-                    double bitmapX = projection.projectX(x[i]);
+                    double bitmapX = transformation.projectX(x[i]);
                     double bitmapX0 = floor(bitmapX-.5)+.5;
                     double bitmapX1 = bitmapX0+1;
                     if (bitmapX1 > 0 && bitmapX0 < output.width) {
@@ -109,13 +110,13 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
 
     // Vertical scanlines
     for (int bitmapX = 0; bitmapX < output.width; ++bitmapX) {
-        double x = projection.unprojectX(bitmapX+.5);
+        double x = transformation.unprojectX(bitmapX+.5);
         entry.bitmapX = bitmapX;
         for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
             for (std::vector<EdgeHolder>::const_iterator edge = contour->edges.begin(); edge != contour->edges.end(); ++edge) {
                 int n = (*edge)->verticalScanlineIntersections(y, dx, x);
                 for (int i = 0; i < n; ++i) {
-                    double bitmapY = projection.projectY(y[i]);
+                    double bitmapY = transformation.projectY(y[i]);
                     double bitmapY0 = floor(bitmapY-.5)+.5;
                     double bitmapY1 = bitmapY0+1;
                     if (bitmapY0 > 0 && bitmapY1 < output.height) {
@@ -165,7 +166,7 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
         if (newEntry.bitmapX >= 0) {
             float &sd = ESTSDF_PIXEL_AT(newEntry.bitmapX, newEntry.bitmapY);
             if (fabsf(sd) == ESTSDF_MAX_DIST) {
-                Point2 shapeCoord = projection.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
+                Point2 shapeCoord = transformation.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
                 newEntry.absDist = float((shapeCoord-entry.nearPoint).length());
                 sd = float(sign(sd))*newEntry.absDist;
                 if (newEntry.absDist < dLimit)
@@ -176,7 +177,7 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
         if (newEntry.bitmapX < output.width) {
             float &sd = ESTSDF_PIXEL_AT(newEntry.bitmapX, newEntry.bitmapY);
             if (fabsf(sd) == ESTSDF_MAX_DIST) {
-                Point2 shapeCoord = projection.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
+                Point2 shapeCoord = transformation.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
                 newEntry.absDist = float((shapeCoord-entry.nearPoint).length());
                 sd = float(sign(sd))*newEntry.absDist;
                 if (newEntry.absDist < dLimit)
@@ -188,7 +189,7 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
         if (newEntry.bitmapY >= 0) {
             float &sd = ESTSDF_PIXEL_AT(newEntry.bitmapX, newEntry.bitmapY);
             if (fabsf(sd) == ESTSDF_MAX_DIST) {
-                Point2 shapeCoord = projection.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
+                Point2 shapeCoord = transformation.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
                 newEntry.absDist = float((shapeCoord-entry.nearPoint).length());
                 sd = float(sign(sd))*newEntry.absDist;
                 if (newEntry.absDist < dLimit)
@@ -199,7 +200,7 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
         if (newEntry.bitmapY < output.height) {
             float &sd = ESTSDF_PIXEL_AT(newEntry.bitmapX, newEntry.bitmapY);
             if (fabsf(sd) == ESTSDF_MAX_DIST) {
-                Point2 shapeCoord = projection.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
+                Point2 shapeCoord = transformation.unproject(Point2(newEntry.bitmapX+.5, newEntry.bitmapY+.5));
                 newEntry.absDist = float((shapeCoord-entry.nearPoint).length());
                 sd = float(sign(sd))*newEntry.absDist;
                 if (newEntry.absDist < dLimit)
@@ -208,14 +209,8 @@ void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const
         }
     }
 
-    float rangeFactor = 1.f/float(outerRange+innerRange);
-    float zeroBias = rangeFactor*float(outerRange);
     for (float *p = output.pixels, *end = output.pixels+output.width*output.height; p < end; ++p)
-        *p = rangeFactor**p+zeroBias;
-}
-
-void approximateSDF(const BitmapRef<float, 1> &output, const Shape &shape, const Projection &projection, double range) {
-    approximateSDF(output, shape, projection, .5*range, .5*range);
+        *p = transformation.distanceMapping(*p);
 }
 
 }
