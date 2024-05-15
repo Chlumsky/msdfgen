@@ -5,6 +5,7 @@
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #define MSDFGEN_WINDOWS
+#include <libloaderapi.h>
 #else
 #include <dlfcn.h>
 #endif
@@ -12,13 +13,17 @@
 namespace msdfgen {
 
 struct DynamicLibrary {
+#if defined(MSDFGEN_WINDOWS)
+    HMODULE handle;
+#else
     void* handle;
+#endif
 
     explicit DynamicLibrary(const std::vector<std::string>& names)
         : handle(nullptr) {
         for(const auto& name : names) {
 #if defined(MSDFGEN_WINDOWS)
-            // TODO: implement Windows
+            handle = LoadLibraryA(namee.c_str());
 #else
             handle = dlopen(name.c_str(), RTLD_LAZY);
 #endif
@@ -31,16 +36,16 @@ struct DynamicLibrary {
     ~DynamicLibrary() {
         if(handle) {
 #if defined(MSDFGEN_WINDOWS)
-            // TODO: implement Windows
+            FreeLibrary(handle);
 #else
             dlclose(handle);
 #endif
         }
     }
 
-    [[nodiscard]] void* getFunction(const char* name) {
+    [[nodiscard]] void* getFunction(const char* name) const {
 #if defined(MSDFGEN_WINDOWS)
-        return nullptr; // TODO: implement Windows
+        return GetProcAddress(handle, name);
 #else
         return dlsym(handle, name);
 #endif
