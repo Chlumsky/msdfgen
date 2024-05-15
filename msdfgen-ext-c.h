@@ -24,11 +24,30 @@
  * @author Alexander Hinze
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 MSDF_DEFINE_HANDLE_TYPE(msdf_ft);
 MSDF_DEFINE_HANDLE_TYPE(msdf_ft_font);
 
-#ifdef __cplusplus
-extern "C" {
+#ifdef MSDFGEN_DYNAMIC_FREETYPE // Runtime loader API
+
+typedef void* (*msdf_ft_load_callback)(const char* functionName);
+
+/**
+ * Overrides the default load callback function used for resolving FreeTypee function at runtime.
+ * @param callback A pointer to the function to call for resolving FreeType functions at runtime.
+ * @returns @code MSDF_SUCCESS@endcode on success, otherwise one of the constants prefixed with @code MSDF_ERR_@endcode.
+ */
+MSDF_API int msdf_ft_set_load_callback(msdf_ft_load_callback callback);
+
+/**
+ * Retrieves the current FreeType load callback.
+ * @returns A pointer to the current FreeType load callback function.
+ */
+MSDF_API msdf_ft_load_callback msdf_ft_get_load_callback();
+
 #endif
 
 /**

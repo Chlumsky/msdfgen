@@ -1,3 +1,4 @@
+#ifndef MSDFGEN_DYNAMIC_FREETYPE
 
 #include "import-font.h"
 
@@ -65,7 +66,7 @@ static Point2 ftPoint2(const FT_Vector &vector, double scale) {
 }
 
 static int ftMoveTo(const FT_Vector *to, void *user) {
-    FtContext *context = reinterpret_cast<FtContext *>(user);
+    FtContext *context = static_cast<FtContext *>(user);
     if (!(context->contour && context->contour->edges.empty()))
         context->contour = &context->shape->addContour();
     context->position = ftPoint2(*to, context->scale);
@@ -73,7 +74,7 @@ static int ftMoveTo(const FT_Vector *to, void *user) {
 }
 
 static int ftLineTo(const FT_Vector *to, void *user) {
-    FtContext *context = reinterpret_cast<FtContext *>(user);
+    FtContext *context = static_cast<FtContext *>(user);
     Point2 endpoint = ftPoint2(*to, context->scale);
     if (endpoint != context->position) {
         context->contour->addEdge(EdgeHolder(context->position, endpoint));
@@ -83,7 +84,7 @@ static int ftLineTo(const FT_Vector *to, void *user) {
 }
 
 static int ftConicTo(const FT_Vector *control, const FT_Vector *to, void *user) {
-    FtContext *context = reinterpret_cast<FtContext *>(user);
+    FtContext *context = static_cast<FtContext *>(user);
     Point2 endpoint = ftPoint2(*to, context->scale);
     if (endpoint != context->position) {
         context->contour->addEdge(EdgeHolder(context->position, ftPoint2(*control, context->scale), endpoint));
@@ -93,7 +94,7 @@ static int ftConicTo(const FT_Vector *control, const FT_Vector *to, void *user) 
 }
 
 static int ftCubicTo(const FT_Vector *control1, const FT_Vector *control2, const FT_Vector *to, void *user) {
-    FtContext *context = reinterpret_cast<FtContext *>(user);
+    FtContext *context = static_cast<FtContext *>(user);
     Point2 endpoint = ftPoint2(*to, context->scale);
     if (endpoint != context->position || crossProduct(ftPoint2(*control1, context->scale)-endpoint, ftPoint2(*control2, context->scale)-endpoint)) {
         context->contour->addEdge(EdgeHolder(context->position, ftPoint2(*control1, context->scale), ftPoint2(*control2, context->scale), endpoint));
@@ -321,3 +322,5 @@ bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle 
 #endif
 
 }
+
+#endif//MSDFGEN_DYNAMIC_FREETYPE
