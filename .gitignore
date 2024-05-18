@@ -26,6 +26,7 @@ output.png
 render.png
 CMakeUserPresets.json
 out/
+/all-in-one/
 /build_xcode/
 /cmake-gen.bat
 /line-ending-check.bat

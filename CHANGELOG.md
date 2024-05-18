@@ -1,4 +1,23 @@
 
+## Version 1.12 (2024-05-18)
+
+- Added the possibility to specify asymmetrical distance range (`-arange`, `-apxrange`)
+- Added the ability to export the shape into an SVG file (`-exportsvg`)
+- Edge coloring no longer colors smooth contours white, which has been found suboptimal
+- Fixed incorrect scaling of font glyph coordinates. To preserve backwards compatibility, the user has to enable the fix with an explicit additional argument:
+    - `-emnormalize` in standalone, `FONT_SCALING_EM_NORMALIZED` in API for coordinates in ems
+    - `-noemnormalize` in standalone, `FONT_SCALING_NONE` in API for raw integer coordinates
+    - The default (backwards-compatible) behavior will change in a future version; a warning will be displayed if neither option is set
+- Added two new developer-friendly export image formats: RGBA and FL32
+- `-size` parameter renamed to `-dimensions` for clarity (old one will be kept for compatibility)
+- `generate*SDF` functions now combine projection and range into a single argument (`SDFTransformation`)
+- Conversion of floating point color values to 8-bit integers adjusted to match graphics hardware
+- Improved edge deconvergence procedure and made sure that calling `Shape::normalize` a second time has no effect
+- Fixed certain edge cases where Skia geometry preprocessing wouldn't make the geometry fully compliant
+- The term "perpendicular distance" now used instead of "pseudo-distance" (PSDF instead of PseudoSDF in API)
+- Fixed a bug in `savePng` where `fclose` could be called on null pointer
+- Minor code improvements
+
 ## Version 1.11 (2023-11-11)
 
 - Reworked SVG parser, which now supports multiple paths and other shapes - requires Skia
