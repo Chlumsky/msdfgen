@@ -89,6 +89,8 @@ public:
     bool protectedFlag;
     inline ShapeDistanceChecker(const BitmapConstRef<float, N> &sdf, const Shape &shape, const Projection &projection, DistanceMapping distanceMapping, double minImproveRatio) : distanceFinder(shape), sdf(sdf), distanceMapping(distanceMapping), minImproveRatio(minImproveRatio) {
         texelSize = projection.unprojectVector(Vector2(1));
+        if (shape.inverseYAxis)
+            texelSize.y = -texelSize.y;
     }
     inline ArtifactClassifier classifier(const Vector2 &direction, double span) {
         return ArtifactClassifier(this, direction, span);
