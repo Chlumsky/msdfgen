@@ -129,10 +129,10 @@ void MSDFErrorCorrection::protectCorners(const Shape &shape) {
                 if (!(commonColor&(commonColor-1))) {
                     // Find the four texels that envelop the corner and mark them as protected.
                     Point2 p = transformation.project((*edge)->point(0));
-                    if (shape.inverseYAxis)
-                        p.y = stencil.height-p.y;
                     int l = (int) floor(p.x-.5);
                     int b = (int) floor(p.y-.5);
+                    if (shape.inverseYAxis)
+                        b = stencil.height-b-2;
                     int r = l+1;
                     int t = b+1;
                     // Check that the positions are within bounds.

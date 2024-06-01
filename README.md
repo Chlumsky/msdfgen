@@ -113,25 +113,23 @@ in order to generate a distance field. Please note that all classes and function
 
 Example:
 ```c++
-#include "msdfgen.h"
-#include "msdfgen-ext.h"
+#include <msdfgen.h>
+#include <msdfgen-ext.h>
 
 using namespace msdfgen;
 
 int main() {
-    FreetypeHandle *ft = initializeFreetype();
-    if (ft) {
-        FontHandle *font = loadFont(ft, "C:\\Windows\\Fonts\\arialbd.ttf");
-        if (font) {
+    if (FreetypeHandle *ft = initializeFreetype()) {
+        if (FontHandle *font = loadFont(ft, "C:\\Windows\\Fonts\\arialbd.ttf")) {
             Shape shape;
-            if (loadGlyph(shape, font, 'A')) {
+            if (loadGlyph(shape, font, 'A', FONT_SCALING_EM_NORMALIZED)) {
                 shape.normalize();
                 //                      max. angle
                 edgeColoringSimple(shape, 3.0);
                 //          output width, height
                 Bitmap<float, 3> msdf(32, 32);
-                //                           scale, translation
-                SDFTransformation t(Projection(1.0, Vector2(4.0, 4.0)), Range(4.0));
+                //                            scale, translation (in em's)
+                SDFTransformation t(Projection(32.0, Vector2(0.125, 0.125)), Range(0.125));
                 generateMSDF(msdf, shape, t);
                 savePng(msdf, "output.png");
             }
@@ -141,7 +139,6 @@ int main() {
     }
     return 0;
 }
-
 ```
 
 ## Using a multi-channel distance field
