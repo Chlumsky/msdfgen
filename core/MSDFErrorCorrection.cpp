@@ -154,6 +154,9 @@ void MSDFErrorCorrection::protectCorners(const Shape &shape) {
 
 /// Determines if the channel contributes to an edge between the two texels a, b.
 static bool edgeBetweenTexelsChannel(const float *a, const float *b, int channel) {
+    if (a[channel] - b[channel] == 0.0)
+        return false;
+
     // Find interpolation ratio t (0 < t < 1) where an edge is expected (mix(a[channel], b[channel], t) == 0.5).
     double t = (a[channel]-.5)/(a[channel]-b[channel]);
     if (t > 0 && t < 1) {
@@ -286,6 +289,9 @@ static bool isArtifact(bool isProtected, double axSpan, double bxSpan, float am,
 /// Checks if a linear interpolation artifact will occur at a point where two specific color channels are equal - such points have extreme median values.
 template <class ArtifactClassifier>
 static bool hasLinearArtifactInner(const ArtifactClassifier &artifactClassifier, float am, float bm, const float *a, const float *b, float dA, float dB) {
+    if (dA - dB == 0.0)
+        return false;
+
     // Find interpolation ratio t (0 < t < 1) where two color channels are equal (mix(dA, dB, t) == 0).
     double t = (double) dA/(dA-dB);
     if (t > ARTIFACT_T_EPSILON && t < 1-ARTIFACT_T_EPSILON) {
@@ -373,6 +379,10 @@ static bool hasDiagonalArtifact(const ArtifactClassifier &artifactClassifier, fl
             d[1]+abc[1],
             d[2]+abc[2]
         };
+
+        if (q[0] == 0.0 || q[1] == 0.0 || q[2] == 0.0)
+            return false;
+
         // Compute interpolation ratios tEx (0 < tEx[i] < 1) for the local extremes of each color channel (the derivative 2*q[i]*tEx[i]+l[i] == 0).
         double tEx[3] = {
             -.5*l[0]/q[0],
