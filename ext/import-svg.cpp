@@ -1,6 +1,11 @@
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
+#endif
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "import-svg.h"
 
 #ifndef MSDFGEN_DISABLE_SVG
