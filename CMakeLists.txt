@@ -10,6 +10,8 @@ option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 option(MSDFGEN_USE_SKIA "Build with the Skia library" ON)
 option(MSDFGEN_INSTALL "Generate installation target" OFF)
 option(MSDFGEN_DYNAMIC_RUNTIME "Link dynamic runtime library instead of static" OFF)
+option(MSDFGEN_DISABLE_SVG "Disable SVG support" OFF)
+option(MSDFGEN_DISABLE_PNG "Disable PNG support" OFF)
 option(BUILD_SHARED_LIBS "Generate dynamic library files instead of static" OFF)
 
 if(MSDFGEN_CORE_ONLY AND MSDFGEN_USE_VCPKG)
