@@ -1290,7 +1290,7 @@ int main(int argc, const char *const *argv) {
                 break;
             case MULTI_AND_TRUE:
                 distanceSignCorrection(mtsdf, shape, transformation, fillRule);
-                msdfErrorCorrection(msdf, shape, transformation, postErrorCorrectionConfig);
+                msdfErrorCorrection(mtsdf, shape, transformation, postErrorCorrectionConfig);
                 break;
             default:;
         }
