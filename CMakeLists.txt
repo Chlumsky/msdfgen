@@ -8,6 +8,8 @@ option(MSDFGEN_USE_VCPKG "Use vcpkg package manager to link project dependencies
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" OFF)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 option(MSDFGEN_USE_SKIA "Build with the Skia library" ON)
+option(MSDFGEN_DISABLE_SVG "Disable SVG support" OFF)
+option(MSDFGEN_DISABLE_PNG "Disable PNG support" OFF)
 option(MSDFGEN_INSTALL "Generate installation target" OFF)
 option(MSDFGEN_DYNAMIC_RUNTIME "Link dynamic runtime library instead of static" OFF)
 option(BUILD_SHARED_LIBS "Generate dynamic library files instead of static" OFF)
@@ -259,6 +261,11 @@ if(MSDFGEN_INSTALL)
     endif()
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/msdfgen-config.h.in" msdfgen-config.h)
 
+    if (NOT MSDFGEN_INSTALL_NO_GLOBAL_INCLUDE)
+        write_file("${CMAKE_CURRENT_BINARY_DIR}/msdfgen.h" "\n#pragma once\n\n#include \"msdfgen/msdfgen.h\"")
+        write_file("${CMAKE_CURRENT_BINARY_DIR}/msdfgen-ext.h" "\n#pragma once\n\n#include \"msdfgen/msdfgen-ext.h\"")
+    endif()
+
     write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/msdfgenConfigVersion.cmake"
         VERSION ${PROJECT_VERSION}
@@ -288,6 +295,9 @@ if(MSDFGEN_INSTALL)
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/core
     )
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" DESTINATION include/msdfgen)
+    if (NOT MSDFGEN_INSTALL_NO_GLOBAL_INCLUDE)
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen.h" DESTINATION include)
+    endif()
     if(MSVC AND BUILD_SHARED_LIBS)
         install(FILES $<TARGET_PDB_FILE:msdfgen-core> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
     endif()
@@ -301,6 +311,9 @@ if(MSDFGEN_INSTALL)
             PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/ext
         )
         install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
+        if (NOT MSDFGEN_INSTALL_NO_GLOBAL_INCLUDE)
+            install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-ext.h" DESTINATION include)
+        endif()
         if(MSVC AND BUILD_SHARED_LIBS)
             install(FILES $<TARGET_PDB_FILE:msdfgen-ext> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
         endif()
