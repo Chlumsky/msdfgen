@@ -2,7 +2,7 @@
 /*
  * MULTI-CHANNEL SIGNED DISTANCE FIELD GENERATOR - standalone console program
  * --------------------------------------------------------------------------
- * A utility by Viktor Chlumsky, (c) 2014 - 2024
+ * A utility by Viktor Chlumsky, (c) 2014 - 2025
  *
  */
 

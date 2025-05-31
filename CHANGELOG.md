@@ -1,4 +1,10 @@
 
+### Version 1.12.1 (2025-05-31)
+
+- Fixed a bug applying error correction incorrectly if shape's Y-axis is inverted (mainly affected SVG input)
+- Fixed error correction not being applied in the standalone executable in MTSDF mode with the `-scanline` option (default in non-Skia builds)
+- Minor CMake adjustments and warning fixes
+
 ## Version 1.12 (2024-05-18)
 
 - Added the possibility to specify asymmetrical distance range (`-arange`, `-apxrange`)
