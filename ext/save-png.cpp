@@ -45,7 +45,7 @@ static void pngFlush(png_structp png) {
     fflush(reinterpret_cast<FILE *>(png_get_io_ptr(png)));
 }
 
-static bool pngSave(const byte *pixels, int width, int height, int channels, int colorType, const char *filename) {
+static bool pngSave(const byte *pixels, int width, int height, int channels, int colorType, const char *filename, bool flipVertically) {
     if (!(pixels && width && height))
         return false;
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, &pngIgnoreError, &pngIgnoreError);
@@ -60,8 +60,15 @@ static bool pngSave(const byte *pixels, int width, int height, int channels, int
         return false;
     guard.setFile(file);
     std::vector<const byte *> rows(height);
-    for (int y = 0; y < height; ++y)
-        rows[y] = pixels+channels*width*(height-y-1);
+
+    if (flipVertically) {
+        for (int y = 0, x = height - 1; y < height; ++y, --x)
+            rows[y] = pixels+channels*width*(height-x-1);
+    } else {
+        for (int y = 0; y < height; ++y)
+            rows[y] = pixels+channels*width*(height-y-1);
+    }
+
     if (setjmp(png_jmpbuf(png)))
         return false;
     png_set_write_fn(png, file, &pngWrite, &pngFlush);
@@ -72,38 +79,38 @@ static bool pngSave(const byte *pixels, int width, int height, int channels, int
     return true;
 }
 
-static bool pngSave(const float *pixels, int width, int height, int channels, int colorType, const char *filename) {
+static bool pngSave(const float *pixels, int width, int height, int channels, int colorType, const char *filename, bool flipVertically) {
     if (!(pixels && width && height))
         return false;
     int subpixels = channels*width*height;
     std::vector<byte> bytePixels(subpixels);
     for (int i = 0; i < subpixels; ++i)
         bytePixels[i] = pixelFloatToByte(pixels[i]);
-    return pngSave(&bytePixels[0], width, height, channels, colorType, filename);
+    return pngSave(&bytePixels[0], width, height, channels, colorType, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename);
+bool savePng(const BitmapConstRef<byte, 1> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename);
+bool savePng(const BitmapConstRef<byte, 3> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename);
+bool savePng(const BitmapConstRef<byte, 4> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename);
+bool savePng(const BitmapConstRef<float, 1> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename);
+bool savePng(const BitmapConstRef<float, 3> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename, flipVertically);
 }
 
-bool savePng(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename);
+bool savePng(const BitmapConstRef<float, 4> &bitmap, const char *filename, bool flipVertically) {
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename, flipVertically);
 }
 
 }
