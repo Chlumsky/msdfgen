@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include "arithmetics.hpp"
+#include "convergent-curve-ordering.h"
 
 #define DECONVERGE_OVERSHOOT 1.11111111111111111 // moves control points slightly more than necessary to account for floating-point errors
 
@@ -79,8 +80,7 @@ void Shape::normalize() {
                 if (dotProduct(prevDir, curDir) < MSDFGEN_CORNER_DOT_EPSILON-1) {
                     double factor = DECONVERGE_OVERSHOOT*sqrt(1-(MSDFGEN_CORNER_DOT_EPSILON-1)*(MSDFGEN_CORNER_DOT_EPSILON-1))/(MSDFGEN_CORNER_DOT_EPSILON-1);
                     Vector2 axis = factor*(curDir-prevDir).normalize();
-                    // Determine curve ordering using third-order derivative (t = 0) of crossProduct((*prevEdge)->point(1-t)-p0, (*edge)->point(t)-p0) where p0 is the corner (*edge)->point(0)
-                    if (crossProduct((*prevEdge)->directionChange(1), (*edge)->direction(0))+crossProduct((*edge)->directionChange(0), (*prevEdge)->direction(1)) < 0)
+                    if (convergentCurveOrdering(*prevEdge, *edge) < 0)
                         axis = -axis;
                     deconvergeEdge(*prevEdge, 1, axis.getOrthogonal(true));
                     deconvergeEdge(*edge, 0, axis.getOrthogonal(false));
