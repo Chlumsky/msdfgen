@@ -218,33 +218,32 @@ MSDFGEN_real MSDFGEN_signedDistance(const MSDFGEN_CompiledShape *shapePtr, MSDFG
             if (originP1Dist < edgeCache[-1].edgeDistance)
                 edgeCache[-1].edgeDistance = originP1Dist;
             for (start = 0; start <= MSDFGEN_CUBIC_SEARCH_STARTS; ++start) {
-                MSDFGEN_real t = (MSDFGEN_real) 1/(MSDFGEN_real) MSDFGEN_CUBIC_SEARCH_STARTS*(MSDFGEN_real) start;
-                MSDFGEN_Vector2 originP = MSDFGEN_Vector2_sum(
-                    MSDFGEN_Vector2_sum(
-                        MSDFGEN_Vector2_sum(originP0, MSDFGEN_Vector2_scale((MSDFGEN_real) 3*t, shapePtr->cubicEdges[i].derivative0)),
-                        MSDFGEN_Vector2_scale((MSDFGEN_real) 3*(t*t), shapePtr->cubicEdges[i].derivative1)
-                    ), MSDFGEN_Vector2_scale(t*t*t, shapePtr->cubicEdges[i].derivative2)
-                );
-                for (step = 0; step < MSDFGEN_CUBIC_SEARCH_STEPS; ++step) {
-                    MSDFGEN_Vector2 derivative0 = MSDFGEN_Vector2_sum(
-                        MSDFGEN_Vector2_sum(
-                            MSDFGEN_Vector2_scale((MSDFGEN_real) 3, shapePtr->cubicEdges[i].derivative0),
-                            MSDFGEN_Vector2_scale((MSDFGEN_real) 6*t, shapePtr->cubicEdges[i].derivative1)
-                        ), MSDFGEN_Vector2_scale((MSDFGEN_real) 3*(t*t), shapePtr->cubicEdges[i].derivative2)
-                    );
-                    MSDFGEN_Vector2 derivative1 = MSDFGEN_Vector2_sum(
-                        MSDFGEN_Vector2_scale((MSDFGEN_real) 6, shapePtr->cubicEdges[i].derivative1),
-                        MSDFGEN_Vector2_scale((MSDFGEN_real) 6*t, shapePtr->cubicEdges[i].derivative2)
-                    );
-                    t -= MSDFGEN_Vector2_dot(originP, derivative0)/(MSDFGEN_Vector2_squaredLength(derivative0)+MSDFGEN_Vector2_dot(originP, derivative1));
-                    if (t <= (MSDFGEN_real) 0 || t >= (MSDFGEN_real) 1)
-                        break;
+                int remainingSteps = MSDFGEN_CUBIC_SEARCH_STEPS;
+                MSDFGEN_real t, improvedT = (MSDFGEN_real) 1/(MSDFGEN_real) MSDFGEN_CUBIC_SEARCH_STARTS*(MSDFGEN_real) start;
+                MSDFGEN_Vector2 originP, derivative0, derivative1;
+                do {
+                    t = improvedT;
                     originP = MSDFGEN_Vector2_sum(
                         MSDFGEN_Vector2_sum(
                             MSDFGEN_Vector2_sum(originP0, MSDFGEN_Vector2_scale((MSDFGEN_real) 3*t, shapePtr->cubicEdges[i].derivative0)),
                             MSDFGEN_Vector2_scale((MSDFGEN_real) 3*(t*t), shapePtr->cubicEdges[i].derivative1)
                         ), MSDFGEN_Vector2_scale(t*t*t, shapePtr->cubicEdges[i].derivative2)
                     );
+                    derivative0 = MSDFGEN_Vector2_sum(
+                        MSDFGEN_Vector2_sum(
+                            MSDFGEN_Vector2_scale((MSDFGEN_real) 3, shapePtr->cubicEdges[i].derivative0),
+                            MSDFGEN_Vector2_scale((MSDFGEN_real) 6*t, shapePtr->cubicEdges[i].derivative1)
+                        ), MSDFGEN_Vector2_scale((MSDFGEN_real) 3*(t*t), shapePtr->cubicEdges[i].derivative2)
+                    );
+                    if (!remainingSteps--)
+                        break;
+                    derivative1 = MSDFGEN_Vector2_sum(
+                        MSDFGEN_Vector2_scale((MSDFGEN_real) 6, shapePtr->cubicEdges[i].derivative1),
+                        MSDFGEN_Vector2_scale((MSDFGEN_real) 6*t, shapePtr->cubicEdges[i].derivative2)
+                    );
+                    improvedT = t-MSDFGEN_Vector2_dot(originP, derivative0)/(MSDFGEN_Vector2_squaredLength(derivative0)+MSDFGEN_Vector2_dot(originP, derivative1));
+                } while (improvedT > (MSDFGEN_real) 0 && improvedT < (MSDFGEN_real) 1);
+                if (t > (MSDFGEN_real) 0 && t < (MSDFGEN_real) 1) {
                     MSDFGEN_real originPDist = sqrt(MSDFGEN_Vector2_squaredLength(originP));
                     if (originPDist < minDistance) {
                         minDistance = originPDist;
