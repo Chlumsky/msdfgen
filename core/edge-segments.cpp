@@ -255,11 +255,11 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
                 break;
             qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
             d1 = 3*ab+6*t*br+3*t*t*as;
-        }
-        double distance = qe.length();
-        if (distance < fabs(minDistance)) {
-            minDistance = nonZeroSign(crossProduct(d1, qe))*distance;
-            param = t;
+            double distance = qe.length();
+            if (distance < fabs(minDistance)) {
+                minDistance = nonZeroSign(crossProduct(d1, qe))*distance;
+                param = t;
+            }
         }
     }
 
