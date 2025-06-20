@@ -244,17 +244,22 @@ SignedDistance CubicSegment::signedDistance(Point2 origin, double &param) const 
     }
     // Iterative minimum distance search
     for (int i = 0; i <= MSDFGEN_CUBIC_SEARCH_STARTS; ++i) {
-        double t = (double) i/MSDFGEN_CUBIC_SEARCH_STARTS;
+        double t = 1./MSDFGEN_CUBIC_SEARCH_STARTS*i;
         Vector2 qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
         Vector2 d1 = 3*ab+6*t*br+3*t*t*as;
-        for (int step = 0; step < MSDFGEN_CUBIC_SEARCH_STEPS; ++step) {
-            // Improve t
-            Vector2 d2 = 6*br+6*t*as;
-            t -= dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
-            if (t <= 0 || t >= 1)
-                break;
-            qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
-            d1 = 3*ab+6*t*br+3*t*t*as;
+        Vector2 d2 = 6*br+6*t*as;
+        double improvedT = t-dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
+        if (improvedT > 0 && improvedT < 1) {
+            int remainingSteps = MSDFGEN_CUBIC_SEARCH_STEPS;
+            do {
+                t = improvedT;
+                qe = qa+3*t*ab+3*t*t*br+t*t*t*as;
+                d1 = 3*ab+6*t*br+3*t*t*as;
+                if (!--remainingSteps)
+                    break;
+                d2 = 6*br+6*t*as;
+                improvedT = t-dotProduct(qe, d1)/(dotProduct(d1, d1)+dotProduct(qe, d2));
+            } while (improvedT > 0 && improvedT < 1);
             double distance = qe.length();
             if (distance < fabs(minDistance)) {
                 minDistance = nonZeroSign(crossProduct(d1, qe))*distance;
