@@ -1012,8 +1012,6 @@ int main(int argc, const char *const *argv) {
             ABORT("No input specified! See -help.");
         #endif
     }
-    if (mode == MULTI_AND_TRUE && (format == BMP || (format == AUTO && output && cmpExtension(output, ".bmp"))))
-        ABORT("Incompatible image format. A BMP file cannot contain alpha channel, which is required in mtsdf mode.");
     Shape shape;
     switch (inputType) {
     #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_SVG)
