@@ -17,9 +17,9 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgArguments: freetype tinyxml2 libpng
-          vcpkgTriplet: x64-windows
           vcpkgDirectory: '${{ github.workspace }}/vcpkg' # Ensure vcpkg is in a known path
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure CMake
         run: |
@@ -51,9 +51,9 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgArguments: freetype tinyxml2 libpng
-          vcpkgTriplet: x64-linux
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure CMake
         run: |
@@ -82,9 +82,9 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgArguments: freetype tinyxml2 libpng
-          vcpkgTriplet: x64-osx
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure CMake
         run: |
@@ -113,9 +113,9 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgArguments: freetype tinyxml2 libpng
-          vcpkgTriplet: arm64-osx
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure CMake
         run: |
