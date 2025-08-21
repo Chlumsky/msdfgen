@@ -1,9 +1,11 @@
+
 name: Build MSDFGEN
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - '*' # 仅在新建 tag 时触发
+  workflow_dispatch: # 支持手动触发
 
 jobs:
   build-windows:
@@ -22,12 +24,7 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DMSDFGEN_BUILD_STANDALONE=ON \
-          -DMSDFGEN_USE_VCPKG=ON \
-          -A x64 \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/windows/x64
+        run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DMSDFGEN_BUILD_STANDALONE=ON -DMSDFGEN_USE_VCPKG=ON -A x64 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/windows/x64
         shell: pwsh
 
       - name: Build
