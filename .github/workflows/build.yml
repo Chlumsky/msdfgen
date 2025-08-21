@@ -129,3 +129,33 @@ jobs:
         with:
           name: msdfgen-macos-arm64
           path: ${{ github.workspace }}/build/macos/arm64/msdfgen
+
+  create-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: [build-windows, build-linux, build-macos-x64, build-macos-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release with Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create release
+          gh release create ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --title "MSDFGEN ${{ github.ref_name }}" \
+            --generate-notes
+          
+          # Upload assets
+          gh release upload ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            artifacts/msdfgen-windows/msdfgen.exe#msdfgen-${{ github.ref_name }}-windows-x64.exe \
+            artifacts/msdfgen-linux/msdfgen#msdfgen-${{ github.ref_name }}-linux-x64 \
+            artifacts/msdfgen-macos-x64/msdfgen#msdfgen-${{ github.ref_name }}-macos-x64 \
+            artifacts/msdfgen-macos-arm64/msdfgen#msdfgen-${{ github.ref_name }}-macos-arm64
