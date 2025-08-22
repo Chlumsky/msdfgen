@@ -76,7 +76,7 @@ jobs:
           path: ${{ github.workspace }}/build/linux/x64/msdfgen
 
   build-linux-arm64:
-    runs-on: ubuntu-latest-arm64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
