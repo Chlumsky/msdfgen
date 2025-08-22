@@ -16,6 +16,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Enable vcpkg binary caching
+        run: echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
+        shell: pwsh
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -44,6 +48,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Enable vcpkg binary caching
+        run: echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -76,6 +83,9 @@ jobs:
         with:
           submodules: true
 
+      - name: Enable vcpkg binary caching
+        run: echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -106,6 +116,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Enable vcpkg binary caching
+        run: echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
