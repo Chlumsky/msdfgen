@@ -75,6 +75,40 @@ jobs:
           name: msdfgen-linux
           path: ${{ github.workspace }}/build/linux/x64/msdfgen
 
+  build-linux-arm64:
+    runs-on: ubuntu-latest-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Enable vcpkg binary caching
+        run: echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $GITHUB_ENV
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          runVcpkgInstall: true
+          vcpkgJsonGlob: '**/vcpkg.json'
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+          -DMSDFGEN_BUILD_STANDALONE=ON \
+          -DMSDFGEN_USE_VCPKG=ON \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ github.workspace }}/build/linux/arm64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload Linux ARM64 Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: msdfgen-linux-arm64
+          path: ${{ github.workspace }}/build/linux/arm64/msdfgen
+
   build-macos-x64:
     runs-on: macos-latest # x64 runner
     steps:
@@ -145,7 +179,7 @@ jobs:
 
   create-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: [build-windows, build-linux, build-macos-x64, build-macos-arm64]
+    needs: [build-windows, build-linux, build-linux-arm64, build-macos-x64, build-macos-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -160,6 +194,7 @@ jobs:
           set -euo pipefail
           cp artifacts/msdfgen-windows/msdfgen.exe       artifacts/msdfgen-${{ github.ref_name }}-windows-x64.exe
           cp artifacts/msdfgen-linux/msdfgen            artifacts/msdfgen-${{ github.ref_name }}-linux-x64
+          cp artifacts/msdfgen-linux-arm64/msdfgen      artifacts/msdfgen-${{ github.ref_name }}-linux-arm64
           cp artifacts/msdfgen-macos-x64/msdfgen        artifacts/msdfgen-${{ github.ref_name }}-macos-x64
           cp artifacts/msdfgen-macos-arm64/msdfgen      artifacts/msdfgen-${{ github.ref_name }}-macos-arm64
           ls -l artifacts
@@ -187,5 +222,6 @@ jobs:
             --repo ${{ github.repository }} \
             artifacts/msdfgen-${{ github.ref_name }}-windows-x64.exe \
             artifacts/msdfgen-${{ github.ref_name }}-linux-x64 \
+            artifacts/msdfgen-${{ github.ref_name }}-linux-arm64 \
             artifacts/msdfgen-${{ github.ref_name }}-macos-x64 \
             artifacts/msdfgen-${{ github.ref_name }}-macos-arm64

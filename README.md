@@ -32,7 +32,7 @@ and (optionally) [Skia](https://skia.org/).
 
 Additionally, there is the [main.cpp](main.cpp), which wraps the functionality into
 a comprehensive standalone console program. To start using the program immediately,
-pre-built binaries for Windows, Linux, and macOS (both x64 and ARM64) are available for download in the ["Releases" section](https://github.com/soimy/msdfgen/releases).
+pre-built binaries for Windows, Linux (both x64 and ARM64), and macOS (both x64 and ARM64) are available for download in the ["Releases" section](https://github.com/soimy/msdfgen/releases).
 To use the project as a library, you may install it via the [vcpkg](https://vcpkg.io) package manager as
 ```
 vcpkg install msdfgen
@@ -46,7 +46,7 @@ the CMake configuration will take care of fetching all required packages from vc
 
 This repository uses GitHub Actions to automatically build the project for multiple platforms when a new tag is created. The release process:
 
-1. Builds msdfgen for Windows (x64), Linux (x64), macOS (x64), and macOS (ARM64)
+1. Builds msdfgen for Windows (x64), Linux (x64), Linux (ARM64), macOS (x64), and macOS (ARM64)
 2. Automatically creates a new GitHub release
 3. Uploads platform-specific binaries as release assets
 
