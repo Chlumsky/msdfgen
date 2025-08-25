@@ -5,10 +5,33 @@ on:
   push:
     tags:
       - '*' # 仅在新建 tag 时触发
-  workflow_dispatch: # 支持手动触发
+  workflow_dispatch:
+    # 手动触发时为每个 job 提供单独开关（string 'true' or 'false'）
+    inputs:
+      run_build_windows:
+        description: 'Run build-windows job'
+        required: false
+        default: 'false'
+      run_build_linux:
+        description: 'Run build-linux job'
+        required: false
+        default: 'false'
+      run_build_linux_arm64:
+        description: 'Run build-linux-arm64 job'
+        required: false
+        default: 'false'
+      run_build_macos_x64:
+        description: 'Run build-macos-x64 job'
+        required: false
+        default: 'false'
+      run_build_macos_arm64:
+        description: 'Run build-macos-arm64 job'
+        required: false
+        default: 'false'
 
 jobs:
   build-windows:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.run_build_windows == 'true'))
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -42,6 +65,7 @@ jobs:
           path: ${{ github.workspace }}/build/windows/x64/msdfgen.exe
 
   build-linux:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.run_build_linux == 'true'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -76,6 +100,7 @@ jobs:
           path: ${{ github.workspace }}/build/linux/x64/msdfgen
 
   build-linux-arm64:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.run_build_linux_arm64 == 'true'))
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
@@ -110,7 +135,8 @@ jobs:
           path: ${{ github.workspace }}/build/linux/arm64/msdfgen
 
   build-macos-x64:
-    runs-on: macos-latest # x64 runner
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.run_build_macos_x64 == 'true'))
+    runs-on: macos-13 # only 13 is available for intel mac OSS project
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -144,6 +170,7 @@ jobs:
           path: ${{ github.workspace }}/build/macos/x64/msdfgen
 
   build-macos-arm64:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.run_build_macos_arm64 == 'true'))
     runs-on: macos-14 # Apple Silicon (ARM64) runner
     steps:
       - name: Checkout code
