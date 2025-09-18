@@ -45,7 +45,7 @@ static void pngFlush(png_structp png) {
     fflush(reinterpret_cast<FILE *>(png_get_io_ptr(png)));
 }
 
-static bool pngSave(const byte *pixels, int width, int height, int channels, int colorType, const char *filename) {
+static bool pngSave(const byte *pixels, int width, int height, int rowStride, int colorType, const char *filename) {
     if (!(pixels && width && height))
         return false;
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, &pngIgnoreError, &pngIgnoreError);
@@ -61,7 +61,7 @@ static bool pngSave(const byte *pixels, int width, int height, int channels, int
     guard.setFile(file);
     std::vector<const byte *> rows(height);
     for (int y = 0; y < height; ++y)
-        rows[y] = pixels+channels*width*(height-y-1);
+        rows[y] = pixels+rowStride*y;
     if (setjmp(png_jmpbuf(png)))
         return false;
     png_set_write_fn(png, file, &pngWrite, &pngFlush);
@@ -72,38 +72,48 @@ static bool pngSave(const byte *pixels, int width, int height, int channels, int
     return true;
 }
 
-static bool pngSave(const float *pixels, int width, int height, int channels, int colorType, const char *filename) {
+static bool pngSave(const float *pixels, int width, int height, int rowStride, int channels, int colorType, const char *filename) {
     if (!(pixels && width && height))
         return false;
-    int subpixels = channels*width*height;
-    std::vector<byte> bytePixels(subpixels);
-    for (int i = 0; i < subpixels; ++i)
-        bytePixels[i] = pixelFloatToByte(pixels[i]);
-    return pngSave(&bytePixels[0], width, height, channels, colorType, filename);
+    std::vector<byte> bytePixels(channels*width*height);
+    byte *dst = &bytePixels[0];
+    const float *rowStart = pixels;
+    for (int y = 0; y < height; ++y) {
+        for (const float *src = rowStart, *end = rowStart+channels*width; src < end; ++src)
+            *dst++ = pixelFloatToByte(*src);
+        rowStart += rowStride;
+    }
+    return pngSave(&bytePixels[0], width, height, channels*width, colorType, filename);
 }
 
-bool savePng(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename);
+bool savePng(BitmapConstSection<byte, 1> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_GRAY, filename);
 }
 
-bool savePng(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename);
+bool savePng(BitmapConstSection<byte, 3> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_RGB, filename);
 }
 
-bool savePng(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename);
+bool savePng(BitmapConstSection<byte, 4> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, PNG_COLOR_TYPE_RGB_ALPHA, filename);
 }
 
-bool savePng(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 1, PNG_COLOR_TYPE_GRAY, filename);
+bool savePng(BitmapConstSection<float, 1> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 1, PNG_COLOR_TYPE_GRAY, filename);
 }
 
-bool savePng(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 3, PNG_COLOR_TYPE_RGB, filename);
+bool savePng(BitmapConstSection<float, 3> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 3, PNG_COLOR_TYPE_RGB, filename);
 }
 
-bool savePng(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
-    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename);
+bool savePng(BitmapConstSection<float, 4> bitmap, const char *filename) {
+    bitmap.reorient(Y_DOWNWARD);
+    return pngSave(bitmap.pixels, bitmap.width, bitmap.height, bitmap.rowStride, 4, PNG_COLOR_TYPE_RGB_ALPHA, filename);
 }
 
 }
@@ -116,58 +126,67 @@ bool savePng(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
 
 namespace msdfgen {
 
-bool savePng(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<byte, 1> bitmap, const char *filename) {
     std::vector<byte> pixels(bitmap.width*bitmap.height);
+    bitmap.reorient(Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[bitmap.width*y], bitmap(0, bitmap.height-y-1), bitmap.width);
+        memcpy(&pixels[bitmap.width*y], bitmap(0, y), 1*bitmap.width);
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_GREY);
 }
 
-bool savePng(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<byte, 3> bitmap, const char *filename) {
     std::vector<byte> pixels(3*bitmap.width*bitmap.height);
+    bitmap.reorient(Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[3*bitmap.width*y], bitmap(0, bitmap.height-y-1), 3*bitmap.width);
+        memcpy(&pixels[3*bitmap.width*y], bitmap(0, y), 3*bitmap.width);
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_RGB);
 }
 
-bool savePng(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<byte, 4> bitmap, const char *filename) {
     std::vector<byte> pixels(4*bitmap.width*bitmap.height);
+    bitmap.reorient(Y_DOWNWARD);
     for (int y = 0; y < bitmap.height; ++y)
-        memcpy(&pixels[4*bitmap.width*y], bitmap(0, bitmap.height-y-1), 4*bitmap.width);
+        memcpy(&pixels[4*bitmap.width*y], bitmap(0, y), 4*bitmap.width);
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_RGBA);
 }
 
-bool savePng(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<float, 1> bitmap, const char *filename) {
     std::vector<byte> pixels(bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x)
             *it++ = pixelFloatToByte(*bitmap(x, y));
+    }
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_GREY);
 }
 
-bool savePng(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<float, 3> bitmap, const char *filename) {
     std::vector<byte> pixels(3*bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x) {
             *it++ = pixelFloatToByte(bitmap(x, y)[0]);
             *it++ = pixelFloatToByte(bitmap(x, y)[1]);
             *it++ = pixelFloatToByte(bitmap(x, y)[2]);
         }
+    }
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_RGB);
 }
 
-bool savePng(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
+bool savePng(BitmapConstSection<float, 4> bitmap, const char *filename) {
     std::vector<byte> pixels(4*bitmap.width*bitmap.height);
     std::vector<byte>::iterator it = pixels.begin();
-    for (int y = bitmap.height-1; y >= 0; --y)
+    bitmap.reorient(Y_DOWNWARD);
+    for (int y = 0; y < bitmap.height; ++y) {
         for (int x = 0; x < bitmap.width; ++x) {
             *it++ = pixelFloatToByte(bitmap(x, y)[0]);
             *it++ = pixelFloatToByte(bitmap(x, y)[1]);
             *it++ = pixelFloatToByte(bitmap(x, y)[2]);
             *it++ = pixelFloatToByte(bitmap(x, y)[3]);
         }
+    }
     return !lodepng::encode(filename, pixels, bitmap.width, bitmap.height, LCT_RGBA);
 }
 

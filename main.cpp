@@ -194,60 +194,75 @@ static FontHandle *loadVarFont(FreetypeHandle *library, const char *filename) {
 #endif
 
 template <int N>
-static void invertColor(const BitmapRef<float, N> &bitmap) {
-    const float *end = bitmap.pixels+N*bitmap.width*bitmap.height;
-    for (float *p = bitmap.pixels; p < end; ++p)
-        *p = 1.f-*p;
+static void invertColor(const BitmapSection<float, N> &bitmap) {
+    for (int y = 0; y < bitmap.height; ++y) {
+        float *p = bitmap(0, y);
+        for (const float *end = p+N*bitmap.width; p < end; ++p)
+            *p = 1.f-*p;
+    }
 }
 
-static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows) {
+static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows, int rowStride) {
     for (int row = 0; row < rows; ++row) {
-        for (int col = 0; col < cols; ++col) {
-            int v = clamp(int((*values++)*0x100), 0xff);
-            fprintf(file, col ? " %02X" : "%02X", v);
-        }
+        const float *cur = values;
+        for (int col = 0; col < cols; ++col)
+            fprintf(file, col ? " %02X" : "%02X", int(pixelFloatToByte(*cur++)));
         fprintf(file, "\n");
+        values += rowStride;
     }
     return true;
 }
 
-static bool writeTextBitmapFloat(FILE *file, const float *values, int cols, int rows) {
+static bool writeTextBitmapFloat(FILE *file, const float *values, int cols, int rows, int rowStride) {
     for (int row = 0; row < rows; ++row) {
-        for (int col = 0; col < cols; ++col) {
-            fprintf(file, col ? " %.9g" : "%.9g", *values++);
-        }
+        const float *cur = values;
+        for (int col = 0; col < cols; ++col)
+            fprintf(file, col ? " %.9g" : "%.9g", *cur++);
         fprintf(file, "\n");
+        values += rowStride;
     }
     return true;
 }
 
-static bool writeBinBitmap(FILE *file, const float *values, int count) {
-    for (int pos = 0; pos < count; ++pos) {
-        unsigned char v = clamp(int((*values++)*0x100), 0xff);
-        fwrite(&v, 1, 1, file);
+static bool writeBinBitmap(FILE *file, const float *values, int cols, int rows, int rowStride) {
+    for (int row = 0; row < rows; ++row) {
+        const float *cur = values;
+        for (int col = 0; col < cols; ++col) {
+            byte v = pixelFloatToByte(*cur++);
+            fwrite(&v, 1, 1, file);
+        }
+        values += rowStride;
     }
     return true;
 }
 
 #ifdef __BIG_ENDIAN__
-static bool writeBinBitmapFloatBE(FILE *file, const float *values, int count)
+static bool writeBinBitmapFloatBE(FILE *file, const float *values, int cols, int rows, int rowStride)
 #else
-static bool writeBinBitmapFloat(FILE *file, const float *values, int count)
+static bool writeBinBitmapFloat(FILE *file, const float *values, int cols, int rows, int rowStride)
 #endif
 {
-    return (int) fwrite(values, sizeof(float), count, file) == count;
+    for (int row = 0; row < rows; ++row) {
+        fwrite(values, sizeof(float), cols, file);
+        values += rowStride;
+    }
+    return true;
 }
 
 #ifdef __BIG_ENDIAN__
-static bool writeBinBitmapFloat(FILE *file, const float *values, int count)
+static bool writeBinBitmapFloat(FILE *file, const float *values, int cols, int rows, int rowStride)
 #else
-static bool writeBinBitmapFloatBE(FILE *file, const float *values, int count)
+static bool writeBinBitmapFloatBE(FILE *file, const float *values, int cols, int rows, int rowStride)
 #endif
 {
-    for (int pos = 0; pos < count; ++pos) {
-        const unsigned char *b = reinterpret_cast<const unsigned char *>(values++);
-        for (int i = sizeof(float)-1; i >= 0; --i)
-            fwrite(b+i, 1, 1, file);
+    for (int row = 0; row < rows; ++row) {
+        const float *cur = values;
+        for (int col = 0; col < cols; ++col) {
+            const unsigned char *b = reinterpret_cast<const unsigned char *>(cur++);
+            for (int i = int(sizeof(float)); i--;)
+                fwrite(b+i, 1, 1, file);
+        }
+        values += rowStride;
     }
     return true;
 }
@@ -260,7 +275,7 @@ static bool cmpExtension(const char *path, const char *ext) {
 }
 
 template <int N>
-static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const char *filename, Format &format) {
+static const char *writeOutput(const BitmapConstSection<float, N> &bitmap, const char *filename, Format &format) {
     if (filename) {
         if (format == AUTO) {
         #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
@@ -290,9 +305,9 @@ static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const cha
                 FILE *file = fopen(filename, "w");
                 if (!file) return "Failed to write output text file.";
                 if (format == TEXT)
-                    writeTextBitmap(file, bitmap.pixels, N*bitmap.width, bitmap.height);
+                    writeTextBitmap(file, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
                 else if (format == TEXT_FLOAT)
-                    writeTextBitmapFloat(file, bitmap.pixels, N*bitmap.width, bitmap.height);
+                    writeTextBitmapFloat(file, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
                 fclose(file);
                 return NULL;
             }
@@ -300,11 +315,11 @@ static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const cha
                 FILE *file = fopen(filename, "wb");
                 if (!file) return "Failed to write output binary file.";
                 if (format == BINARY)
-                    writeBinBitmap(file, bitmap.pixels, N*bitmap.width*bitmap.height);
+                    writeBinBitmap(file, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
                 else if (format == BINARY_FLOAT)
-                    writeBinBitmapFloat(file, bitmap.pixels, N*bitmap.width*bitmap.height);
+                    writeBinBitmapFloat(file, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
                 else if (format == BINARY_FLOAT_BE)
-                    writeBinBitmapFloatBE(file, bitmap.pixels, N*bitmap.width*bitmap.height);
+                    writeBinBitmapFloatBE(file, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
                 fclose(file);
                 return NULL;
             }
@@ -312,9 +327,9 @@ static const char *writeOutput(const BitmapConstRef<float, N> &bitmap, const cha
         }
     } else {
         if (format == AUTO || format == TEXT)
-            writeTextBitmap(stdout, bitmap.pixels, N*bitmap.width, bitmap.height);
+            writeTextBitmap(stdout, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
         else if (format == TEXT_FLOAT)
-            writeTextBitmapFloat(stdout, bitmap.pixels, N*bitmap.width, bitmap.height);
+            writeTextBitmapFloat(stdout, bitmap.pixels, N*bitmap.width, bitmap.height, bitmap.rowStride);
         else
             return "Unsupported format for standard output.";
     }
@@ -1172,8 +1187,14 @@ int main(int argc, const char *const *argv) {
             out = fopen(output, "w");
         if (!out)
             ABORT("Failed to write output file.");
-        if (shape.inverseYAxis)
-            fprintf(out, "inverseY = true\n");
+        switch (shape.getYAxisOrientation()) {
+            case Y_UPWARD:
+                fprintf(out, "Y-axis upward\n");
+                break;
+            case Y_DOWNWARD:
+                fprintf(out, "Y-axis downward\n");
+                break;
+        }
         if (svgViewBox.l < svgViewBox.r && svgViewBox.b < svgViewBox.t)
             fprintf(out, "view box = %.17g, %.17g, %.17g, %.17g\n", svgViewBox.l, svgViewBox.b, svgViewBox.r, svgViewBox.t);
         if (bounds.l < bounds.r && bounds.b < bounds.t)

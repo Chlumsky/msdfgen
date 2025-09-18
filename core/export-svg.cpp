@@ -51,7 +51,7 @@ static void writeSvgPathDef(FILE *f, const Shape &shape) {
 bool saveSvgShape(const Shape &shape, const char *filename) {
     if (FILE *f = fopen(filename, "w")) {
         fputs("<svg xmlns=\"http://www.w3.org/2000/svg\"><path", f);
-        if (!shape.inverseYAxis)
+        if (shape.getYAxisOrientation() == Y_UPWARD)
             fputs(" transform=\"scale(1 -1)\"", f);
         fputs(" d=\"", f);
         writeSvgPathDef(f, shape);
@@ -65,7 +65,7 @@ bool saveSvgShape(const Shape &shape, const char *filename) {
 bool saveSvgShape(const Shape &shape, const Shape::Bounds &bounds, const char *filename) {
     if (FILE *f = fopen(filename, "w")) {
         fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"%.17g %.17g %.17g %.17g\"><path", bounds.l, bounds.b, bounds.r-bounds.l, bounds.t-bounds.b);
-        if (!shape.inverseYAxis)
+        if (shape.getYAxisOrientation() == Y_UPWARD)
             fprintf(f, " transform=\"translate(0 %.17g) scale(1 -1)\"", bounds.b+bounds.t);
         fputs(" d=\"", f);
         writeSvgPathDef(f, shape);

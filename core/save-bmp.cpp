@@ -89,12 +89,13 @@ static bool writeBmpHeader(FILE *file, int bytesPerPixel, int width, int height,
     return true;
 }
 
-bool saveBmp(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<byte, 1> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int paddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 1, bitmap.width, bitmap.height, paddedWidth);
 
     byte padding[4] = { };
@@ -107,12 +108,13 @@ bool saveBmp(const BitmapConstRef<byte, 1> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
-bool saveBmp(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<byte, 3> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int paddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 3, bitmap.width, bitmap.height, paddedWidth);
 
     byte padding[4] = { };
@@ -132,12 +134,13 @@ bool saveBmp(const BitmapConstRef<byte, 3> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
-bool saveBmp(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<byte, 4> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int dummyPaddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 4, bitmap.width, bitmap.height, dummyPaddedWidth);
 
     for (int y = 0; y < bitmap.height; ++y) {
@@ -155,12 +158,13 @@ bool saveBmp(const BitmapConstRef<byte, 4> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
-bool saveBmp(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<float, 1> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int paddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 1, bitmap.width, bitmap.height, paddedWidth);
 
     byte padding[4] = { };
@@ -176,12 +180,13 @@ bool saveBmp(const BitmapConstRef<float, 1> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
-bool saveBmp(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<float, 3> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int paddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 3, bitmap.width, bitmap.height, paddedWidth);
 
     byte padding[4] = { };
@@ -201,12 +206,13 @@ bool saveBmp(const BitmapConstRef<float, 3> &bitmap, const char *filename) {
     return !fclose(file);
 }
 
-bool saveBmp(const BitmapConstRef<float, 4> &bitmap, const char *filename) {
+bool saveBmp(BitmapConstSection<float, 4> bitmap, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file)
         return false;
 
     int dummyPaddedWidth;
+    bitmap.reorient(Y_UPWARD);
     writeBmpHeader(file, 4, bitmap.width, bitmap.height, dummyPaddedWidth);
 
     for (int y = 0; y < bitmap.height; ++y) {

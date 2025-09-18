@@ -143,7 +143,7 @@ FontHandle *adoptFreetypeFont(FT_Face ftFace) {
 
 FT_Error readFreetypeOutline(Shape &output, FT_Outline *outline, double scale) {
     output.contours.clear();
-    output.inverseYAxis = false;
+    output.setYAxisOrientation(Y_UPWARD);
     FtContext context = { };
     context.scale = scale;
     context.shape = &output;

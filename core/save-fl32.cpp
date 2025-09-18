@@ -9,8 +9,9 @@ namespace msdfgen {
 #ifndef __BIG_ENDIAN__
 
 template <int N>
-bool saveFl32(const BitmapConstRef<float, N> &bitmap, const char *filename) {
+bool saveFl32(BitmapConstSection<float, N> bitmap, const char *filename) {
     if (FILE *f = fopen(filename, "wb")) {
+        bitmap.reorient(Y_UPWARD);
         byte header[16] = { byte('F'), byte('L'), byte('3'), byte('2') };
         header[4] = byte(bitmap.height);
         header[5] = byte(bitmap.height>>8);
@@ -22,17 +23,18 @@ bool saveFl32(const BitmapConstRef<float, N> &bitmap, const char *filename) {
         header[11] = byte(bitmap.width>>24);
         header[12] = byte(N);
         fwrite(header, 1, 16, f);
-        fwrite(bitmap.pixels, sizeof(float), N*bitmap.width*bitmap.height, f);
+        for (int y = 0; y < bitmap.height; ++y)
+            fwrite(bitmap(0, y), sizeof(float), N*bitmap.width, f);
         fclose(f);
         return true;
     }
     return false;
 }
 
-template bool saveFl32(const BitmapConstRef<float, 1> &bitmap, const char *filename);
-template bool saveFl32(const BitmapConstRef<float, 2> &bitmap, const char *filename);
-template bool saveFl32(const BitmapConstRef<float, 3> &bitmap, const char *filename);
-template bool saveFl32(const BitmapConstRef<float, 4> &bitmap, const char *filename);
+template bool saveFl32(BitmapConstSection<float, 1> bitmap, const char *filename);
+template bool saveFl32(BitmapConstSection<float, 2> bitmap, const char *filename);
+template bool saveFl32(BitmapConstSection<float, 3> bitmap, const char *filename);
+template bool saveFl32(BitmapConstSection<float, 4> bitmap, const char *filename);
 
 #endif
 

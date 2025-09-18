@@ -352,7 +352,7 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     if (dimensions)
         *dimensions = dims;
     output.contours.clear();
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     return buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
 }
 
@@ -531,7 +531,7 @@ bool loadSvgShape(Shape &output, const char *filename, int pathIndex, Vector2 *d
     if (dimensions)
         *dimensions = dims;
     output.contours.clear();
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     return buildShapeFromSvgPath(output, xmlDecode(pathAggregator.pathDefs[pathIndex].start, pathAggregator.pathDefs[pathIndex].end).c_str(), ENDPOINT_SNAP_RANGE_PROPORTION*dims.length());
 }
 
@@ -565,7 +565,7 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     viewBox.r = viewBox.l+dims.x;
     viewBox.t = viewBox.b+dims.y;
     output.contours.clear();
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     if (!buildShapeFromSvgPath(output, pd, ENDPOINT_SNAP_RANGE_PROPORTION*dims.length()))
         return SVG_IMPORT_FAILURE;
     return flags;
@@ -592,7 +592,7 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     viewBox.r = viewBox.l+dims.x;
     viewBox.t = viewBox.b+dims.y;
     output.contours.clear();
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     if (!buildShapeFromSvgPath(output, xmlDecode(pathAggregator.pathDefs.back().start, pathAggregator.pathDefs.back().end).c_str(), ENDPOINT_SNAP_RANGE_PROPORTION*dims.length()))
         return SVG_IMPORT_FAILURE;
     return SVG_IMPORT_SUCCESS_FLAG|pathAggregator.flags;
@@ -762,7 +762,7 @@ int loadSvgShape(Shape &output, Shape::Bounds &viewBox, const char *filename) {
     if (!((flags&SVG_IMPORT_SUCCESS_FLAG) && Simplify(fullPath, &fullPath)))
         return SVG_IMPORT_FAILURE;
     shapeFromSkiaPath(output, fullPath);
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     output.orientContours();
 
     viewBox.l = 0, viewBox.b = 0;
@@ -1038,7 +1038,7 @@ int parseSvgShape(Shape &output, Shape::Bounds &viewBox, const char *svgData, si
         return SVG_IMPORT_FAILURE;
 
     shapeFromSkiaPath(output, svg.fullPath);
-    output.inverseYAxis = true;
+    output.setYAxisOrientation(Y_DOWNWARD);
     output.orientContours();
 
     viewBox = svg.viewBox;

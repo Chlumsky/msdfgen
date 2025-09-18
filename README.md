@@ -203,6 +203,7 @@ The text shape description has the following syntax.
  - The last point of each contour must be equal to the first, or the symbol `#` can be used, which represents the first point.
  - There can be an edge segment specification between any two points, also separated by semicolons.
    This can include the edge's color (`c`, `m`, `y` or `w`) and/or one or two Bézier curve control points inside parentheses.
+ - At the beginning, there may be an Y-axis direction specifier `@y-up` or `@y-down`.
 
 For example,
 ```
