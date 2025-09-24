@@ -35,8 +35,8 @@
 #define DEFAULT_IMAGE_EXTENSION "png"
 #define SAVE_DEFAULT_IMAGE_FORMAT savePng
 #else
-#define DEFAULT_IMAGE_EXTENSION "tiff"
-#define SAVE_DEFAULT_IMAGE_FORMAT saveTiff
+#define DEFAULT_IMAGE_EXTENSION "bmp"
+#define SAVE_DEFAULT_IMAGE_FORMAT saveBmp
 #endif
 
 using namespace msdfgen;
@@ -192,15 +192,6 @@ static FontHandle *loadVarFont(FreetypeHandle *library, const char *filename) {
 }
 #endif
 #endif
-
-template <int N>
-static void invertColor(const BitmapSection<float, N> &bitmap) {
-    for (int y = 0; y < bitmap.height; ++y) {
-        float *p = bitmap(0, y);
-        for (const float *end = p+N*bitmap.width; p < end; ++p)
-            *p = 1.f-*p;
-    }
-}
 
 static bool writeTextBitmap(FILE *file, const float *values, int cols, int rows, int rowStride) {
     for (int row = 0; row < rows; ++row) {
@@ -452,7 +443,7 @@ static const char *const helpText =
     "  -format <bmp / tiff / rgba / fl32 / text / textfloat / bin / binfloat / binfloatbe>\n"
 #endif
         "\tSpecifies the output format of the distance field. Otherwise it is chosen based on output file extension.\n"
-    "  -guessorder\n"
+    "  -guesswinding\n"
         "\tAttempts to detect if shape contours have the wrong winding and generates the SDF with the right one.\n"
     "  -help\n"
         "\tDisplays this help.\n"
@@ -483,7 +474,7 @@ static const char *const helpText =
         "\tSets the width of the range between the lowest and highest signed distance in pixels.\n"
     "  -range <range>\n"
         "\tSets the width of the range between the lowest and highest signed distance in shape units.\n"
-    "  -reverseorder\n"
+    "  -reversewinding\n"
         "\tGenerates the distance field as if the shape's vertices were in reverse order.\n"
     "  -scale <scale>\n"
         "\tSets the scale used to convert shape units to pixels.\n"
@@ -499,10 +490,10 @@ static const char *const helpText =
 #if defined(MSDFGEN_EXTENSIONS) && !defined(MSDFGEN_DISABLE_PNG)
         "\tRenders an image preview using the generated distance field and saves it as a PNG file.\n"
 #else
-        "\tRenders an image preview using the generated distance field and saves it as a TIFF file.\n"
+        "\tRenders an image preview using the generated distance field and saves it as a BMP file.\n"
 #endif
     "  -testrendermulti <filename." DEFAULT_IMAGE_EXTENSION "> <width> <height>\n"
-        "\tRenders an image preview without flattening the color channels.\n"
+        "\tRenders an image preview without resolving the color channels.\n"
     "  -translate <x> <y>\n"
         "\tSets the translation of the shape in shape units.\n"
     "  -version\n"
@@ -510,7 +501,7 @@ static const char *const helpText =
     "  -windingpreprocess\n"
         "\tAttempts to fix only the contour windings assuming no self-intersections and even-odd fill rule.\n"
     "  -yflip\n"
-        "\tInverts the Y axis in the output distance field. The default order is bottom to top.\n"
+        "\tInverts the Y-axis in the output distance field. The default orientation is upward.\n"
     "\n";
 
 static const char *errorCorrectionHelpText =
@@ -612,7 +603,7 @@ int main(int argc, const char *const *argv) {
         KEEP,
         REVERSE,
         GUESS
-    } orientation = KEEP;
+    } winding = KEEP;
     unsigned long long coloringSeed = 0;
     void (*edgeColoring)(Shape &, double, unsigned long long) = &edgeColoringSimple;
     bool explicitErrorCorrectionMode = false;
@@ -982,16 +973,16 @@ int main(int argc, const char *const *argv) {
             estimateError = true;
             continue;
         }
-        ARG_CASE("-keeporder", 0) {
-            orientation = KEEP;
+        ARG_CASE("-keepwinding" ARG_CASE_OR "-keeporder", 0) {
+            winding = KEEP;
             continue;
         }
-        ARG_CASE("-reverseorder", 0) {
-            orientation = REVERSE;
+        ARG_CASE("-reversewinding" ARG_CASE_OR "-reverseorder", 0) {
+            winding = REVERSE;
             continue;
         }
-        ARG_CASE("-guessorder", 0) {
-            orientation = GUESS;
+        ARG_CASE("-guesswinding" ARG_CASE_OR "-guessorder", 0) {
+            winding = GUESS;
             continue;
         }
         ARG_CASE("-seed", 1) {
@@ -1137,8 +1128,19 @@ int main(int argc, const char *const *argv) {
 
     double avgScale = .5*(scale.x+scale.y);
     Shape::Bounds bounds = { };
-    if (autoFrame || mode == METRICS || printMetrics || orientation == GUESS || svgExport)
+    if (autoFrame || mode == METRICS || printMetrics || winding == GUESS || svgExport)
         bounds = shape.getBounds();
+
+    if (winding == GUESS) {
+        // Get sign of signed distance outside bounds
+        Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
+        double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
+        winding = distance <= 0 ? KEEP : REVERSE;
+    }
+    if (winding == REVERSE) {
+        for (std::vector<Contour>::iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour)
+            contour->reverse();
+    }
 
     if (outputDistanceShift) {
         Range &rangeRef = rangeMode == RANGE_PX ? pxRange : range;
@@ -1276,39 +1278,19 @@ int main(int argc, const char *const *argv) {
         default:;
     }
 
-    if (orientation == GUESS) {
-        // Get sign of signed distance outside bounds
-        Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
-        double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
-        orientation = distance <= 0 ? KEEP : REVERSE;
-    }
-    if (orientation == REVERSE) {
-        switch (mode) {
-            case SINGLE:
-            case PERPENDICULAR:
-                invertColor<1>(sdf);
-                break;
-            case MULTI:
-                invertColor<3>(msdf);
-                break;
-            case MULTI_AND_TRUE:
-                invertColor<4>(mtsdf);
-                break;
-            default:;
-        }
-    }
     if (scanlinePass) {
+        float sdfZeroValue = range.lower != range.upper ? float(range.lower/(range.lower-range.upper)) : .5f;
         switch (mode) {
             case SINGLE:
             case PERPENDICULAR:
-                distanceSignCorrection(sdf, shape, transformation, fillRule);
+                distanceSignCorrection(sdf, shape, transformation, sdfZeroValue, fillRule);
                 break;
             case MULTI:
-                distanceSignCorrection(msdf, shape, transformation, fillRule);
+                distanceSignCorrection(msdf, shape, transformation, sdfZeroValue, fillRule);
                 msdfErrorCorrection(msdf, shape, transformation, postErrorCorrectionConfig);
                 break;
             case MULTI_AND_TRUE:
-                distanceSignCorrection(mtsdf, shape, transformation, fillRule);
+                distanceSignCorrection(mtsdf, shape, transformation, sdfZeroValue, fillRule);
                 msdfErrorCorrection(mtsdf, shape, transformation, postErrorCorrectionConfig);
                 break;
             default:;
@@ -1344,12 +1326,16 @@ int main(int argc, const char *const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, sdf, avgScale*range);
+                if (!cmpExtension(testRenderMulti, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrendermulti specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, sdf, avgScale*range);
+                if (!cmpExtension(testRender, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrender specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
@@ -1368,12 +1354,16 @@ int main(int argc, const char *const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 3> render(testWidthM, testHeightM);
                 renderSDF(render, msdf, avgScale*range);
+                if (!cmpExtension(testRenderMulti, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrendermulti specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, msdf, avgScale*range);
+                if (!cmpExtension(testRender, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrender specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
@@ -1392,12 +1382,16 @@ int main(int argc, const char *const *argv) {
             if (testRenderMulti) {
                 Bitmap<float, 4> render(testWidthM, testHeightM);
                 renderSDF(render, mtsdf, avgScale*range);
+                if (!cmpExtension(testRenderMulti, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrendermulti specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRenderMulti))
                     fputs("Failed to write test render file.\n", stderr);
             }
             if (testRender) {
                 Bitmap<float, 1> render(testWidth, testHeight);
                 renderSDF(render, mtsdf, avgScale*range);
+                if (!cmpExtension(testRender, "." DEFAULT_IMAGE_EXTENSION))
+                    fputs("Warning: -testrender specified with an extension other than ." DEFAULT_IMAGE_EXTENSION " but will be saved in that format anyway.\n", stderr);
                 if (!SAVE_DEFAULT_IMAGE_FORMAT(render, testRender))
                     fputs("Failed to write test render file.\n", stderr);
             }
