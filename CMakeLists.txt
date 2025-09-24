@@ -105,7 +105,7 @@ target_compile_definitions(msdfgen-core PUBLIC
     MSDFGEN_COPYRIGHT_YEAR=${MSDFGEN_COPYRIGHT_YEAR}
 )
 target_include_directories(msdfgen-core INTERFACE
-    $<INSTALL_INTERFACE:include/msdfgen>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/msdfgen>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT msdfgen-core)
@@ -164,7 +164,7 @@ if(NOT MSDFGEN_CORE_ONLY)
     target_link_libraries(msdfgen-ext PRIVATE Freetype::Freetype msdfgen::msdfgen-core)
     target_include_directories(msdfgen-ext
         PUBLIC
-            $<INSTALL_INTERFACE:include/msdfgen>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/msdfgen>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -285,8 +285,8 @@ if(MSDFGEN_INSTALL)
         @ONLY
     )
 
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION include/msdfgen)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION include/msdfgen/msdfgen)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-config.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/msdfgen)
     install(TARGETS msdfgen-core EXPORT msdfgenTargets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -294,9 +294,9 @@ if(MSDFGEN_INSTALL)
         FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/core
     )
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" DESTINATION include/msdfgen)
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen)
     if (NOT MSDFGEN_INSTALL_NO_GLOBAL_INCLUDE)
-        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen.h" DESTINATION include)
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
     if(MSVC AND BUILD_SHARED_LIBS)
         install(FILES $<TARGET_PDB_FILE:msdfgen-core> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
@@ -310,9 +310,9 @@ if(MSDFGEN_INSTALL)
             FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
             PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen/ext
         )
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION include/msdfgen)
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/msdfgen-ext.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/msdfgen)
         if (NOT MSDFGEN_INSTALL_NO_GLOBAL_INCLUDE)
-            install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-ext.h" DESTINATION include)
+            install(FILES "${CMAKE_CURRENT_BINARY_DIR}/msdfgen-ext.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
         endif()
         if(MSVC AND BUILD_SHARED_LIBS)
             install(FILES $<TARGET_PDB_FILE:msdfgen-ext> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
