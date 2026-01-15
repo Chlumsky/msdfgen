@@ -223,6 +223,10 @@ bool getGlyphCount(unsigned &output, FontHandle *font) {
 
 bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode) {
     glyphIndex = GlyphIndex(FT_Get_Char_Index(font->face, unicode));
+	if (unicode == 0)
+	{
+		return true;
+	}
     return glyphIndex.getIndex() != 0;
 }
 
