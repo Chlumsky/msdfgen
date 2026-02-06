@@ -6,6 +6,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
+#include FT_STROKER_H
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 #include FT_MULTIPLE_MASTERS_H
 #endif
@@ -40,6 +41,8 @@ class FontHandle {
     friend bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
     friend bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, FontCoordinateScaling coordinateScaling, double *outAdvance);
     friend bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, FontCoordinateScaling coordinateScaling, double *outAdvance);
+    friend bool loadGlyphOutline(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double border, FontCoordinateScaling coordinateScaling, double *outAdvance);
+    friend bool loadGlyphOutline(Shape &output, FontHandle *font, unicode_t unicode, double border, FontCoordinateScaling coordinateScaling, double *outAdvance);
     friend bool getKerning(double &output, FontHandle *font, GlyphIndex glyphIndex0, GlyphIndex glyphIndex1, FontCoordinateScaling coordinateScaling);
     friend bool getKerning(double &output, FontHandle *font, unicode_t unicode0, unicode_t unicode1, FontCoordinateScaling coordinateScaling);
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
@@ -238,8 +241,56 @@ bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, FontCoord
     return !readFreetypeOutline(output, &font->face->glyph->outline, scale);
 }
 
+bool loadGlyphOutline(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double border, FontCoordinateScaling coordinateScaling, double *outAdvance) {
+    if (!font)
+        return false;
+        
+    FT_Error error = FT_Load_Glyph(font->face, glyphIndex.getIndex(), FT_LOAD_NO_SCALE);
+    if (error)
+        return false;
+
+    double scale = getFontCoordinateScale(font->face, coordinateScaling);
+    if (outAdvance)
+        *outAdvance = scale*font->face->glyph->advance.x;
+
+	FT_GlyphSlot	glyph = font->face->glyph;
+	FT_Glyph 		outline_glyph;
+	FT_Stroker 		stroker;
+
+	error = FT_Get_Glyph(glyph, &outline_glyph);
+    if (error)
+        return false;
+
+	error = FT_Stroker_New(font->face->glyph->library, &stroker);
+    if (error)
+    {
+		FT_Done_Glyph(outline_glyph);
+        return false;
+	}
+	
+	FT_Stroker_Set(stroker, border, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+	error = FT_Glyph_Stroke(&outline_glyph, stroker, 1);
+	FT_Stroker_Done(stroker);
+
+	if (error || outline_glyph->format != FT_GLYPH_FORMAT_OUTLINE)
+	{
+		FT_Done_Glyph(outline_glyph);
+		return false;
+	}
+		
+    FT_Outline* outline = &reinterpret_cast<FT_OutlineGlyph>(outline_glyph)->outline;
+    // You now have the FT_Outline* to the stroked glyph data
+	bool retVal = !readFreetypeOutline(output, outline, scale);
+	FT_Done_Glyph(outline_glyph);
+	return retVal;
+}
+
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, FontCoordinateScaling coordinateScaling, double *outAdvance) {
     return loadGlyph(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), coordinateScaling, outAdvance);
+}
+
+bool loadGlyphOutline(Shape &output, FontHandle *font, unicode_t unicode, double border, FontCoordinateScaling coordinateScaling, double *outAdvance) {
+    return loadGlyphOutline(output, font, GlyphIndex(FT_Get_Char_Index(font->face, unicode)), border, coordinateScaling, outAdvance);
 }
 
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *outAdvance) {
