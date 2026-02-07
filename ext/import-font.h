@@ -33,6 +33,8 @@ struct FontMetrics {
     double lineHeight;
     /// The vertical position and thickness of the underline.
     double underlineY, underlineThickness;
+    /// The height of capital letters (from baseline to cap line).
+    double capHeight;
 };
 
 /// A structure to model a given axis of a variable font.

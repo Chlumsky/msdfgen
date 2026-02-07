@@ -6,6 +6,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_OUTLINE_H
+#include FT_TRUETYPE_TABLES_H
+#include FT_BBOX_H
 #ifndef MSDFGEN_DISABLE_VARIABLE_FONTS
 #include FT_MULTIPLE_MASTERS_H
 #endif
@@ -200,6 +202,20 @@ bool getFontMetrics(FontMetrics &metrics, FontHandle *font, FontCoordinateScalin
     metrics.lineHeight = scale*font->face->height;
     metrics.underlineY = scale*font->face->underline_position;
     metrics.underlineThickness = scale*font->face->underline_thickness;
+    metrics.capHeight = 0;
+    TT_OS2 *os2 = (TT_OS2 *) FT_Get_Sfnt_Table(font->face, FT_SFNT_OS2);
+    if (os2 && os2->version >= 0x0002 && os2->sCapHeight > 0)
+        metrics.capHeight = scale*os2->sCapHeight;
+    else {
+        // Fallback: measure 'H' glyph top
+        FT_UInt gi = FT_Get_Char_Index(font->face, 'H');
+        if (gi && !FT_Load_Glyph(font->face, gi, FT_LOAD_NO_SCALE)) {
+            FT_BBox bbox;
+            FT_Outline_Get_BBox(&font->face->glyph->outline, &bbox);
+            if (bbox.yMax > 0)
+                metrics.capHeight = scale*bbox.yMax;
+        }
+    }
     return true;
 }
 
