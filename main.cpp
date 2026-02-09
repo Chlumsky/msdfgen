@@ -413,6 +413,10 @@ static const char *const helpText =
         "\tSets the scale used to convert shape units to pixels asymmetrically.\n"
     "  -autoframe\n"
         "\tAutomatically scales (unless specified) and translates the shape to fit.\n"
+#ifdef MSDFGEN_EXTENSIONS
+    "  -capnormalize\n"
+        "\tBefore applying scale, normalizes font glyph coordinates so that 1 = 1 capital letter height.\n"
+#endif
     "  -coloringstrategy <simple / inktrap / distance>\n"
         "\tSelects the strategy of the edge coloring heuristic.\n"
     "  -dimensions <width> <height>\n"
@@ -668,6 +672,11 @@ int main(int argc, const char *const *argv) {
         }
         ARG_CASE("-emnormalize", 0) {
             fontCoordinateScaling = FONT_SCALING_EM_NORMALIZED;
+            fontCoordinateScalingSpecified = true;
+            continue;
+        }
+        ARG_CASE("-capnormalize", 0) {
+            fontCoordinateScaling = FONT_SCALING_CAP_NORMALIZED;
             fontCoordinateScalingSpecified = true;
             continue;
         }
@@ -1071,7 +1080,8 @@ int main(int argc, const char *const *argv) {
                     "         The implicit scaling behavior will likely change in a future version resulting in different output.\n"
                     "         To silence this warning, use one of the following options:\n"
                     "           -noemnormalize to switch to the correct native font coordinates,\n"
-                    "           -emnormalize to switch to coordinates normalized to 1 em, or\n"
+                    "           -emnormalize to switch to coordinates normalized to 1 em,\n"
+                    "           -capnormalize to switch to coordinates normalized to 1 cap height, or\n"
                     "           -legacyfontscaling to keep current behavior and make sure it will not change.\n", stderr);
             }
             break;

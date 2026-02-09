@@ -109,6 +109,20 @@ static double getFontCoordinateScale(const FT_Face &face, FontCoordinateScaling 
             return 1;
         case FONT_SCALING_EM_NORMALIZED:
             return 1./(face->units_per_EM ? face->units_per_EM : 1);
+        case FONT_SCALING_CAP_NORMALIZED: {
+            TT_OS2 *os2 = (TT_OS2 *) FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
+            if (os2 && os2->version >= 0x0002 && os2->sCapHeight > 0)
+                return 1./os2->sCapHeight;
+            FT_UInt gi = FT_Get_Char_Index(face, 'H');
+            if (gi && !FT_Load_Glyph(face, gi, FT_LOAD_NO_SCALE)) {
+                FT_BBox bbox;
+                FT_Outline_Get_BBox(&face->glyph->outline, &bbox);
+                if (bbox.yMax > 0)
+                    return 1./bbox.yMax;
+            }
+            // Fallback to EM normalization
+            return 1./(face->units_per_EM ? face->units_per_EM : 1);
+        }
         case FONT_SCALING_LEGACY:
             return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
     }
