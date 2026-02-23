@@ -1,5 +1,8 @@
 # Multi-channel signed distance field generator
 
+[![Sponsor this project](https://img.shields.io/badge/github-sponsor-magenta?logo=github)](https://github.com/sponsors/Chlumsky)
+[![Buy me a coffee](https://img.shields.io/badge/-buy_me_a_coffee-gray?logo=buy-me-a-coffee)](https://buymeacoffee.com/chlumsky)
+
 This is a utility for generating signed distance fields from vector shapes and font glyphs,
 which serve as a texture representation that can be used in real-time graphics to efficiently reproduce said shapes.
 Although it can also be used to generate conventional signed distance fields best known from
@@ -46,7 +49,7 @@ the CMake configuration will take care of fetching all required packages from vc
 
 The standalone program is executed as
 ```
-msdfgen.exe <mode> <input> <options>
+msdfgen <mode> <input> <options>
 ```
 where only the input specification is required.
 
@@ -87,7 +90,7 @@ Some of the important ones are:
 
 For example,
 ```
-msdfgen.exe msdf -font C:\Windows\Fonts\arialbd.ttf 'M' -o msdf.png -dimensions 32 32 -pxrange 4 -autoframe -testrender render.png 1024 1024
+msdfgen msdf -font C:\Windows\Fonts\arialbd.ttf 'M' -o msdf.png -dimensions 32 32 -pxrange 4 -autoframe -testrender render.png 1024 1024
 ```
 
 will take the glyph capital M from the Arial Bold typeface, generate a 32&times;32 multi-channel distance field
@@ -218,3 +221,7 @@ would represent a square with magenta and yellow edges,
 { 0, 1; (+1.6, -0.8; -1.6, -0.8); # }
 ```
 is a teardrop shape formed by a single cubic Bézier curve.
+
+![MSDFgen logo](https://github.com/user-attachments/assets/080ee448-07e1-4d54-afcb-82f2565d0a78)
+
+Created by Viktor Chlumský, © 2015 - 2026

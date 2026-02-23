@@ -382,7 +382,7 @@ static std::string xmlDecode(const char *start, const char *end) {
             return std::string();
         if (start == buffer.data()) {
             buffer.resize(end-start, '\0');
-            return (std::string &&) buffer;
+            return buffer;
         }
     }
     return std::string(start, end);
