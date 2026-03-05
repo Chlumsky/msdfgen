@@ -703,9 +703,9 @@ static void gatherPaths(SkPath &fullPath, int &flags, tinyxml2::XMLElement *pare
                 if (!(width && height))
                     continue;
                 SkRect rect = SkRect::MakeLTRB(x, y, x+width, y+height);
-                if (rx || ry) {
+                if (rx || ry)
                     curPathBuilder.addRRect(SkRRect::MakeRectXY(rect, rx, ry));
-                } else
+                else
                     curPathBuilder.addRect(rect);
                 curPath = curPathBuilder.detach();
             } else if (!strcmp(cur->Name(), "circle")) {
@@ -975,10 +975,9 @@ int parseSvgShape(Shape &output, Shape::Bounds &viewBox, const char *svgData, si
                                     if (!(elem.dims.x && elem.dims.y))
                                         return true;
                                     SkRect rect = SkRect::MakeLTRB(elem.pos.x, elem.pos.y, elem.pos.x+elem.dims.x, elem.pos.y+elem.dims.y);
-                                    if (elem.radius.x || elem.radius.y) {
-                                        SkScalar rx = SkScalar(elem.radius.x), ry = SkScalar(elem.radius.y);
-                                        curPathBuilder.addRRect(SkRRect::MakeRectXY(rect, rx, ry));
-                                    } else
+                                    if (elem.radius.x || elem.radius.y)
+                                        curPathBuilder.addRRect(SkRRect::MakeRectXY(rect, SkScalar(elem.radius.x), SkScalar(elem.radius.y)));
+                                    else
                                         curPathBuilder.addRect(rect);
                                     curPath = curPathBuilder.detach();
                                 }
