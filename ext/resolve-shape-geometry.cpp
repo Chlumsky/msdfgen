@@ -4,6 +4,7 @@
 #ifdef MSDFGEN_USE_SKIA
 
 #include <skia/core/SkPath.h>
+#include <skia/core/SkPathBuilder.h>
 #include <skia/pathops/SkPathOps.h>
 #include "../core/arithmetics.hpp"
 #include "../core/Vector2.hpp"
@@ -21,26 +22,28 @@ Point2 pointFromSkiaPoint(const SkPoint p) {
 }
 
 void shapeToSkiaPath(SkPath &skPath, const Shape &shape) {
+    SkPathBuilder pathBuilder;
     for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
         if (!contour->edges.empty()) {
             const EdgeSegment *edge = contour->edges.back();
-            skPath.moveTo(pointToSkiaPoint(*edge->controlPoints()));
+            pathBuilder.moveTo(pointToSkiaPoint(*edge->controlPoints()));
             for (std::vector<EdgeHolder>::const_iterator nextEdge = contour->edges.begin(); nextEdge != contour->edges.end(); edge = *nextEdge++) {
                 const Point2 *p = edge->controlPoints();
                 switch (edge->type()) {
                     case (int) LinearSegment::EDGE_TYPE:
-                        skPath.lineTo(pointToSkiaPoint(p[1]));
+                        pathBuilder.lineTo(pointToSkiaPoint(p[1]));
                         break;
                     case (int) QuadraticSegment::EDGE_TYPE:
-                        skPath.quadTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]));
+                        pathBuilder.quadTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]));
                         break;
                     case (int) CubicSegment::EDGE_TYPE:
-                        skPath.cubicTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]), pointToSkiaPoint(p[3]));
+                        pathBuilder.cubicTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]), pointToSkiaPoint(p[3]));
                         break;
                 }
             }
         }
     }
+    skPath = pathBuilder.detach();
 }
 
 void shapeFromSkiaPath(Shape &shape, const SkPath &skPath) {
