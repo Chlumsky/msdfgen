@@ -22,28 +22,28 @@ Point2 pointFromSkiaPoint(const SkPoint p) {
 }
 
 void shapeToSkiaPath(SkPath &skPath, const Shape &shape) {
+    SkPathBuilder pathBuilder;
     for (std::vector<Contour>::const_iterator contour = shape.contours.begin(); contour != shape.contours.end(); ++contour) {
         if (!contour->edges.empty()) {
             const EdgeSegment *edge = contour->edges.back();
-            SkPathBuilder skPathBuilder;
-            skPathBuilder.moveTo(pointToSkiaPoint(*edge->controlPoints()));
+            pathBuilder.moveTo(pointToSkiaPoint(*edge->controlPoints()));
             for (std::vector<EdgeHolder>::const_iterator nextEdge = contour->edges.begin(); nextEdge != contour->edges.end(); edge = *nextEdge++) {
                 const Point2 *p = edge->controlPoints();
                 switch (edge->type()) {
                     case (int) LinearSegment::EDGE_TYPE:
-                        skPathBuilder.lineTo(pointToSkiaPoint(p[1]));
+                        pathBuilder.lineTo(pointToSkiaPoint(p[1]));
                         break;
                     case (int) QuadraticSegment::EDGE_TYPE:
-                        skPathBuilder.quadTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]));
+                        pathBuilder.quadTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]));
                         break;
                     case (int) CubicSegment::EDGE_TYPE:
-                        skPathBuilder.cubicTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]), pointToSkiaPoint(p[3]));
+                        pathBuilder.cubicTo(pointToSkiaPoint(p[1]), pointToSkiaPoint(p[2]), pointToSkiaPoint(p[3]));
                         break;
                 }
             }
-            skPath = skPathBuilder.detach();
         }
     }
+    skPath = pathBuilder.detach();
 }
 
 void shapeFromSkiaPath(Shape &shape, const SkPath &skPath) {
