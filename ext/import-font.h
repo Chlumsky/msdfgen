@@ -86,6 +86,9 @@ bool getGlyphIndex(GlyphIndex &glyphIndex, FontHandle *font, unicode_t unicode);
 /// Loads the geometry of a glyph from a font.
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
+/// Loads the geometry of a glyph from a font but with the outline of the glyph filled in, not the entire glyph.
+bool loadGlyphOutline(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double border, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
+bool loadGlyphOutline(Shape &output, FontHandle *font, unicode_t unicode, double border, FontCoordinateScaling coordinateScaling, double *outAdvance = NULL);
 // Legacy API - FontCoordinateScaling is LEGACY
 bool loadGlyph(Shape &output, FontHandle *font, GlyphIndex glyphIndex, double *outAdvance = NULL);
 bool loadGlyph(Shape &output, FontHandle *font, unicode_t unicode, double *outAdvance = NULL);

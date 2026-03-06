@@ -576,6 +576,7 @@ int main(int argc, const char *const *argv) {
     GlyphIndex glyphIndex;
     unicode_t unicode = 0;
     FontCoordinateScaling fontCoordinateScaling = FONT_SCALING_LEGACY;
+    double border = 0;
     bool fontCoordinateScalingSpecified = false;
 #endif
 
@@ -661,6 +662,12 @@ int main(int argc, const char *const *argv) {
             }
             continue;
         }
+        if (argPos+2 < argc && !strcmp(arg,"-border"))
+        {
+			++argPos;
+			border = atoi(argv[argPos++]);
+			continue;
+		}
         ARG_CASE("-noemnormalize", 0) {
             fontCoordinateScaling = FONT_SCALING_NONE;
             fontCoordinateScalingSpecified = true;
@@ -1063,8 +1070,16 @@ int main(int argc, const char *const *argv) {
                 ABORT("Failed to load font file.");
             if (unicode)
                 getGlyphIndex(glyphIndex, guard.font, unicode);
-            if (!loadGlyph(shape, guard.font, glyphIndex, fontCoordinateScaling, &glyphAdvance))
-                ABORT("Failed to load glyph from font file.");
+			if(border > 0)
+			{
+				if (!loadGlyphOutline(shape, guard.font, glyphIndex, border, fontCoordinateScaling, &glyphAdvance))
+					ABORT("Failed to load glyph from font file.");
+			}
+			else
+			{
+				if (!loadGlyph(shape, guard.font, glyphIndex, fontCoordinateScaling, &glyphAdvance))
+					ABORT("Failed to load glyph from font file.");
+			}
             if (!fontCoordinateScalingSpecified && (!autoFrame || scaleSpecified || rangeMode == RANGE_UNIT || mode == METRICS || printMetrics || shapeExport || svgExport)) {
                 fputs(
                     "Warning: Using legacy font coordinate conversion for compatibility reasons.\n"
