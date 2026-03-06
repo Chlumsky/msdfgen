@@ -33,6 +33,8 @@ struct FontMetrics {
     double lineHeight;
     /// The vertical position and thickness of the underline.
     double underlineY, underlineThickness;
+    /// The height of capital letters (from baseline to cap line).
+    double capHeight;
 };
 
 /// A structure to model a given axis of a variable font.
@@ -53,6 +55,8 @@ enum FontCoordinateScaling {
     FONT_SCALING_NONE,
     /// The coordinates will be normalized to the em size, i.e. 1 = 1 em
     FONT_SCALING_EM_NORMALIZED,
+    /// The coordinates will be normalized to the cap height, i.e. 1 = 1 capital letter height
+    FONT_SCALING_CAP_NORMALIZED,
     /// The incorrect legacy version that was in effect before version 1.12, coordinate values are divided by 64 - DO NOT USE - for backwards compatibility only
     FONT_SCALING_LEGACY
 };
