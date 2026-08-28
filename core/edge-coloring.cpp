@@ -17,7 +17,7 @@ namespace msdfgen {
  * It is guaranteed that the output will be balanced in that the total for positions 0 through n-1 will be zero.
  */
 static int symmetricalTrichotomy(int position, int n) {
-    return int(3+2.875*position/(n-1)-1.4375+.5)-3;
+    return int(double(3*position+1)/double(n))-1;
 }
 
 static bool isCorner(const Vector2 &aDir, const Vector2 &bDir, double crossThreshold) {
