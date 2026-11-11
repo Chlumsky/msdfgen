@@ -1,4 +1,11 @@
 
+### Version 1.13.1 (2026-11-11)
+
+- Improved variable font support and added an option to print the available axes
+- Added the `-pxtranslate` setting
+- Clang build fix for a specific configuration
+- Minor fixes and library API updates
+
 ## Version 1.13 (2025-11-30)
 
 - Improved BMP file output - support for BGRA (`mtsdf` mode), optimized size of grayscale files
